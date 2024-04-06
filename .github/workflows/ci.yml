@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  report:
+    needs:
+      - lint-aux
+      - rustfmt
+      - clippy
+      - build-and-test
+    if: always()
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Report success
+        if: "!contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')"
+        run: exit 0
+      - name: Report failure
+        if: "contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')"
+        run: exit 1
+
+  lint-aux:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: ./ci/install-lint-deps.sh
+      - name: Run auxilary lints
+        run: ./ci/lint-aux.sh
+
+  rustfmt:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: ./ci/install-rust.sh stable.txt --profile minimal -c rustfmt
+      - name: Run rustfmt
+        run: cargo fmt --all -- --check
+
+  clippy:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: ./ci/install-rust.sh stable.txt --profile minimal -c clippy
+      - name: Run clippy
+        run: ./ci/clippy.sh
+
+  build-and-test:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        include:
+          - rust-version: msrv.txt
+          - rust-version: stable.txt
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: ./ci/install-rust.sh "${{ matrix.rust-version }}" --profile minimal
+      - name: Build and test
+        run: ./ci/build-and-test.sh
