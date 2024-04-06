@@ -1,6 +1,7 @@
 [package]
 name = "rsjsonnet-lang"
 description = "A Jsonnet evaluation library"
+keywords = ["jsonnet", "library"]
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
