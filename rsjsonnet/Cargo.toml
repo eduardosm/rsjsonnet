@@ -1,6 +1,7 @@
 [package]
 name = "rsjsonnet"
 description = "A command line Jsonnet implementation"
+keywords = ["jsonnet", "cli"]
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

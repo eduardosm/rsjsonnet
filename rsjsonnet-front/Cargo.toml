@@ -1,6 +1,7 @@
 [package]
 name = "rsjsonnet-front"
 description = "A Jsonnet front end (source loading and error printing) library"
+keywords = ["jsonnet", "library"]
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
