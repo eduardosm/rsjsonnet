@@ -1,0 +1,8 @@
+error: invalid base 10: 'X'
+note: while evaluating call to `parseInt`
+ --> invalid_digits_1.jsonnet:1:1
+  |
+1 | std.parseInt("X")
+  | -----------------
+note: during top-level value evaluation
+

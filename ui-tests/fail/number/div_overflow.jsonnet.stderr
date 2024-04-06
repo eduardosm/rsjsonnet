@@ -1,0 +1,7 @@
+error: numeric overflow
+ --> div_overflow.jsonnet:1:1
+  |
+1 | 1e308 / 0.1
+  | ^^^^^^^^^^^
+note: during top-level value evaluation
+

@@ -1,0 +1,8 @@
+error: failed to parse YAML: Parser error: line 1 column 0: did not find expected node content while parsing a flow node (line 1 column 0)
+note: while evaluating call to `parseYaml`
+ --> syntax.jsonnet:1:1
+  |
+1 | std.parseYaml("[1, 2, ")
+  | ------------------------
+note: during top-level value evaluation
+

@@ -1,0 +1,8 @@
+error: argument 0 of function `all` is expected to be array, got null
+note: while evaluating call to `all`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.all(null)
+  | -------------
+note: during top-level value evaluation
+

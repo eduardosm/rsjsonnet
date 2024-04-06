@@ -1,0 +1,58 @@
+error: stack overflow
+note: while evaluating variable `f`
+ --> stack_overflow.jsonnet:1:13
+  |
+1 | local f() = f();
+  |             -
+note: while evaluating call to function
+ --> stack_overflow.jsonnet:1:13
+  |
+1 | local f() = f();
+  |             ---
+note: while evaluating call to function
+ --> stack_overflow.jsonnet:1:13
+  |
+1 | local f() = f();
+  |             ---
+note: while evaluating call to function
+ --> stack_overflow.jsonnet:1:13
+  |
+1 | local f() = f();
+  |             ---
+note: while evaluating call to function
+ --> stack_overflow.jsonnet:1:13
+  |
+1 | local f() = f();
+  |             ---
+note: while evaluating call to function
+ --> stack_overflow.jsonnet:1:13
+  |
+1 | local f() = f();
+  |             ---
+note: while evaluating call to function
+ --> stack_overflow.jsonnet:1:13
+  |
+1 | local f() = f();
+  |             ---
+note: while evaluating call to function
+ --> stack_overflow.jsonnet:1:13
+  |
+1 | local f() = f();
+  |             ---
+note: while evaluating call to function
+ --> stack_overflow.jsonnet:1:13
+  |
+1 | local f() = f();
+  |             ---
+note: while evaluating call to function
+ --> stack_overflow.jsonnet:1:13
+  |
+1 | local f() = f();
+  |             ---
+note: while evaluating call to function
+ --> stack_overflow.jsonnet:2:1
+  |
+2 | f()
+  | ---
+note: during top-level value evaluation
+

@@ -1,0 +1,8 @@
+error: `maxsplits` value 1.25 is not an integer
+note: while evaluating call to `splitLimit`
+ --> maxsplits_not_integer.jsonnet:1:1
+  |
+1 | std.splitLimit("", "c", 1.25)
+  | -----------------------------
+note: during top-level value evaluation
+

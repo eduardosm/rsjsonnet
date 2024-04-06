@@ -1,0 +1,8 @@
+error: argument 0 of function `decodeUTF8` is expected to be array, got null
+note: while evaluating call to `decodeUTF8`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.decodeUTF8(null)
+  | --------------------
+note: during top-level value evaluation
+

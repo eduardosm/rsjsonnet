@@ -1,0 +1,8 @@
+error: argument 1 of function `sort` is expected to be function, got null
+note: while evaluating call to `sort`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.sort([], keyF=null)
+  | -----------------------
+note: during top-level value evaluation
+

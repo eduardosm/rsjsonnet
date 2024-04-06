@@ -1,0 +1,8 @@
+error: array item 0 must be a boolean, got null
+note: while evaluating call to `all`
+ --> item_not_boolean.jsonnet:1:1
+  |
+1 | std.all([null])
+  | ---------------
+note: during top-level value evaluation
+

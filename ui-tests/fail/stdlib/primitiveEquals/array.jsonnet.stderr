@@ -1,0 +1,8 @@
+error: std.primitiveEquals cannot compare values of type array
+note: while evaluating call to `primitiveEquals`
+ --> array.jsonnet:1:1
+  |
+1 | std.primitiveEquals([], [])
+  | ---------------------------
+note: during top-level value evaluation
+

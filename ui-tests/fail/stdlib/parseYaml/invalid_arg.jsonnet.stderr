@@ -1,0 +1,8 @@
+error: argument 0 of function `parseYaml` is expected to be string, got null
+note: while evaluating call to `parseYaml`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.parseYaml(null)
+  | -------------------
+note: during top-level value evaluation
+

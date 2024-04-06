@@ -1,0 +1,2 @@
+args = ["--max-trace", "5"]
+exit-code = 0

@@ -1,0 +1,8 @@
+error: invalid `from` value 1.25
+note: while evaluating call to `range`
+ --> invalid_from.jsonnet:1:1
+  |
+1 | std.range(1.25, 2)
+  | ------------------
+note: during top-level value evaluation
+

@@ -1,0 +1,7 @@
+error: expected boolean for condition, got number
+ --> if_cond_not_bool.jsonnet:1:4
+  |
+1 | if 1 then 1 else 0
+  |    ^
+note: during top-level value evaluation
+

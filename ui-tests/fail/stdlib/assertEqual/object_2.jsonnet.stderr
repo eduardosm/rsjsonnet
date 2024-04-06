@@ -1,0 +1,8 @@
+error: assertion failed: {"a": 1, "b": 2, "c": 3} != {"a": 1, "b": 2}
+note: while evaluating call to `assertEqual`
+ --> object_2.jsonnet:1:1
+  |
+1 | std.assertEqual({ a: 1, b: 2, c: 3 }, { a: 1, b: 2, c:: 3 })
+  | ------------------------------------------------------------
+note: during top-level value evaluation
+

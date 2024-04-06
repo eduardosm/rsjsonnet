@@ -1,0 +1,7 @@
+error: unknown parameter `y`
+ --> unknown_param.jsonnet:1:19
+  |
+1 | local f(x) = 0; f(y=1)
+  |                   ^
+note: during top-level value evaluation
+

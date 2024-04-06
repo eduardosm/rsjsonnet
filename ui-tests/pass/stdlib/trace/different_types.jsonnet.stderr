@@ -1,0 +1,45 @@
+TRACE: trace 4
+note: while evaluating call to `trace`
+ --> different_types.jsonnet:5:12
+  |
+5 |   "array": std.trace("trace 4", [1, 2, 3]),
+  |            -------------------------------
+note: while evaluating object field "array"
+note: during top-level value evaluation
+
+TRACE: trace 1
+note: while evaluating call to `trace`
+ --> different_types.jsonnet:2:11
+  |
+2 |   "null": std.trace("trace 1", null),
+  |           --------------------------
+note: while evaluating object field "null"
+note: during top-level value evaluation
+
+TRACE: trace 2
+note: while evaluating call to `trace`
+ --> different_types.jsonnet:3:13
+  |
+3 |   "number": std.trace("trace 2", 1.5),
+  |             -------------------------
+note: while evaluating object field "number"
+note: during top-level value evaluation
+
+TRACE: trace 5
+note: while evaluating call to `trace`
+ --> different_types.jsonnet:6:13
+  |
+6 |   "object": std.trace("trace 5", { a: 1, b: 2 }),
+  |             ------------------------------------
+note: while evaluating object field "object"
+note: during top-level value evaluation
+
+TRACE: trace 3
+note: while evaluating call to `trace`
+ --> different_types.jsonnet:4:13
+  |
+4 |   "string": std.trace("trace 3", "string"),
+  |             ------------------------------
+note: while evaluating object field "string"
+note: during top-level value evaluation
+

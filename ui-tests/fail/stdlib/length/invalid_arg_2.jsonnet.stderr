@@ -1,0 +1,8 @@
+error: argument 0 of function `length` is expected to be string, array, object or function, got boolean
+note: while evaluating call to `length`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.length(true)
+  | ----------------
+note: during top-level value evaluation
+

@@ -1,0 +1,7 @@
+error: index 10 is out of range for indexable of length 4
+ --> index_out_of_range.jsonnet:1:1
+  |
+1 | [1, 2, 3, 4][10]
+  | ^^^^^^^^^^^^^^^^
+note: during top-level value evaluation
+

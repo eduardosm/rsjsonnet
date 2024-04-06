@@ -1,0 +1,8 @@
+error: argument 0 of function `parseInt` is expected to be string, got null
+note: while evaluating call to `parseInt`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.parseInt(null)
+  | ------------------
+note: during top-level value evaluation
+

@@ -1,0 +1,8 @@
+error: invalid hexadecimal digit: 'G'
+note: while evaluating call to `parseHex`
+ --> invalid_digits.jsonnet:1:1
+  |
+1 | std.parseHex("G")
+  | -----------------
+note: during top-level value evaluation
+

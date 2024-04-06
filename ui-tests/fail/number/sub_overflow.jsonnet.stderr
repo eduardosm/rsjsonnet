@@ -1,0 +1,7 @@
+error: numeric overflow
+ --> sub_overflow.jsonnet:1:1
+  |
+1 | 1e308 - (-1e308)
+  | ^^^^^^^^^^^^^^^^
+note: during top-level value evaluation
+

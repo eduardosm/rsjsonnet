@@ -1,0 +1,8 @@
+error: truncated format code
+note: while evaluating call to `format`
+ --> truncated.jsonnet:1:1
+  |
+1 | std.format("%", [])
+  | -------------------
+note: during top-level value evaluation
+

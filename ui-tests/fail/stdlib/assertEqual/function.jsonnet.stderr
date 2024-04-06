@@ -1,0 +1,8 @@
+error: functions cannot be compared
+note: while evaluating call to `assertEqual`
+ --> function.jsonnet:1:1
+  |
+1 | std.assertEqual(function() null, function() null)
+  | -------------------------------------------------
+note: during top-level value evaluation
+

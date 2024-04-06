@@ -1,0 +1,8 @@
+error: nulls cannot be compared for inequality
+note: while evaluating this expression
+ --> null_le.jsonnet:1:1
+  |
+1 | null <= null
+  | ------------
+note: during top-level value evaluation
+

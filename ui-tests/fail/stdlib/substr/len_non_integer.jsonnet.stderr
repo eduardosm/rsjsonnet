@@ -1,0 +1,8 @@
+error: `len` value 1.25 is not a non-negative integer
+note: while evaluating call to `substr`
+ --> len_non_integer.jsonnet:1:1
+  |
+1 | std.substr("", 1, 1.25)
+  | -----------------------
+note: during top-level value evaluation
+

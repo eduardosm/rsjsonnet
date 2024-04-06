@@ -1,0 +1,8 @@
+error: failed to parse JSON: line 1, column 7: expected `:`
+note: while evaluating call to `parseJson`
+ --> expected_colon_1.jsonnet:1:1
+  |
+1 | std.parseJson('{ "a" 1 }')
+  | --------------------------
+note: during top-level value evaluation
+

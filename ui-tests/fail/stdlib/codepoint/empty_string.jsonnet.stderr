@@ -1,0 +1,8 @@
+error: string is not single-character
+note: while evaluating call to `codepoint`
+ --> empty_string.jsonnet:1:1
+  |
+1 | std.codepoint("")
+  | -----------------
+note: during top-level value evaluation
+

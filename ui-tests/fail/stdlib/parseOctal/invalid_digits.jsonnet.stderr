@@ -1,0 +1,8 @@
+error: invalid octal digit: '8'
+note: while evaluating call to `parseOctal`
+ --> invalid_digits.jsonnet:1:1
+  |
+1 | std.parseOctal("8")
+  | -------------------
+note: during top-level value evaluation
+

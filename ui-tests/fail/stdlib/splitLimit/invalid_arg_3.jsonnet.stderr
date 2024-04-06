@@ -1,0 +1,8 @@
+error: argument 2 of function `splitLimit` is expected to be number, got null
+note: while evaluating call to `splitLimit`
+ --> invalid_arg_3.jsonnet:1:1
+  |
+1 | std.splitLimit("", "c", null)
+  | -----------------------------
+note: during top-level value evaluation
+

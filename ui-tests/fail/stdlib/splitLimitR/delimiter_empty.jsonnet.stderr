@@ -1,0 +1,8 @@
+error: split delimiter is empty
+note: while evaluating call to `splitLimitR`
+ --> delimiter_empty.jsonnet:1:1
+  |
+1 | std.splitLimitR("", "", -1)
+  | ---------------------------
+note: during top-level value evaluation
+

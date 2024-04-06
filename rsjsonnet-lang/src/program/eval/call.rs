@@ -1,0 +1,596 @@
+use std::rc::Rc;
+
+use super::super::{ir, BuiltInFunc, FuncData, ThunkData, ThunkEnv, ThunkEnvData};
+use super::{EvalError, EvalErrorKind, Evaluator, State, TraceItem};
+use crate::gc::{Gc, GcView};
+use crate::interner::InternedStr;
+use crate::span::SpanId;
+
+impl Evaluator<'_> {
+    #[inline]
+    pub(super) fn get_func_info(
+        &self,
+        func: &FuncData,
+    ) -> (
+        Option<InternedStr>,
+        Rc<ir::FuncParams>,
+        Option<Gc<ThunkEnv>>,
+    ) {
+        match func {
+            FuncData::Normal {
+                name, params, env, ..
+            } => (name.clone(), params.clone(), Some(env.clone())),
+            FuncData::BuiltIn { name, params, .. } => (Some(name.clone()), params.clone(), None),
+            FuncData::Native { params, .. } => (None, params.clone(), None),
+        }
+    }
+
+    pub(super) fn check_call_expr_args(
+        &self,
+        params: &ir::FuncParams,
+        positional_args: &[Rc<ir::Expr>],
+        named_args: &[(InternedStr, SpanId, Rc<ir::Expr>)],
+        call_env: GcView<ThunkEnv>,
+        func_env: Option<Gc<ThunkEnv>>,
+        call_span: SpanId,
+    ) -> Result<Box<[Gc<ThunkData>]>, EvalError> {
+        self.check_call_args_generic(
+            params,
+            positional_args,
+            |this, expr| this.new_pending_expr_thunk(expr.clone(), Gc::from(&call_env)),
+            named_args,
+            |(name, _, _)| name,
+            |(_, name_span, _)| Some(*name_span),
+            |this, (_, _, expr)| this.new_pending_expr_thunk(expr.clone(), Gc::from(&call_env)),
+            func_env,
+            Some(call_span),
+        )
+    }
+
+    fn check_call_thunk_args(
+        &self,
+        params: &ir::FuncParams,
+        positional_args: &[GcView<ThunkData>],
+        named_args: &[(InternedStr, GcView<ThunkData>)],
+        func_env: Option<Gc<ThunkEnv>>,
+    ) -> Result<Box<[Gc<ThunkData>]>, EvalError> {
+        self.check_call_args_generic(
+            params,
+            positional_args,
+            |_, thunk| Gc::from(thunk),
+            named_args,
+            |(name, _)| name,
+            |(_, _)| None,
+            |_, (_, thunk)| Gc::from(thunk),
+            func_env,
+            None,
+        )
+    }
+
+    #[inline]
+    fn check_call_args_generic<PosArg, NamedArg>(
+        &self,
+        params: &ir::FuncParams,
+        positional_args: &[PosArg],
+        pos_arg_thunk: impl Fn(&Self, &PosArg) -> Gc<ThunkData>,
+        named_args: &[NamedArg],
+        named_arg_name: impl Fn(&NamedArg) -> &InternedStr,
+        named_arg_name_span: impl Fn(&NamedArg) -> Option<SpanId>,
+        named_arg_thunk: impl Fn(&Self, &NamedArg) -> Gc<ThunkData>,
+        func_env: Option<Gc<ThunkEnv>>,
+        call_span: Option<SpanId>,
+    ) -> Result<Box<[Gc<ThunkData>]>, EvalError> {
+        if positional_args.len() > params.order.len() {
+            return Err(self.report_error(EvalErrorKind::TooManyCallArgs {
+                span: call_span,
+                num_params: params.order.len(),
+            }));
+        }
+
+        // Handle positional arguments
+        let mut args_thunks = Vec::with_capacity(params.order.len());
+        args_thunks.extend(positional_args.iter().map(|arg| pos_arg_thunk(self, arg)));
+
+        if args_thunks.len() == params.order.len() && named_args.is_empty() {
+            // Fast path when all arguments are positional
+            return Ok(args_thunks.into_boxed_slice());
+        }
+
+        // Handle named arguments into a temporary vector
+        let mut named_args_tmp = vec![None; params.order.len() - args_thunks.len()];
+
+        for named_arg in named_args.iter() {
+            let param_name = named_arg_name(named_arg);
+            let name_span = named_arg_name_span(named_arg);
+            let Some(&(param_i, _)) = params.by_name.get(param_name) else {
+                return Err(self.report_error(EvalErrorKind::UnknownCallParam {
+                    span: name_span,
+                    param_name: param_name.value().into(),
+                }));
+            };
+            if param_i < args_thunks.len() {
+                return Err(self.report_error(EvalErrorKind::RepeatedCallParam {
+                    span: name_span,
+                    param_name: param_name.value().into(),
+                }));
+            }
+            let arg_tmp = &mut named_args_tmp[param_i - args_thunks.len()];
+            if arg_tmp.is_some() {
+                return Err(self.report_error(EvalErrorKind::RepeatedCallParam {
+                    span: name_span,
+                    param_name: param_name.value().into(),
+                }));
+            }
+            *arg_tmp = Some(named_arg_thunk(self, named_arg));
+        }
+
+        // Move named arguments from the temporary vector to the final vector
+        let mut named_args_tmp = named_args_tmp.into_iter();
+        while named_args_tmp.len() != 0 {
+            if named_args_tmp.as_slice()[0].is_none() {
+                // Let the next loop try to find default arguments.
+                break;
+            }
+            let arg = named_args_tmp.next().unwrap().unwrap();
+            args_thunks.push(arg);
+        }
+
+        if named_args_tmp.len() == 0 {
+            // Fast path when all parameters are bound
+            // without needing defaults.
+            assert_eq!(args_thunks.len(), params.order.len());
+            return Ok(args_thunks.into_boxed_slice());
+        }
+
+        // An environment is required to evaluate default arguments.
+        let args_env = self.program.gc_alloc_view(ThunkEnv::new());
+
+        for arg_tmp in named_args_tmp {
+            if let Some(arg) = arg_tmp {
+                args_thunks.push(arg);
+            } else {
+                let param_name = &params.order[args_thunks.len()];
+                let (_, Some(default_arg)) = &params.by_name[param_name] else {
+                    return Err(self.report_error(EvalErrorKind::CallParamNotBound {
+                        span: call_span,
+                        param_name: param_name.value().into(),
+                    }));
+                };
+                args_thunks
+                    .push(self.new_pending_expr_thunk(default_arg.clone(), Gc::from(&args_env)));
+            }
+        }
+
+        let mut args_env_data = ThunkEnvData::new(func_env);
+        for (arg_name, arg_thunk) in params.order.iter().zip(args_thunks.iter()) {
+            args_env_data.set_var(arg_name.clone(), arg_thunk.clone());
+        }
+
+        args_env.set_data(args_env_data);
+
+        assert_eq!(args_thunks.len(), params.order.len());
+        Ok(args_thunks.into_boxed_slice())
+    }
+
+    #[inline]
+    pub(super) fn check_thunk_args_and_execute_call(
+        &mut self,
+        func: &FuncData,
+        positional_args: &[GcView<ThunkData>],
+        named_args: &[(InternedStr, GcView<ThunkData>)],
+        call_span: Option<SpanId>,
+    ) -> Result<(), EvalError> {
+        let (func_name, params, func_env) = self.get_func_info(func);
+        let args_thunks =
+            self.check_call_thunk_args(&params, positional_args, named_args, func_env)?;
+        self.push_trace_item(TraceItem::Call {
+            span: call_span,
+            name: func_name,
+        });
+        self.execute_call(func, args_thunks);
+        Ok(())
+    }
+
+    pub(super) fn execute_call(&mut self, func: &FuncData, args: Box<[Gc<ThunkData>]>) {
+        match func {
+            FuncData::Normal {
+                params, body, env, ..
+            } => {
+                self.execute_normal_call(params, body.clone(), env.clone(), args);
+            }
+            FuncData::BuiltIn { kind, .. } => {
+                self.execute_built_in_call(*kind, &args);
+            }
+            FuncData::Native { name, .. } => {
+                self.execute_native_call(name, &args);
+            }
+        }
+    }
+
+    pub(super) fn execute_normal_call(
+        &mut self,
+        params: &ir::FuncParams,
+        body: Rc<ir::Expr>,
+        env: Gc<ThunkEnv>,
+        args: Box<[Gc<ThunkData>]>,
+    ) {
+        let inner_env = self.program.gc_alloc_view(ThunkEnv::new());
+        let mut inner_env_data = ThunkEnvData::new(Some(env));
+        for (arg_name, arg_thunk) in params.order.iter().zip(Vec::from(args)) {
+            inner_env_data.set_var(arg_name.clone(), arg_thunk);
+        }
+        inner_env.set_data(inner_env_data);
+
+        self.state_stack.push(State::Expr {
+            expr: body,
+            env: inner_env,
+        });
+    }
+
+    fn execute_built_in_call(&mut self, kind: BuiltInFunc, args: &[Gc<ThunkData>]) {
+        match kind {
+            BuiltInFunc::Identity => {
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::ExtVar => {
+                self.state_stack.push(State::StdExtVar);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Type => {
+                self.state_stack.push(State::StdType);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::IsArray => {
+                self.state_stack.push(State::StdIsArray);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::IsBoolean => {
+                self.state_stack.push(State::StdIsBoolean);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::IsFunction => {
+                self.state_stack.push(State::StdIsFunction);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::IsNumber => {
+                self.state_stack.push(State::StdIsNumber);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::IsObject => {
+                self.state_stack.push(State::StdIsObject);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::IsString => {
+                self.state_stack.push(State::StdIsString);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Length => {
+                self.state_stack.push(State::StdLength);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::ObjectHasEx => {
+                self.state_stack.push(State::StdObjectHasEx);
+                self.state_stack.push(State::DoThunk(args[2].view()));
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::ObjectFieldsEx => {
+                self.state_stack.push(State::StdObjectFieldsEx);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::PrimitiveEquals => {
+                self.state_stack.push(State::StdPrimitiveEquals);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Equals => {
+                self.state_stack.push(State::StdEquals);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Compare => {
+                self.state_stack.push(State::CmpOrdToIntValueThreeWay);
+                self.state_stack.push(State::CompareValue);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::CompareArray => {
+                self.state_stack.push(State::StdCompareArray);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Exponent => {
+                self.state_stack.push(State::StdExponent);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Mantissa => {
+                self.state_stack.push(State::StdMantissa);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Floor => {
+                self.state_stack.push(State::StdFloor);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Ceil => {
+                self.state_stack.push(State::StdCeil);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Modulo => {
+                self.state_stack.push(State::StdModulo);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Pow => {
+                self.state_stack.push(State::StdPow);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Exp => {
+                self.state_stack.push(State::StdExp);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Log => {
+                self.state_stack.push(State::StdLog);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Sqrt => {
+                self.state_stack.push(State::StdSqrt);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Sin => {
+                self.state_stack.push(State::StdSin);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Cos => {
+                self.state_stack.push(State::StdCos);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Tan => {
+                self.state_stack.push(State::StdTan);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Asin => {
+                self.state_stack.push(State::StdAsin);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Acos => {
+                self.state_stack.push(State::StdAcos);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Atan => {
+                self.state_stack.push(State::StdAtan);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::AssertEqual => {
+                self.state_stack.push(State::StdAssertEqual);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::ToString => {
+                self.state_stack.push(State::CoerceToStringValue);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Codepoint => {
+                self.state_stack.push(State::StdCodepoint);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Char => {
+                self.state_stack.push(State::StdChar);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Substr => {
+                self.state_stack.push(State::StdSubstr);
+                self.state_stack.push(State::DoThunk(args[2].view()));
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::FindSubstr => {
+                self.state_stack.push(State::StdFindSubstr);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::StartsWith => {
+                self.state_stack.push(State::StdStartsWith);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::EndsWith => {
+                let a_arg = args[0].view();
+                let b_arg = args[1].view();
+                self.state_stack.push(State::StdEndsWith);
+                self.state_stack.push(State::DoThunk(b_arg));
+                self.state_stack.push(State::DoThunk(a_arg));
+            }
+            BuiltInFunc::SplitLimit => {
+                self.state_stack.push(State::StdSplitLimit);
+                self.state_stack.push(State::DoThunk(args[2].view()));
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::SplitLimitR => {
+                self.state_stack.push(State::StdSplitLimitR);
+                self.state_stack.push(State::DoThunk(args[2].view()));
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::StrReplace => {
+                self.state_stack.push(State::StdStrReplace);
+                self.state_stack.push(State::DoThunk(args[2].view()));
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::AsciiUpper => {
+                self.state_stack.push(State::StdAsciiUpper);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::AsciiLower => {
+                self.state_stack.push(State::StdAsciiLower);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::StringChars => {
+                self.state_stack.push(State::StdStringChars);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Format => {
+                self.state_stack.push(State::StdFormat);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::EscapeStringJson => {
+                self.state_stack.push(State::StdEscapeStringJson);
+                self.state_stack.push(State::CoerceToString);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::ParseInt => {
+                self.state_stack.push(State::StdParseInt);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::ParseOctal => {
+                self.state_stack.push(State::StdParseOctal);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::ParseHex => {
+                self.state_stack.push(State::StdParseHex);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::ParseJson => {
+                self.state_stack.push(State::StdParseJson);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::ParseYaml => {
+                self.state_stack.push(State::StdParseYaml);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::EncodeUtf8 => {
+                self.state_stack.push(State::StdEncodeUtf8);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::DecodeUtf8 => {
+                self.state_stack.push(State::StdDecodeUtf8);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::ManifestJsonEx => {
+                self.state_stack.push(State::StdManifestJsonEx);
+                self.state_stack.push(State::DoThunk(args[3].view()));
+                self.state_stack.push(State::DoThunk(args[2].view()));
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::MakeArray => {
+                self.state_stack.push(State::StdMakeArray);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Filter => {
+                self.state_stack.push(State::StdFilter);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Foldl => {
+                self.state_stack.push(State::StdFoldl {
+                    init: args[2].view(),
+                });
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Foldr => {
+                self.state_stack.push(State::StdFoldr {
+                    init: args[2].view(),
+                });
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Range => {
+                self.state_stack.push(State::StdRange);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Slice => {
+                self.state_stack.push(State::StdSlice);
+                self.state_stack.push(State::DoThunk(args[3].view()));
+                self.state_stack.push(State::DoThunk(args[2].view()));
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Join => {
+                self.state_stack.push(State::StdJoin);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Sort => {
+                self.state_stack.push(State::StdSort);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Uniq => {
+                self.state_stack.push(State::StdUniq);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::All => {
+                self.state_stack.push(State::StdAll);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Any => {
+                self.state_stack.push(State::StdAny);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Set => {
+                self.state_stack.push(State::StdSet);
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::SetInter => {
+                self.state_stack.push(State::StdSetInter);
+                self.state_stack.push(State::DoThunk(args[2].view()));
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::SetUnion => {
+                self.state_stack.push(State::StdSetUnion);
+                self.state_stack.push(State::DoThunk(args[2].view()));
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::SetDiff => {
+                self.state_stack.push(State::StdSetDiff);
+                self.state_stack.push(State::DoThunk(args[2].view()));
+                self.state_stack.push(State::DoThunk(args[1].view()));
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::SetMember => {
+                self.state_stack
+                    .push(State::StdSetMember { x: args[0].view() });
+                self.state_stack.push(State::DoThunk(args[2].view()));
+                self.state_stack.push(State::DoThunk(args[1].view()));
+            }
+            BuiltInFunc::Md5 => {
+                self.state_stack.push(State::StdMd5);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Native => {
+                self.state_stack.push(State::StdNative);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
+            BuiltInFunc::Trace => {
+                self.state_stack.push(State::StdTrace);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+                self.state_stack.push(State::DoThunk(args[1].view()));
+            }
+        }
+    }
+
+    fn execute_native_call(&mut self, name: &InternedStr, args: &[Gc<ThunkData>]) {
+        self.state_stack.push(State::ExecNativeCall {
+            name: name.clone(),
+            args: args.iter().map(Gc::view).collect(),
+        });
+
+        for arg in args.iter().rev() {
+            self.state_stack.push(State::DiscardValue);
+            self.state_stack.push(State::DeepValue);
+            self.state_stack.push(State::DoThunk(arg.view()));
+        }
+    }
+}

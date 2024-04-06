@@ -1,0 +1,7 @@
+error: unknown field "a"
+ --> unknown_field_1.jsonnet:1:1
+  |
+1 | {}.a
+  | ^^^^
+note: during top-level value evaluation
+

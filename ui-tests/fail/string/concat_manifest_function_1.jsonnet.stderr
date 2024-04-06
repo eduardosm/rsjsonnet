@@ -1,0 +1,8 @@
+error: functions cannot be manifested
+note: while evaluating this expression
+ --> concat_manifest_function_1.jsonnet:1:1
+  |
+1 | (function() null) + ""
+  | ----------------------
+note: during top-level value evaluation
+

@@ -1,0 +1,8 @@
+error: cannot index object with value of type null
+ --> super_index_not_string.jsonnet:1:9
+  |
+1 | {} { a: super[null] }
+  |         ^^^^^^^^^^^
+note: while evaluating object field "a"
+note: during top-level value evaluation
+

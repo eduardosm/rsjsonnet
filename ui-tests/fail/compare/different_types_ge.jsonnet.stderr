@@ -1,0 +1,8 @@
+error: cannot compare values of different types (null and boolean) for inequality
+note: while evaluating this expression
+ --> different_types_ge.jsonnet:1:1
+  |
+1 | null >= true
+  | ------------
+note: during top-level value evaluation
+

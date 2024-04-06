@@ -1,0 +1,8 @@
+error: argument 0 of function `any` is expected to be array, got null
+note: while evaluating call to `any`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.any(null)
+  | -------------
+note: during top-level value evaluation
+

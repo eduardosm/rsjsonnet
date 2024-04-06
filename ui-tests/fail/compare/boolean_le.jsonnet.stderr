@@ -1,0 +1,8 @@
+error: booleans cannot be compared for inequality
+note: while evaluating this expression
+ --> boolean_le.jsonnet:1:1
+  |
+1 | true <= true
+  | ------------
+note: during top-level value evaluation
+

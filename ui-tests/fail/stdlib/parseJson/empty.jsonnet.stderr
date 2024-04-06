@@ -1,0 +1,8 @@
+error: failed to parse JSON: line 1, column 1: expected value
+note: while evaluating call to `parseJson`
+ --> empty.jsonnet:1:1
+  |
+1 | std.parseJson("")
+  | -----------------
+note: during top-level value evaluation
+

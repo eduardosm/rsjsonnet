@@ -1,0 +1,7 @@
+error: 1.25 is not a valid numeric index value
+ --> index_not_integer.jsonnet:1:1
+  |
+1 | [1, 2, 3, 4][1.25]
+  | ^^^^^^^^^^^^^^^^^^
+note: during top-level value evaluation
+

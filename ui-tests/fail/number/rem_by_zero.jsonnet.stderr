@@ -1,0 +1,13 @@
+error: division by zero
+note: while evaluating call to `modulo`
+  --> <stdlib>:65:7
+   |
+65 |       std.modulo(a, b)
+   |       ----------------
+note: while evaluating call to function
+ --> rem_by_zero.jsonnet:1:1
+  |
+1 | 1 % 0
+  | -----
+note: during top-level value evaluation
+

@@ -1,0 +1,8 @@
+error: hexadecimal integer without digits: ""
+note: while evaluating call to `parseHex`
+ --> empty.jsonnet:1:1
+  |
+1 | std.parseHex("")
+  | ----------------
+note: during top-level value evaluation
+

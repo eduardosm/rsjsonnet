@@ -1,0 +1,3 @@
+error: parameter `arg1` is not bound
+note: during top-level function call evaluation
+

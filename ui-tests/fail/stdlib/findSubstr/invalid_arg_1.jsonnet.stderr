@@ -1,0 +1,8 @@
+error: argument 0 of function `findSubstr` is expected to be string, got null
+note: while evaluating call to `findSubstr`
+ --> invalid_arg_1.jsonnet:1:1
+  |
+1 | std.findSubstr(null, "")
+  | ------------------------
+note: during top-level value evaluation
+

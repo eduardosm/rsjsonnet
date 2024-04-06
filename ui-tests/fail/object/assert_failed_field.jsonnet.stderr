@@ -1,0 +1,12 @@
+error: assertion failed
+ --> assert_failed_field.jsonnet:1:15
+  |
+1 | local obj = { assert false, a: 1 };
+  |               ^^^^^^^^^^^^
+note: while evaluating object field "a"
+ --> assert_failed_field.jsonnet:3:1
+  |
+3 | obj.a
+  | -----
+note: during top-level value evaluation
+

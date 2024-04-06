@@ -1,0 +1,8 @@
+error: failed to parse JSON: line 1, column 2: invalid string escape
+note: while evaluating call to `parseJson`
+ --> invalid_unicode_escape_4.jsonnet:1:1
+  |
+1 | std.parseJson('"\\uD800\\u"')
+  | -----------------------------
+note: during top-level value evaluation
+

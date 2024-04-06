@@ -1,0 +1,8 @@
+error: assertion failed: "string" != null
+note: while evaluating call to `assertEqual`
+ --> string_null.jsonnet:1:1
+  |
+1 | std.assertEqual("string", null)
+  | -------------------------------
+note: during top-level value evaluation
+

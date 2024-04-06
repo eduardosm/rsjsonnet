@@ -1,0 +1,8 @@
+error: slice start 1.25 is not a non-negative integer
+note: while evaluating call to `slice`
+ --> invalid_start.jsonnet:1:1
+  |
+1 | std.slice("", 1.25, 2, 1)
+  | -------------------------
+note: during top-level value evaluation
+

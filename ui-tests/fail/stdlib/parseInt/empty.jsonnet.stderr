@@ -1,0 +1,8 @@
+error: integer without digits: ""
+note: while evaluating call to `parseInt`
+ --> empty.jsonnet:1:1
+  |
+1 | std.parseInt("")
+  | ----------------
+note: during top-level value evaluation
+

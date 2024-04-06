@@ -1,0 +1,8 @@
+error: argument 1 of function `filter` is expected to be array, got null
+note: while evaluating call to `filter`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.filter(function(x) null, null)
+  | ----------------------------------
+note: during top-level value evaluation
+

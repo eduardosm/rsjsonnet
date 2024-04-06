@@ -1,0 +1,7 @@
+error: cannot index object with value of type null
+ --> index_not_string.jsonnet:1:1
+  |
+1 | {}[null]
+  | ^^^^^^^^
+note: during top-level value evaluation
+

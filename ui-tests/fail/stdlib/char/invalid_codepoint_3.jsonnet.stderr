@@ -1,0 +1,8 @@
+error: 55296 is not a valid unicode codepoint
+note: while evaluating call to `char`
+ --> invalid_codepoint_3.jsonnet:1:1
+  |
+1 | std.char(55296) # 0xD800
+  | ---------------
+note: during top-level value evaluation
+

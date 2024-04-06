@@ -1,0 +1,8 @@
+error: slice step 1.25 is not a positive integer
+note: while evaluating call to `slice`
+ --> invalid_step.jsonnet:1:1
+  |
+1 | std.slice("", 1, 2, 1.25)
+  | -------------------------
+note: during top-level value evaluation
+

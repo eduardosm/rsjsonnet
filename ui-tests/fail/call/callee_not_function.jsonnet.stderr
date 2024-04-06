@@ -1,0 +1,7 @@
+error: attempted to call a number instead of a function
+ --> callee_not_function.jsonnet:1:1
+  |
+1 | 0()
+  | ^^^
+note: during top-level value evaluation
+

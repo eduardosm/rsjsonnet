@@ -1,0 +1,8 @@
+error: assertion failed: [{ }] != { }
+note: while evaluating call to `assertEqual`
+ --> array_object.jsonnet:1:1
+  |
+1 | std.assertEqual([{}], {})
+  | -------------------------
+note: during top-level value evaluation
+

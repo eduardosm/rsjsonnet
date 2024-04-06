@@ -1,0 +1,8 @@
+error: failed to parse JSON: line 1, column 11: expected object key
+note: while evaluating call to `parseJson`
+ --> expected_object_key_2.jsonnet:1:1
+  |
+1 | std.parseJson('{ "a": 1, 2 }')
+  | ------------------------------
+note: during top-level value evaluation
+

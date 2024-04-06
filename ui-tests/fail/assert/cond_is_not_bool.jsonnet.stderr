@@ -1,0 +1,7 @@
+error: expected boolean for condition, got number
+ --> cond_is_not_bool.jsonnet:1:8
+  |
+1 | assert 1; [1, 2, 3]
+  |        ^
+note: during top-level value evaluation
+

@@ -1,0 +1,8 @@
+error: failed to parse JSON: line 1, column 1: invalid number
+note: while evaluating call to `parseJson`
+ --> missing_exp_digits_2.jsonnet:1:1
+  |
+1 | std.parseJson("1e+")
+  | --------------------
+note: during top-level value evaluation
+

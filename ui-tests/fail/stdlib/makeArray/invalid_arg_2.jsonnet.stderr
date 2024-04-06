@@ -1,0 +1,8 @@
+error: argument 1 of function `makeArray` is expected to be function, got null
+note: while evaluating call to `makeArray`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.makeArray(0, null)
+  | ----------------------
+note: during top-level value evaluation
+

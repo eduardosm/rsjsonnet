@@ -1,0 +1,8 @@
+error: objects cannot be compared for inequality
+note: while evaluating call to `__compare`
+ --> object.jsonnet:1:1
+  |
+1 | std.__compare({}, {})
+  | ---------------------
+note: during top-level value evaluation
+

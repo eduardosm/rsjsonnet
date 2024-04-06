@@ -1,0 +1,8 @@
+error: failed to parse JSON: line 1, column 10: expected `}` or `,`
+note: while evaluating call to `parseJson`
+ --> expected_brace_or_comma.jsonnet:1:1
+  |
+1 | std.parseJson('{ "a": 1 "b": 2 }')
+  | ----------------------------------
+note: during top-level value evaluation
+

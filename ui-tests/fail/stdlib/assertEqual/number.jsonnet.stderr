@@ -1,0 +1,8 @@
+error: assertion failed: 1.5 != 1.75
+note: while evaluating call to `assertEqual`
+ --> number.jsonnet:1:1
+  |
+1 | std.assertEqual(1.5, 1.75)
+  | --------------------------
+note: during top-level value evaluation
+

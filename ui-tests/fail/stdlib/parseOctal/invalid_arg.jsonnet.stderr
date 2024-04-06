@@ -1,0 +1,8 @@
+error: argument 0 of function `parseOctal` is expected to be string, got null
+note: while evaluating call to `parseOctal`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.parseOctal(null)
+  | --------------------
+note: during top-level value evaluation
+

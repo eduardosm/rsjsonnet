@@ -1,0 +1,8 @@
+error: assertion failed: "string" != 0
+note: while evaluating call to `assertEqual`
+ --> string_number.jsonnet:1:1
+  |
+1 | std.assertEqual("string", 0)
+  | ----------------------------
+note: during top-level value evaluation
+

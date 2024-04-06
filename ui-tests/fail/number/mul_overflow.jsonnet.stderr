@@ -1,0 +1,7 @@
+error: numeric overflow
+ --> mul_overflow.jsonnet:1:1
+  |
+1 | 1e300 * 1e300
+  | ^^^^^^^^^^^^^
+note: during top-level value evaluation
+

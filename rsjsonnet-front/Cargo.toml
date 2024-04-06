@@ -1,0 +1,18 @@
+[package]
+name = "rsjsonnet-front"
+description = "A Jsonnet front end (source loading and error printing) library"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+
+[dependencies]
+crossterm = { version = "0.27.0", optional = true }
+sourceannot = "0.1.1"
+rsjsonnet-lang = { workspace = true }

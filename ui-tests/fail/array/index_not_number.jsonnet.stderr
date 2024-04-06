@@ -1,0 +1,7 @@
+error: cannot index array with value of type null
+ --> index_not_number.jsonnet:1:1
+  |
+1 | [1, 2, 3, 4][null]
+  | ^^^^^^^^^^^^^^^^^^
+note: during top-level value evaluation
+

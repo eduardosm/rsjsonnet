@@ -1,0 +1,8 @@
+error: argument 2 of function `substr` is expected to be number, got null
+note: while evaluating call to `substr`
+ --> invalid_arg_3.jsonnet:1:1
+  |
+1 | std.substr("", 0, null)
+  | -----------------------
+note: during top-level value evaluation
+

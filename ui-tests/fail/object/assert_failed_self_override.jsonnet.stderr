@@ -1,0 +1,7 @@
+error: assertion failed
+ --> assert_failed_self_override.jsonnet:1:15
+  |
+1 | local obj = { assert self.a, a: true } + { a: false };
+  |               ^^^^^^^^^^^^^
+note: during top-level value evaluation
+

@@ -1,0 +1,7 @@
+error: explicit error: error msg
+ --> with_str_msg.jsonnet:1:1
+  |
+1 | error "error msg"
+  | ^^^^^^^^^^^^^^^^^
+note: during top-level value evaluation
+

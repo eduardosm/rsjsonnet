@@ -1,0 +1,8 @@
+error: functions cannot be manifested
+note: while evaluating call to `escapeStringJson`
+ --> manifest_fun.jsonnet:1:1
+  |
+1 | std.escapeStringJson(function() null)
+  | -------------------------------------
+note: during top-level value evaluation
+

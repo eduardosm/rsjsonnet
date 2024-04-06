@@ -1,0 +1,8 @@
+error: functions cannot be compared
+note: while evaluating call to `__compare`
+ --> function.jsonnet:1:1
+  |
+1 | std.__compare(function() null, function() null)
+  | -----------------------------------------------
+note: during top-level value evaluation
+

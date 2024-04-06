@@ -1,0 +1,8 @@
+error: array item must null or array, got number
+note: while evaluating call to `join`
+ --> item_not_array.jsonnet:1:1
+  |
+1 | std.join([], [0])
+  | -----------------
+note: during top-level value evaluation
+

@@ -1,0 +1,8 @@
+error: argument 1 of function `join` is expected to be array, got null
+note: while evaluating call to `join`
+ --> invalid_arg_3.jsonnet:1:1
+  |
+1 | std.join("", null)
+  | ------------------
+note: during top-level value evaluation
+

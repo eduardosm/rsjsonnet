@@ -1,0 +1,20 @@
+[workspace]
+members = [
+    "rsjsonnet",
+    "rsjsonnet-front",
+    "rsjsonnet-lang",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.0.0"
+authors = ["Eduardo Sánchez Muñoz <eduardosm-dev@e64.io>"]
+edition = "2021"
+rust-version = "1.74"
+repository = "https://github.com/eduardosm/rsjsonnet"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+rsjsonnet-front = { path = "rsjsonnet-front", version = "=0.0.0" }
+rsjsonnet-lang = { path = "rsjsonnet-lang", version = "=0.0.0" }

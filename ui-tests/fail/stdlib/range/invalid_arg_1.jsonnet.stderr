@@ -1,0 +1,8 @@
+error: argument 0 of function `range` is expected to be number, got null
+note: while evaluating call to `range`
+ --> invalid_arg_1.jsonnet:1:1
+  |
+1 | std.range(null, 0)
+  | ------------------
+note: during top-level value evaluation
+

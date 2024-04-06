@@ -1,0 +1,7 @@
+error: repeated parameter `x`
+ --> repeated_param_1.jsonnet:1:22
+  |
+1 | local f(x) = 0; f(1, x=2)
+  |                      ^
+note: during top-level value evaluation
+

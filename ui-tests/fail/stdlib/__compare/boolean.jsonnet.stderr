@@ -1,0 +1,8 @@
+error: booleans cannot be compared for inequality
+note: while evaluating call to `__compare`
+ --> boolean.jsonnet:1:1
+  |
+1 | std.__compare(true, true)
+  | -------------------------
+note: during top-level value evaluation
+

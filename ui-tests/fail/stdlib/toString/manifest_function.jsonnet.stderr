@@ -1,0 +1,8 @@
+error: functions cannot be manifested
+note: while evaluating call to `toString`
+ --> manifest_function.jsonnet:1:1
+  |
+1 | std.toString(function() null)
+  | -----------------------------
+note: during top-level value evaluation
+

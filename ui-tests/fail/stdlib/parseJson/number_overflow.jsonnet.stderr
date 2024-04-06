@@ -1,0 +1,8 @@
+error: failed to parse JSON: line 1, column 1: number overflow
+note: while evaluating call to `parseJson`
+ --> number_overflow.jsonnet:1:1
+  |
+1 | std.parseJson("1e400")
+  | ----------------------
+note: during top-level value evaluation
+

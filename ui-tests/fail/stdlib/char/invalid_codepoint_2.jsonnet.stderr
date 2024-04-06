@@ -1,0 +1,8 @@
+error: 10000000000 is not a valid unicode codepoint
+note: while evaluating call to `char`
+ --> invalid_codepoint_2.jsonnet:1:1
+  |
+1 | std.char(1e10)
+  | --------------
+note: during top-level value evaluation
+

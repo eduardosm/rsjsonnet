@@ -1,0 +1,3 @@
+local f() = "result";
+
+f

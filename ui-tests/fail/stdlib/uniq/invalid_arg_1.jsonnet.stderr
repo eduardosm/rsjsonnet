@@ -1,0 +1,8 @@
+error: argument 0 of function `uniq` is expected to be array, got null
+note: while evaluating call to `uniq`
+ --> invalid_arg_1.jsonnet:1:1
+  |
+1 | std.uniq(null)
+  | --------------
+note: during top-level value evaluation
+

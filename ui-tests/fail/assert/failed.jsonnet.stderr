@@ -1,0 +1,7 @@
+error: assertion failed
+ --> failed.jsonnet:1:1
+  |
+1 | assert false; [1, 2, 3]
+  | ^^^^^^^^^^^^
+note: during top-level value evaluation
+

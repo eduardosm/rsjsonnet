@@ -1,0 +1,7 @@
+error: attempted to access field of non-object value
+ --> field_of_non_object.jsonnet:1:1
+  |
+1 | null.a
+  | ^^^^^^
+note: during top-level value evaluation
+

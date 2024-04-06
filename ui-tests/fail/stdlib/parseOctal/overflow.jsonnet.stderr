@@ -1,0 +1,8 @@
+error: numeric overflow
+note: while evaluating call to `parseOctal`
+ --> overflow.jsonnet:1:1
+  |
+1 | std.parseOctal("1" + std.repeat("0", 400))
+  | ------------------------------------------
+note: during top-level value evaluation
+

@@ -1,0 +1,8 @@
+error: `super` used without super object
+ --> super_without_super_object_3.jsonnet:1:6
+  |
+1 | { a: super["a"] }
+  |      ^^^^^
+note: while evaluating object field "a"
+note: during top-level value evaluation
+

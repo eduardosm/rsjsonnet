@@ -1,0 +1,8 @@
+error: argument 2 of function `setInter` is expected to be function, got null
+note: while evaluating call to `setInter`
+ --> invalid_arg_3.jsonnet:1:1
+  |
+1 | std.setInter([], [], keyF=null)
+  | -------------------------------
+note: during top-level value evaluation
+

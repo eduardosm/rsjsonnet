@@ -1,0 +1,8 @@
+error: argument 1 of function `setDiff` is expected to be array, got null
+note: while evaluating call to `setDiff`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.setDiff([], null)
+  | ---------------------
+note: during top-level value evaluation
+

@@ -1,0 +1,8 @@
+error: argument 1 of function `foldr` is expected to be array, got null
+note: while evaluating call to `foldr`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.foldr(function(x, y) null, null, null)
+  | ------------------------------------------
+note: during top-level value evaluation
+

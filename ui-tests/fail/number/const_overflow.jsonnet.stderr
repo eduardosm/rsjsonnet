@@ -1,0 +1,7 @@
+error: numeric overflow
+ --> const_overflow.jsonnet:1:1
+  |
+1 | 1e400
+  | ^^^^^
+note: during top-level value evaluation
+

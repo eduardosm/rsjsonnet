@@ -1,0 +1,8 @@
+error: array item value 1000 is not a byte
+note: while evaluating call to `decodeUTF8`
+ --> item_not_byte.jsonnet:1:1
+  |
+1 | std.decodeUTF8([1000])
+  | ----------------------
+note: during top-level value evaluation
+

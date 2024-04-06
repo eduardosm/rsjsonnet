@@ -1,0 +1,8 @@
+error: argument 0 of function `char` is expected to be number, got null
+note: while evaluating call to `char`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.char(null)
+  | --------------
+note: during top-level value evaluation
+

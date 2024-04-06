@@ -1,0 +1,7 @@
+error: parameter `x` is not bound
+ --> param_not_bound.jsonnet:1:17
+  |
+1 | local f(x) = 0; f()
+  |                 ^^^
+note: during top-level value evaluation
+

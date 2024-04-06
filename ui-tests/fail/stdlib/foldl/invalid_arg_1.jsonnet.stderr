@@ -1,0 +1,8 @@
+error: argument 0 of function `foldl` is expected to be function, got null
+note: while evaluating call to `foldl`
+ --> invalid_arg_1.jsonnet:1:1
+  |
+1 | std.foldl(null, [], null)
+  | -------------------------
+note: during top-level value evaluation
+

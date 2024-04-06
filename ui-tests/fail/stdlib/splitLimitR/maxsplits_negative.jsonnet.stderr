@@ -1,0 +1,8 @@
+error: `maxsplits` value -2 is not -1 or non-negative
+note: while evaluating call to `splitLimitR`
+ --> maxsplits_negative.jsonnet:1:1
+  |
+1 | std.splitLimitR("", "c", -2)
+  | ----------------------------
+note: during top-level value evaluation
+

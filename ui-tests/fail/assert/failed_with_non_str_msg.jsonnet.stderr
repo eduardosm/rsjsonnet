@@ -1,0 +1,7 @@
+error: assertion failed: {"x": 1}
+ --> failed_with_non_str_msg.jsonnet:1:1
+  |
+1 | assert false : { x: 1 }; [1, 2, 3]
+  | ^^^^^^^^^^^^^^^^^^^^^^^
+note: during top-level value evaluation
+

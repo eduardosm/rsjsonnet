@@ -1,0 +1,8 @@
+error: argument 2 of function `setMember` is expected to be function, got null
+note: while evaluating call to `setMember`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.setMember(0, [], keyF=null)
+  | -------------------------------
+note: during top-level value evaluation
+

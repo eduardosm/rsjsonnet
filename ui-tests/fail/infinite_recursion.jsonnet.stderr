@@ -1,0 +1,14 @@
+error: infinite recursion
+note: while evaluating array item 0
+ --> infinite_recursion.jsonnet:1:20
+  |
+1 | local x = [y], y = x[0];
+  |                    ----
+note: while evaluating variable `y`
+ --> infinite_recursion.jsonnet:1:12
+  |
+1 | local x = [y], y = x[0];
+  |            -
+note: while evaluating array item 0
+note: during top-level value evaluation
+

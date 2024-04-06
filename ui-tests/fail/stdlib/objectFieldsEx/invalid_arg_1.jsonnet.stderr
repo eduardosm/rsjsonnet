@@ -1,0 +1,8 @@
+error: argument 0 of function `objectFieldsEx` is expected to be object, got null
+note: while evaluating call to `objectFieldsEx`
+ --> invalid_arg_1.jsonnet:1:1
+  |
+1 | std.objectFieldsEx(null, false)
+  | -------------------------------
+note: during top-level value evaluation
+

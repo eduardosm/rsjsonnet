@@ -1,0 +1,8 @@
+error: unknown external variable "unknown_var"
+note: while evaluating call to `extVar`
+ --> unknown_var.jsonnet:1:1
+  |
+1 | std.extVar("unknown_var")
+  | -------------------------
+note: during top-level value evaluation
+

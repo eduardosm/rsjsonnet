@@ -1,0 +1,8 @@
+error: assertion failed: "string" != "strong"
+note: while evaluating call to `assertEqual`
+ --> pass_then_fail.jsonnet:2:1
+  |
+2 | std.assertEqual("string", "strong") &&
+  | -----------------------------------
+note: during top-level value evaluation
+

@@ -1,0 +1,6 @@
+args = [
+    "--ext-str",
+    "str_var=string variable",
+    "--ext-code",
+    "code_var={ a: 0.5 } { a+: 0.5, b: 2 }",
+]

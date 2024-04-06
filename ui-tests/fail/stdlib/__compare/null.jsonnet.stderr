@@ -1,0 +1,8 @@
+error: nulls cannot be compared for inequality
+note: while evaluating call to `__compare`
+ --> null.jsonnet:1:1
+  |
+1 | std.__compare(null, null)
+  | -------------------------
+note: during top-level value evaluation
+

@@ -1,0 +1,1 @@
+std.objectHasEx({}, null, false)

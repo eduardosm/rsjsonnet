@@ -1,0 +1,8 @@
+error: invalid size value 1.25
+note: while evaluating call to `makeArray`
+ --> invalid_size.jsonnet:1:1
+  |
+1 | std.makeArray(1.25, function(x) null)
+  | -------------------------------------
+note: during top-level value evaluation
+

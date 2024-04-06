@@ -1,0 +1,1 @@
+std.startsWith(null, "")

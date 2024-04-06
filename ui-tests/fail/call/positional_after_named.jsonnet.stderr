@@ -1,0 +1,6 @@
+error: positional argument after named argument
+ --> positional_after_named.jsonnet:1:27
+  |
+1 | local f(x, y) = 0; f(x=1, 2)
+  |                           ^ positional argument after named argument
+

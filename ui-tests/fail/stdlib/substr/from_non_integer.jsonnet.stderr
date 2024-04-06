@@ -1,0 +1,8 @@
+error: `from` value 1.25 is not a non-negative integer
+note: while evaluating call to `substr`
+ --> from_non_integer.jsonnet:1:1
+  |
+1 | std.substr("", 1.25, 1)
+  | -----------------------
+note: during top-level value evaluation
+

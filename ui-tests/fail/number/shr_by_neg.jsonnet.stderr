@@ -1,0 +1,7 @@
+error: shift by negative amount
+ --> shr_by_neg.jsonnet:1:1
+  |
+1 | 1 >> -1
+  | ^^^^^^^
+note: during top-level value evaluation
+

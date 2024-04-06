@@ -1,0 +1,8 @@
+error: assertion failed: 0 != true
+note: while evaluating call to `assertEqual`
+ --> number_boolean.jsonnet:1:1
+  |
+1 | std.assertEqual(0, true)
+  | ------------------------
+note: during top-level value evaluation
+

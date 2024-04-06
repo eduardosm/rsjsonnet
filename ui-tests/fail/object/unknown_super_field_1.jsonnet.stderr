@@ -1,0 +1,8 @@
+error: unknown field "a"
+ --> unknown_super_field_1.jsonnet:1:11
+  |
+1 | {} + { a: super.a }
+  |           ^^^^^^^
+note: while evaluating object field "a"
+note: during top-level value evaluation
+

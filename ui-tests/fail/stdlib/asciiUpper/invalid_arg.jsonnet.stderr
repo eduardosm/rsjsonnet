@@ -1,0 +1,8 @@
+error: argument 0 of function `asciiUpper` is expected to be string, got null
+note: while evaluating call to `asciiUpper`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.asciiUpper(null)
+  | --------------------
+note: during top-level value evaluation
+

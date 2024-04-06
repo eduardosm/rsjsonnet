@@ -1,0 +1,8 @@
+error: argument 1 of function `strReplace` is expected to be string, got null
+note: while evaluating call to `strReplace`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.strReplace("", null, "")
+  | ----------------------------
+note: during top-level value evaluation
+

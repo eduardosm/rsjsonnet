@@ -1,0 +1,8 @@
+error: filter function must return a boolean, got null
+note: while evaluating call to `filter`
+ --> cond_not_boolean.jsonnet:1:1
+  |
+1 | std.filter(function(x) null, [0])
+  | ---------------------------------
+note: during top-level value evaluation
+

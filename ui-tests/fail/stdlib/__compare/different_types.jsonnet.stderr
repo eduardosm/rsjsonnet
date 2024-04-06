@@ -1,0 +1,8 @@
+error: cannot compare values of different types (null and boolean) for inequality
+note: while evaluating call to `__compare`
+ --> different_types.jsonnet:1:1
+  |
+1 | std.__compare(null, true)
+  | -------------------------
+note: during top-level value evaluation
+

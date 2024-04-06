@@ -1,0 +1,8 @@
+error: assertion failed: null != [null]
+note: while evaluating call to `assertEqual`
+ --> null_array.jsonnet:1:1
+  |
+1 | std.assertEqual(null, [null])
+  | -----------------------------
+note: during top-level value evaluation
+

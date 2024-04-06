@@ -1,0 +1,12 @@
+error: explicit error: ext var fail
+ --> <ext:code_var>:1:1
+  |
+1 | error 'ext var fail'
+  | ^^^^^^^^^^^^^^^^^^^^
+note: while evaluating call to `extVar`
+ --> code_var_error.jsonnet:1:1
+  |
+1 | std.extVar("code_var")
+  | ----------------------
+note: during top-level value evaluation
+

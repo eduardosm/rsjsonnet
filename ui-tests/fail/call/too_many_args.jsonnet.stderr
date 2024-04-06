@@ -1,0 +1,7 @@
+error: too many arguments, function has 1 parameter(s)
+ --> too_many_args.jsonnet:1:17
+  |
+1 | local f(x) = 0; f(1, 2)
+  |                 ^^^^^^^
+note: during top-level value evaluation
+

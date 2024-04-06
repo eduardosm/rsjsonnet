@@ -1,0 +1,8 @@
+error: failed to parse YAML: empty stream
+note: while evaluating call to `parseYaml`
+ --> empty.jsonnet:1:1
+  |
+1 | std.parseYaml("")
+  | -----------------
+note: during top-level value evaluation
+

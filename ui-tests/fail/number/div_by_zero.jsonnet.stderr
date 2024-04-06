@@ -1,0 +1,7 @@
+error: division by zero
+ --> div_by_zero.jsonnet:1:1
+  |
+1 | 1 / 0
+  | ^^^^^
+note: during top-level value evaluation
+

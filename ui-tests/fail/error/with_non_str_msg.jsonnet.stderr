@@ -1,0 +1,7 @@
+error: explicit error: [ ]
+ --> with_non_str_msg.jsonnet:1:1
+  |
+1 | error []
+  | ^^^^^^^^
+note: during top-level value evaluation
+

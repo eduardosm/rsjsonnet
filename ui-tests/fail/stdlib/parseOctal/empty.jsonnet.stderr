@@ -1,0 +1,8 @@
+error: octal integer without digits: ""
+note: while evaluating call to `parseOctal`
+ --> empty.jsonnet:1:1
+  |
+1 | std.parseOctal("")
+  | ------------------
+note: during top-level value evaluation
+

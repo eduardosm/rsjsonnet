@@ -1,0 +1,7 @@
+error: repeated field name "a"
+ --> repeated_field_name_3.jsonnet:1:13
+  |
+1 | { ["a"]: 1, ["a"]: 2 }
+  |             ^^^^^
+note: during top-level value evaluation
+

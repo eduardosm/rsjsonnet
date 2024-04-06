@@ -1,0 +1,8 @@
+error: function must have exactly 1 parameter, got 2
+note: while evaluating call to `makeArray`
+ --> function_num_params.jsonnet:1:1
+  |
+1 | std.makeArray(0, function(x, y) null)
+  | -------------------------------------
+note: during top-level value evaluation
+

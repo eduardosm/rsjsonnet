@@ -1,0 +1,8 @@
+error: argument 2 of function `slice` is expected to be null or number, got boolean
+note: while evaluating call to `slice`
+ --> invalid_arg_3.jsonnet:1:1
+  |
+1 | std.slice([], 0, true, 1)
+  | -------------------------
+note: during top-level value evaluation
+

@@ -1,0 +1,8 @@
+error: failed to parse JSON: line 1, column 6: expected end-of-file
+note: while evaluating call to `parseJson`
+ --> expected_eof.jsonnet:1:1
+  |
+1 | std.parseJson("null null")
+  | --------------------------
+note: during top-level value evaluation
+

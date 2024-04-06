@@ -1,0 +1,8 @@
+error: assertion failed: [1, [2, 3]] != [1, [2, 4]]
+note: while evaluating call to `assertEqual`
+ --> array_2.jsonnet:1:1
+  |
+1 | std.assertEqual([1, [2, 3]], [1, [2, 4]])
+  | -----------------------------------------
+note: during top-level value evaluation
+

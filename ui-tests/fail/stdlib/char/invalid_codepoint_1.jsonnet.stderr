@@ -1,0 +1,8 @@
+error: -1 is not a valid unicode codepoint
+note: while evaluating call to `char`
+ --> invalid_codepoint_1.jsonnet:1:1
+  |
+1 | std.char(-1)
+  | ------------
+note: during top-level value evaluation
+
