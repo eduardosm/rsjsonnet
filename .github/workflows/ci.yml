@@ -11,6 +11,7 @@ jobs:
       - rustfmt
       - clippy
       - build-and-test
+      - package-crates
       - build-dist-linux
     if: always()
     runs-on: ubuntu-20.04
@@ -62,6 +63,21 @@ jobs:
         run: ./ci/install-rust.sh "${{ matrix.rust-version }}" --profile minimal
       - name: Build and test
         run: ./ci/build-and-test.sh
+
+  package-crates:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: ./ci/install-rust.sh stable.txt --profile minimal
+      - name: Package crates
+        run: ./ci/package-crates.sh
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: packaged-crates
+          path: output
+          if-no-files-found: error
 
   build-dist-linux:
     runs-on: ubuntu-20.04
