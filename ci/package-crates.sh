@@ -19,14 +19,14 @@ cargo vendor --frozen "$pkgs_dir" > .cargo/config.toml
 echo "::endgroup::"
 
 crates=(
-    rsjsonnet-lang
-    rsjsonnet-front
-    rsjsonnet
+  rsjsonnet-lang
+  rsjsonnet-front
+  rsjsonnet
 )
 
 for crate in "${crates[@]}"; do
   echo "::group::Package $crate"
-  cargo package -p "$crate" --no-verify --frozen
+  cargo package -p "$crate" --frozen
   tar -xf "target/package/$crate-$version.crate" -C "$pkgs_dir"
   pkg_checksum="$(sha256sum "target/package/$crate-$version.crate" | awk '{print $1}')"
   echo "{\"files\":{},\"package\":\"$pkg_checksum\"}" > "$pkgs_dir/$crate-$version/.cargo-checksum.json"
