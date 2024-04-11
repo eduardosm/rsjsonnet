@@ -25,17 +25,22 @@ export CARGO_PROFILE_RELEASE_STRIP=debuginfo
 
 echo "::group::Fetch Rust dependencies"
 cargo fetch --locked
+echo "::endgroup::"
+
 mkdir output
-echo "::endgroup::"
 
-echo "::group::Build x86_64"
-cargo build -p rsjsonnet --target x86_64-unknown-linux-gnu --release --frozen
-mkdir output/rsjsonnet-linux-x86_64
-cp target/x86_64-unknown-linux-gnu/release/rsjsonnet output/rsjsonnet-linux-x86_64/rsjsonnet
-echo "::endgroup::"
+build_and_compress() {
+  name="$1"
+  target="$2"
+  full_name="rsjsonnet-$name"
 
-echo "::group::Build i686"
-cargo build -p rsjsonnet --target i686-unknown-linux-gnu --release --frozen
-mkdir output/rsjsonnet-linux-i686
-cp target/i686-unknown-linux-gnu/release/rsjsonnet output/rsjsonnet-linux-i686/rsjsonnet
-echo "::endgroup::"
+  echo "::group::Build $name"
+  cargo build -p rsjsonnet --target "$target" --release --frozen
+  mkdir "output/$full_name"
+  cp -t "output/$full_name" "target/$target/release/rsjsonnet"
+  (cd output; tar -czf "$full_name.tar.gz" "$full_name")
+  echo "::endgroup::"
+}
+
+build_and_compress linux-x86_64 x86_64-unknown-linux-gnu
+build_and_compress linux-i686 i686-unknown-linux-gnu
