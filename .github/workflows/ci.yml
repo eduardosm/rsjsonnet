@@ -13,6 +13,7 @@ jobs:
       - build-and-test
       - package-crates
       - build-dist-linux
+      - build-dist-windows
     if: always()
     runs-on: ubuntu-20.04
     steps:
@@ -103,4 +104,30 @@ jobs:
         with:
           name: dist-linux-i686
           path: output/rsjsonnet-linux-i686
+          if-no-files-found: error
+
+  build-dist-windows:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pull image
+        run: docker pull debian:12-slim
+      - name: Build
+        run: |
+          docker run \
+            -v "$(pwd):/workdir" \
+            -w /workdir \
+            debian:12-slim \
+            bash ./ci/build-dist-windows.sh
+      - name: Upload windows-x86_64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-windows-x86_64
+          path: output/rsjsonnet-windows-x86_64
+          if-no-files-found: error
+      - name: Upload windows-i686 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-windows-i686
+          path: output/rsjsonnet-windows-i686
           if-no-files-found: error
