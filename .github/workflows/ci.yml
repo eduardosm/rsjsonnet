@@ -93,17 +93,13 @@ jobs:
             -w /workdir \
             quay.io/pypa/manylinux2014_x86_64 \
             bash ./ci/build-dist-linux.sh
-      - name: Upload linux-x86_64 artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dist-linux-x86_64
-          path: output/rsjsonnet-linux-x86_64.tar.gz
-          if-no-files-found: error
-      - name: Upload linux-i686 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-linux-i686
-          path: output/rsjsonnet-linux-i686.tar.gz
+          name: dist-linux
+          path: |
+            output/rsjsonnet-linux-x86_64.tar.gz
+            output/rsjsonnet-linux-i686.tar.gz
           if-no-files-found: error
 
   build-dist-windows:
@@ -119,15 +115,11 @@ jobs:
             -w /workdir \
             debian:12-slim \
             bash ./ci/build-dist-windows.sh
-      - name: Upload windows-x86_64 artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dist-windows-x86_64
-          path: output/rsjsonnet-windows-x86_64.zip
-          if-no-files-found: error
-      - name: Upload windows-i686 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-windows-i686
-          path: output/rsjsonnet-windows-i686.zip
+          name: dist-windows
+          path: |
+            output/rsjsonnet-windows-x86_64.zip
+            output/rsjsonnet-windows-i686.zip
           if-no-files-found: error
