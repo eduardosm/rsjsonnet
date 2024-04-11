@@ -14,16 +14,16 @@ note: while evaluating call to function
   |
 4 |   else f(x - 1);
   |        --------
+note: ... 7 items hidden ...
 note: while evaluating call to function
  --> cropped_stack.jsonnet:4:8
   |
 4 |   else f(x - 1);
   |        --------
 note: while evaluating call to function
- --> cropped_stack.jsonnet:4:8
+ --> cropped_stack.jsonnet:6:1
   |
-4 |   else f(x - 1);
-  |        --------
-note: and 7 more stack trace items
+6 | f(10)
+  | -----
 note: during top-level value evaluation
 
