@@ -97,13 +97,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-linux-x86_64
-          path: output/rsjsonnet-linux-x86_64
+          path: output/rsjsonnet-linux-x86_64.tar.gz
           if-no-files-found: error
       - name: Upload linux-i686 artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-linux-i686
-          path: output/rsjsonnet-linux-i686
+          path: output/rsjsonnet-linux-i686.tar.gz
           if-no-files-found: error
 
   build-dist-windows:
@@ -123,11 +123,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-windows-x86_64
-          path: output/rsjsonnet-windows-x86_64
+          path: output/rsjsonnet-windows-x86_64.zip
           if-no-files-found: error
       - name: Upload windows-i686 artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-windows-i686
-          path: output/rsjsonnet-windows-i686
+          path: output/rsjsonnet-windows-i686.zip
           if-no-files-found: error

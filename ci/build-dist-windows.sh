@@ -6,6 +6,7 @@ apt-get update
 apt-get install -y --no-install-recommends \
   curl \
   ca-certificates \
+  zip \
   gcc \
   libc6-dev \
   gcc-mingw-w64-x86-64 \
@@ -36,14 +37,18 @@ echo "::endgroup::"
 
 mkdir output
 
-echo "::group::Build x86_64"
-cargo build -p rsjsonnet --target x86_64-pc-windows-gnu --release --frozen
-mkdir output/rsjsonnet-windows-x86_64
-cp -t output/rsjsonnet-windows-x86_64 target/x86_64-pc-windows-gnu/release/rsjsonnet.exe
-echo "::endgroup::"
+build_and_compress() {
+  name="$1"
+  target="$2"
+  full_name="rsjsonnet-$name"
 
-echo "::group::Build i686"
-cargo build -p rsjsonnet --target i686-pc-windows-gnu --release --frozen
-mkdir output/rsjsonnet-windows-i686
-cp -t output/rsjsonnet-windows-i686 target/i686-pc-windows-gnu/release/rsjsonnet.exe
-echo "::endgroup::"
+  echo "::group::Build $name"
+  cargo build -p rsjsonnet --target "$target" --release --frozen
+  mkdir "output/$full_name"
+  cp -t "output/$full_name" "target/$target/release/rsjsonnet.exe"
+  (cd output; zip -r "$full_name.zip" "$full_name")
+  echo "::endgroup::"
+}
+
+build_and_compress windows-x86_64 x86_64-pc-windows-gnu
+build_and_compress windows-i686 i686-pc-windows-gnu
