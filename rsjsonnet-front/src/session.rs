@@ -375,21 +375,30 @@ impl SessionInner {
         program: &Program,
         stack: &[rsjsonnet_lang::program::EvalStackTraceItem],
     ) {
-        let cropped_len = stack.len().min(self.max_trace);
-        let cropped_stack = &stack[(stack.len() - cropped_len)..];
+        if stack.len() <= self.max_trace {
+            self.print_rich_message(&crate::report::stack_trace::render(
+                stack,
+                program.span_manager(),
+                &self.src_mgr,
+            ));
+        } else {
+            let second_len = self.max_trace / 2;
+            let first_len = self.max_trace - second_len;
 
-        let stack_msgs = crate::report::stack_trace::render(
-            cropped_stack,
-            program.span_manager(),
-            &self.src_mgr,
-        );
-        self.print_rich_message(&stack_msgs);
-
-        if cropped_len < stack.len() {
+            self.print_rich_message(&crate::report::stack_trace::render(
+                &stack[(stack.len() - first_len)..],
+                program.span_manager(),
+                &self.src_mgr,
+            ));
             self.print_note(format_args!(
-                "and {} more stack trace items",
-                stack.len() - cropped_len
-            ))
+                "... {} items hidden ...",
+                stack.len() - self.max_trace
+            ));
+            self.print_rich_message(&crate::report::stack_trace::render(
+                &stack[..second_len],
+                program.span_manager(),
+                &self.src_mgr,
+            ));
         }
 
         for custom_item in self.custom_stack_trace.iter().rev() {
