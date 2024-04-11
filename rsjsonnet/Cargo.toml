@@ -20,7 +20,7 @@ rsjsonnet-front = { workspace = true, features = ["crossterm"] }
 rsjsonnet-lang = { workspace = true }
 
 [dev-dependencies]
-libtest-mimic = "0.7.0"
+libtest-mimic = "0.7.2"
 serde = { version = "1.0.197", features = ["derive"] }
 toml = "0.8.12"
 unified-diff = "0.2.1"
