@@ -104,7 +104,7 @@ fn main_inner() -> Result<(), RunError> {
         let name = session.program().str_interner().intern(&arg.var);
         if !ext_names.insert(name.clone()) {
             eprintln!(
-                "error: external variable `{}` defined more than once",
+                "error: external variable {:?} defined more than once",
                 arg.var
             );
             return Err(RunError::Generic);
@@ -118,7 +118,7 @@ fn main_inner() -> Result<(), RunError> {
         let name = session.program().str_interner().intern(&arg.var);
         if !ext_names.insert(name.clone()) {
             eprintln!(
-                "error: external variable `{}` defined more than once",
+                "error: external variable {:?} defined more than once",
                 arg.var
             );
             return Err(RunError::Generic);
@@ -132,7 +132,7 @@ fn main_inner() -> Result<(), RunError> {
         let name = session.program().str_interner().intern(&arg.var);
         if !ext_names.insert(name.clone()) {
             eprintln!(
-                "error: external variable `{}` defined more than once",
+                "error: external variable {:?} defined more than once",
                 arg.var
             );
             return Err(RunError::Generic);
@@ -146,7 +146,7 @@ fn main_inner() -> Result<(), RunError> {
         let name = session.program().str_interner().intern(&arg.var);
         if !ext_names.insert(name.clone()) {
             eprintln!(
-                "error: external variable `{}` defined more than once",
+                "error: external variable {:?} defined more than once",
                 arg.var
             );
             return Err(RunError::Generic);
@@ -162,7 +162,7 @@ fn main_inner() -> Result<(), RunError> {
     for arg in args.tla_str.iter() {
         let name = session.program().str_interner().intern(&arg.var);
         if !tla_names.insert(name.clone()) {
-            eprintln!("error: TLA `{}` defined more than once", arg.var);
+            eprintln!("error: TLA {:?} defined more than once", arg.var);
         }
 
         let thunk = ext_str_to_thunk(session.program_mut(), arg)?;
@@ -172,7 +172,7 @@ fn main_inner() -> Result<(), RunError> {
     for arg in args.tla_str_file.iter() {
         let name = session.program().str_interner().intern(&arg.var);
         if !tla_names.insert(name.clone()) {
-            eprintln!("error: TLA `{}` defined more than once", arg.var);
+            eprintln!("error: TLA {:?} defined more than once", arg.var);
         }
 
         let thunk = ext_str_file_to_thunk(session.program_mut(), arg)?;
@@ -182,7 +182,7 @@ fn main_inner() -> Result<(), RunError> {
     for arg in args.tla_code.iter() {
         let name = session.program().str_interner().intern(&arg.var);
         if !tla_names.insert(name.clone()) {
-            eprintln!("error: TLA `{}` defined more than once", arg.var);
+            eprintln!("error: TLA {:?} defined more than once", arg.var);
         }
 
         let thunk = ext_code_to_thunk(&mut session, "tla", arg)?;
@@ -192,7 +192,7 @@ fn main_inner() -> Result<(), RunError> {
     for arg in args.tla_code_file.iter() {
         let name = session.program().str_interner().intern(&arg.var);
         if !tla_names.insert(name.clone()) {
-            eprintln!("error: TLA `{}` defined more than once", arg.var);
+            eprintln!("error: TLA {:?} defined more than once", arg.var);
         }
 
         let thunk = ext_code_file_to_thunk(&mut session, arg)?;
@@ -321,14 +321,14 @@ fn get_opt_val(arg: &cli::VarOptVal) -> Result<Cow<'_, str>, RunError> {
             Ok(v) => Ok(Cow::Owned(v)),
             Err(v) => {
                 eprintln!(
-                    "error: environment variable `{}` not valid unicode: {v:?}",
+                    "error: value of environment variable {:?} is not valid unicode: {v:?}",
                     arg.var,
                 );
                 Err(RunError::Generic)
             }
         }
     } else {
-        eprintln!("error: environment variable `{}` is not defined", arg.var);
+        eprintln!("error: environment variable {:?} is not defined", arg.var);
         Err(RunError::Generic)
     }
 }
