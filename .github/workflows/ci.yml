@@ -82,16 +82,18 @@ jobs:
 
   build-dist-linux:
     runs-on: ubuntu-20.04
+    env:
+      IMAGE_NAME: quay.io/pypa/manylinux2014_x86_64
     steps:
       - uses: actions/checkout@v4
       - name: Pull image
-        run: docker pull quay.io/pypa/manylinux2014_x86_64
+        run: docker pull "$IMAGE_NAME"
       - name: Build
         run: |
           docker run \
             -v "$(pwd):/workdir" \
             -w /workdir \
-            quay.io/pypa/manylinux2014_x86_64 \
+            "$IMAGE_NAME" \
             bash ./ci/build-dist-linux.sh
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -104,16 +106,18 @@ jobs:
 
   build-dist-windows:
     runs-on: ubuntu-20.04
+    env:
+      IMAGE_NAME: debian:12-slim
     steps:
       - uses: actions/checkout@v4
       - name: Pull image
-        run: docker pull debian:12-slim
+        run: docker pull "$IMAGE_NAME"
       - name: Build
         run: |
           docker run \
             -v "$(pwd):/workdir" \
             -w /workdir \
-            debian:12-slim \
+            "$IMAGE_NAME" \
             bash ./ci/build-dist-windows.sh
       - name: Upload artifact
         uses: actions/upload-artifact@v4
