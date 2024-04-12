@@ -109,7 +109,12 @@ pub struct ImportError;
 #[derive(Clone, Debug)]
 pub struct NativeError;
 
+/// Trait to customize the behavior of operations during evaluation.
+///
+/// Some [`Program`] methods need to be provided with an implementor of this
+/// trait.
 pub trait Callbacks {
+    /// Called when an `import` expression is evaluated.
     fn import(
         &mut self,
         program: &mut Program,
@@ -117,6 +122,7 @@ pub trait Callbacks {
         path: &str,
     ) -> Result<Thunk, ImportError>;
 
+    /// Called when an `importstr` expression is evaluated.
     fn import_str(
         &mut self,
         program: &mut Program,
@@ -124,6 +130,7 @@ pub trait Callbacks {
         path: &str,
     ) -> Result<String, ImportError>;
 
+    /// Called when an `importbin` expression is evaluated.
     fn import_bin(
         &mut self,
         program: &mut Program,
@@ -131,8 +138,13 @@ pub trait Callbacks {
         path: &str,
     ) -> Result<Vec<u8>, ImportError>;
 
+    /// Called when a call to `std.trace` is evaluated.
     fn trace(&mut self, program: &mut Program, message: &str, stack: &[EvalStackTraceItem]);
 
+    /// Called when a function returned by `std.native` is called.
+    ///
+    /// Native functions must be registered with
+    /// [`Program::register_native_func`].
     fn native_call(
         &mut self,
         program: &mut Program,
@@ -168,6 +180,8 @@ pub enum EvalStackTraceItem {
 }
 
 /// Jsonnet program state and evaluator.
+///
+/// See the [module-level documentation](self) for more information.
 pub struct Program {
     str_interner: StrInterner,
     span_mgr: SpanManager,
@@ -190,7 +204,7 @@ impl Default for Program {
 }
 
 impl Program {
-    /// Creates a new [`Program`](Self).
+    /// Creates a new [`Program`].
     pub fn new() -> Self {
         let str_interner = StrInterner::new();
         let gc_ctx = GcContext::new();
@@ -254,6 +268,9 @@ impl Program {
         }
     }
 
+    /// Sets the maximum call stack size.
+    ///
+    /// The default is 500.
     pub fn set_max_stack(&mut self, max_stack: usize) {
         self.max_stack = max_stack;
     }
@@ -481,6 +498,10 @@ impl Program {
 }
 
 /// A value that might not be evaluated yet.
+///
+/// Each instance of [`Thunk`] are tied to a [`Program`] instance. Instances of
+/// this type will only be valid as long as the [`Program`] they came from has
+/// not been dropped.
 #[derive(Clone)]
 pub struct Thunk {
     data: GcView<ThunkData>,
@@ -494,6 +515,10 @@ impl Thunk {
 }
 
 /// A fully evaluated value.
+///
+/// Each instance of [`Value`] are tied to a [`Program`] instance. Instances of
+/// this type will only be valid as long as the [`Program`] they came from has
+/// not been dropped.
 #[derive(Clone)]
 pub struct Value {
     inner: ValueData,
@@ -515,21 +540,37 @@ impl Value {
         }
     }
 
+    /// Creates a null value.
+    ///
+    /// The returned [`Value`] will not be tied to any specific [`Program`]
+    /// instance.
     #[inline]
     pub fn null() -> Self {
         Self::from_value(ValueData::Null)
     }
 
+    /// Creates a boolean value.
+    ///
+    /// The returned [`Value`] will not be tied to any specific [`Program`]
+    /// instance.
     #[inline]
     pub fn bool(value: bool) -> Self {
         Self::from_value(ValueData::Bool(value))
     }
 
+    /// Creates a numberic value.
+    ///
+    /// The returned [`Value`] will not be tied to any specific [`Program`]
+    /// instance.
     #[inline]
     pub fn number(value: f64) -> Self {
         Self::from_value(ValueData::Number(value))
     }
 
+    /// Creates a string value.
+    ///
+    /// The returned [`Value`] will not be tied to any specific [`Program`]
+    /// instance.
     #[inline]
     pub fn string(s: &str) -> Self {
         Self::from_value(ValueData::String(s.into()))
