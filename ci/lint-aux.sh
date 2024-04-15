@@ -29,4 +29,4 @@ echo "Checking shell scripts with shellcheck"
 find . -type f -name "*.sh" -not -path "./.git/*" -print0 | xargs -0 shellcheck
 
 echo "Checking markdown documents with markdownlint"
-find . -type f -name "*.md" -not -path "./.git/*" -print0 | xargs -0 mdl
+find . -type f -name "*.md" -not -path "./.git/*" -print0 | xargs -0 markdownlint

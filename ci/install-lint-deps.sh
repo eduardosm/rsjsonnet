@@ -4,4 +4,4 @@ set -euo pipefail
 sudo apt-get update
 sudo apt-get install -y --no-install-recommends shellcheck
 
-sudo gem install mdl
+sudo npm install -g markdownlint-cli
