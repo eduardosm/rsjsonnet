@@ -1372,22 +1372,13 @@ impl<'a> Evaluator<'a> {
                 State::StdExponent => {
                     let arg = self.value_stack.pop().unwrap();
                     let arg = self.expect_std_func_arg_number(arg, "exponent", 0)?;
-                    let exp = if arg == 0.0 {
-                        0.0
-                    } else {
-                        arg.abs().log2().floor() + 1.0
-                    };
-                    self.value_stack.push(ValueData::Number(exp));
+                    let (_, exp) = crate::float::frexp(arg);
+                    self.value_stack.push(ValueData::Number(exp.into()));
                 }
                 State::StdMantissa => {
                     let arg = self.value_stack.pop().unwrap();
                     let arg = self.expect_std_func_arg_number(arg, "mantissa", 0)?;
-                    let mant = if arg == 0.0 {
-                        arg
-                    } else {
-                        let exp = arg.abs().log2().floor() + 1.0;
-                        arg * (-exp).exp2()
-                    };
+                    let (mant, _) = crate::float::frexp(arg);
                     self.value_stack.push(ValueData::Number(mant));
                 }
                 State::StdFloor => {
