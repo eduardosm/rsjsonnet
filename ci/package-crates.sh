@@ -9,14 +9,14 @@ if [ -e "$pkgs_dir" ]; then
   exit 1
 fi
 
-echo "::group::Fetch dependencies"
+begin_group "Fetch dependencies"
 cargo fetch --locked
-echo "::endgroup::"
+end_group
 
-echo "::group::Vendor dependencies"
+begin_group "Vendor dependencies"
 mkdir .cargo
 cargo vendor --frozen "$pkgs_dir" > .cargo/config.toml
-echo "::endgroup::"
+end_group
 
 crates=(
   rsjsonnet-lang
@@ -25,13 +25,13 @@ crates=(
 )
 
 for crate in "${crates[@]}"; do
-  echo "::group::Package $crate"
+  begin_group "Package $crate"
   version="$(crate_metadata "$crate" | jq -r ".version")"
   cargo package -p "$crate" --frozen
   tar -xf "target/package/$crate-$version.crate" -C "$pkgs_dir"
   pkg_checksum="$(sha256sum "target/package/$crate-$version.crate" | awk '{print $1}')"
   echo "{\"files\":{},\"package\":\"$pkg_checksum\"}" > "$pkgs_dir/$crate-$version/.cargo-checksum.json"
-  echo "::endgroup::"
+  end_group
 done
 
 mkdir output
