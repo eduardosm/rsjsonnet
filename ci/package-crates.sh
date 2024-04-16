@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+. ci/utils.sh
+
 pkgs_dir="packages"
 if [ -e "$pkgs_dir" ]; then
   echo "$pkgs_dir already exists"
@@ -24,16 +26,7 @@ crates=(
 
 for crate in "${crates[@]}"; do
   echo "::group::Package $crate"
-  version="$(
-    cargo metadata --format-version 1 --frozen --no-deps | jq -r "
-      [ .packages[] | select(.name == \"$crate\") | .version ] |
-        if length == 1 then
-          first
-        else
-          error(\"expected exactly one package named $crate\")
-        end
-    "
-  )"
+  version="$(crate_metadata "$crate" | jq -r ".version")"
   cargo package -p "$crate" --frozen
   tar -xf "target/package/$crate-$version.crate" -C "$pkgs_dir"
   pkg_checksum="$(sha256sum "target/package/$crate-$version.crate" | awk '{print $1}')"
