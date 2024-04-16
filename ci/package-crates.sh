@@ -7,8 +7,6 @@ if [ -e "$pkgs_dir" ]; then
   exit 1
 fi
 
-version="$(awk '/^version = ".+"$/ { sub("^version = \"", ""); sub("\"$", ""); print }' Cargo.toml)"
-
 echo "::group::Fetch dependencies"
 cargo fetch --locked
 echo "::endgroup::"
@@ -26,6 +24,16 @@ crates=(
 
 for crate in "${crates[@]}"; do
   echo "::group::Package $crate"
+  version="$(
+    cargo metadata --format-version 1 --frozen --no-deps | jq -r "
+      [ .packages[] | select(.name == \"$crate\") | .version ] |
+        if length == 1 then
+          first
+        else
+          error(\"expected exactly one package named $crate\")
+        end
+    "
+  )"
   cargo package -p "$crate" --frozen
   tar -xf "target/package/$crate-$version.crate" -C "$pkgs_dir"
   pkg_checksum="$(sha256sum "target/package/$crate-$version.crate" | awk '{print $1}')"
