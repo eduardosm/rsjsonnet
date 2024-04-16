@@ -24,6 +24,8 @@ crates=(
   rsjsonnet
 )
 
+mkdir output
+
 for crate in "${crates[@]}"; do
   begin_group "Package $crate"
   version="$(crate_metadata "$crate" | jq -r ".version")"
@@ -31,10 +33,6 @@ for crate in "${crates[@]}"; do
   tar -xf "target/package/$crate-$version.crate" -C "$pkgs_dir"
   pkg_checksum="$(sha256sum "target/package/$crate-$version.crate" | awk '{print $1}')"
   echo "{\"files\":{},\"package\":\"$pkg_checksum\"}" > "$pkgs_dir/$crate-$version/.cargo-checksum.json"
-  end_group
-done
-
-mkdir output
-for crate in "${crates[@]}"; do
   cp -t output "target/package/$crate-$version.crate"
+  end_group
 done
