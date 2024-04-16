@@ -22,6 +22,8 @@ std.assertEqual(std.max(-2, -1), -1) &&
 std.assertEqual(std.max(1, 1), 1) &&
 
 std.assertEqual(std.exponent(0), 0) &&
+std.assertEqual(std.exponent(0.09375), -3) &&
+std.assertEqual(std.exponent(-0.09375), -3) &&
 std.assertEqual(std.exponent(0.25), -1) &&
 std.assertEqual(std.exponent(-0.25), -1) &&
 std.assertEqual(std.exponent(0.5), 0) &&
@@ -32,8 +34,12 @@ std.assertEqual(std.exponent(1.0), 1) &&
 std.assertEqual(std.exponent(-1.0), 1) &&
 std.assertEqual(std.exponent(1.5), 1) &&
 std.assertEqual(std.exponent(-1.5), 1) &&
+std.assertEqual(std.exponent(20), 5) &&
+std.assertEqual(std.exponent(-20), 5) &&
 
 std.assertEqual(std.mantissa(0), 0) &&
+std.assertEqual(std.mantissa(0.09375), 0.75) &&
+std.assertEqual(std.mantissa(-0.09375), -0.75) &&
 std.assertEqual(std.mantissa(0.25), 0.5) &&
 std.assertEqual(std.mantissa(-0.25), -0.5) &&
 std.assertEqual(std.mantissa(0.5), 0.5) &&
@@ -44,7 +50,8 @@ std.assertEqual(std.mantissa(1.0), 0.5) &&
 std.assertEqual(std.mantissa(-1.0), -0.5) &&
 std.assertEqual(std.mantissa(1.5), 0.75) &&
 std.assertEqual(std.mantissa(-1.5), -0.75) &&
-
+std.assertEqual(std.mantissa(20), 0.625) &&
+std.assertEqual(std.mantissa(-20), -0.625) &&
 
 std.assertEqual(std.floor(-1.75), -2) &&
 std.assertEqual(std.floor(-1.50), -2) &&
