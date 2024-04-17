@@ -3,6 +3,41 @@ set -euo pipefail
 
 . ci/utils.sh
 
+crates=(
+  rsjsonnet-lang
+  rsjsonnet-front
+  rsjsonnet
+)
+
+begin_group "Check crate versions"
+
+expected_version="$(crate_version rsjsonnet)"
+for crate in "${crates[@]}"; do
+  version="$(crate_version "$crate")"
+
+  if [[ ! "$version" =~ ^[0-9].[0-9].[0-9](-pre)?$ ]]; then
+    echo "Invalid version for $crate"
+    exit 1
+  fi
+
+  if [[ "$version" = *-pre ]]; then
+    publish_ok="$(crate_metadata "$crate" | jq '.publish == []')"
+  else
+    publish_ok="$(crate_metadata "$crate" | jq '.publish == null')"
+  fi
+  if ! "$publish_ok"; then
+    echo "Invalid publish for $crate"
+    exit 1
+  fi
+
+  if [ "$version" != "$expected_version" ]; then
+    echo "Incorrect version for $crate"
+    exit 1
+  fi
+done
+
+end_group
+
 begin_group "Check MSRV consistency"
 
 msrv="$(cat ci/rust-versions/msrv.txt)"
@@ -21,12 +56,6 @@ for readme in "${msrv_readmes[@]}"; do
     exit 1
   fi
 done
-
-crates=(
-  rsjsonnet-lang
-  rsjsonnet-front
-  rsjsonnet
-)
 
 for crate in "${crates[@]}"; do
   if [ "$(crate_metadata "$crate" | jq -r '.rust_version')" != "$msrv" ]; then

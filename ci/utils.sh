@@ -35,3 +35,12 @@ crate_metadata() {
       end
   "
 }
+
+crate_version() {
+  if [ $# -ne 1 ]; then
+    echo_stderr "Invalid use of $0"
+    exit 1
+  fi
+  crate="$1"
+  crate_metadata "$crate" | jq -r '.version'
+}
