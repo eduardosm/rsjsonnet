@@ -25,7 +25,7 @@ for crate in "${crates[@]}"; do
   else
     publish_ok="$(crate_metadata "$crate" | jq '.publish == null')"
   fi
-  if ! "$publish_ok"; then
+  if [ "$publish_ok" != "true" ]; then
     echo "Invalid publish for $crate"
     exit 1
   fi
