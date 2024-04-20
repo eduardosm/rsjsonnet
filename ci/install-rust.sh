@@ -10,4 +10,3 @@ fi
 
 echo "Installing Rust $rust_version"
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain "$rust_version" "$@"
-echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
