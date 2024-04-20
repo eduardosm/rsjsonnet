@@ -8,6 +8,7 @@ jobs:
   report:
     needs:
       - lint-aux
+      - extract-changelog
       - rustfmt
       - clippy
       - build-and-test
@@ -33,6 +34,19 @@ jobs:
         run: ./ci/install-lint-deps.sh
       - name: Run auxilary lints
         run: ./ci/lint-aux.sh
+
+  extract-changelog:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract changelog
+        run: ./ci/extract-changelog.sh
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-changelog
+          path: version-changelog
+          if-no-files-found: error
 
   rustfmt:
     runs-on: ubuntu-20.04
