@@ -21,7 +21,7 @@ expected_version="$(crate_version rsjsonnet)"
 for crate in "${crates[@]}"; do
   version="$(crate_version "$crate")"
 
-  if [[ ! "$version" =~ ^[0-9].[0-9].[0-9](-pre)?$ ]]; then
+  if [[ ! "$version" =~ ^[0-9]\.[0-9]\.[0-9](-pre)?$ ]]; then
     echo "Invalid version for $crate"
     exit 1
   fi
