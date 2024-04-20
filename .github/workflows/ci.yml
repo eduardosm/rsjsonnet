@@ -30,16 +30,14 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: ./ci/install-lint-deps.sh
-      - name: Run auxilary lints
+      - name: Run job
         run: ./ci/lint-aux.sh
 
   extract-changelog:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
-      - name: Extract changelog
+      - name: Run job
         run: ./ci/extract-changelog.sh
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -52,18 +50,14 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust
-        run: ./ci/install-rust.sh stable.txt --profile minimal -c rustfmt
-      - name: Run rustfmt
-        run: cargo fmt --all -- --check
+      - name: Run job
+        run: ./ci/rustfmt.sh
 
   clippy:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust
-        run: ./ci/install-rust.sh stable.txt --profile minimal -c clippy
-      - name: Run clippy
+      - name: Run job
         run: ./ci/clippy.sh
 
   build-and-test:
@@ -75,18 +69,14 @@ jobs:
           - rust-version: stable.txt
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust
-        run: ./ci/install-rust.sh "${{ matrix.rust-version }}" --profile minimal
-      - name: Build and test
-        run: ./ci/build-and-test.sh
+      - name: Run job
+        run: ./ci/build-and-test.sh "${{ matrix.rust-version }}"
 
   package-crates:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust
-        run: ./ci/install-rust.sh stable.txt --profile minimal
-      - name: Package crates
+      - name: Run job
         run: ./ci/package-crates.sh
       - name: Upload artifact
         uses: actions/upload-artifact@v4

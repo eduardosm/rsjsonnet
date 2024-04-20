@@ -3,6 +3,12 @@ set -euo pipefail
 
 . ci/utils.sh
 
+begin_group "Install lint utilities"
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends shellcheck
+sudo npm install -g markdownlint-cli
+end_group
+
 crates=(
   rsjsonnet-lang
   rsjsonnet-front
