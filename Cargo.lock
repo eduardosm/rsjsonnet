@@ -391,7 +391,7 @@ dependencies = [
 
 [[package]]
 name = "rsjsonnet"
-version = "0.1.1-pre"
+version = "0.1.1"
 dependencies = [
  "clap",
  "libtest-mimic",
@@ -404,7 +404,7 @@ dependencies = [
 
 [[package]]
 name = "rsjsonnet-front"
-version = "0.1.1-pre"
+version = "0.1.1"
 dependencies = [
  "crossterm",
  "rsjsonnet-lang",
@@ -413,7 +413,7 @@ dependencies = [
 
 [[package]]
 name = "rsjsonnet-lang"
-version = "0.1.1-pre"
+version = "0.1.1"
 dependencies = [
  "hashbrown",
  "libyaml-safer",
