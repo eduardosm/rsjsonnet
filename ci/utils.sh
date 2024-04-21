@@ -12,6 +12,7 @@ begin_group() {
   echo "::group::$1"
 }
 
+# shellcheck disable=SC2120
 end_group() {
   if [ $# -ne 0 ]; then
     echo_stderr "Invalid use of $0"
