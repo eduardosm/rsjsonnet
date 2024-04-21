@@ -1,12 +1,12 @@
 # Changelog
 
-## 0.1.1 (unreleased)
+## 0.1.1 (2024-04-24)
 
 ### Changed
 
 - When a stack trace is larger than the specified maximum, hide items in the
   middle instead of the end.
-- Documentation improvements
+- Documentation improvements.
 
 ### Fixed
 
