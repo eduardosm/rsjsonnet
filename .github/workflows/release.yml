@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+
+jobs:
+  get-version:
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: get-version
+        run: ./ci/get-release-version.sh
+
+  get-ci-artifacts:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download artifacts
+        uses: dawidd6/action-download-artifact@09f2f74827fd3a8607589e5ad7f9398816f540fe
+        with:
+          workflow: ci.yml
+          workflow_conclusion: success
+          commit: ${{ github.sha }}
+          event: push
+      - name: Upload version-changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-changelog
+          path: version-changelog/*
+          if-no-files-found: error
+      - name: Upload packaged-crates artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: packaged-crates
+          path: packaged-crates/*
+          if-no-files-found: error
+      - name: Upload dist-linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-linux
+          path: dist-linux/*
+          if-no-files-found: error
+      - name: Upload dist-windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-windows
+          path: dist-windows/*
+          if-no-files-found: error
+
+  create-gh-release:
+    needs:
+      - get-version
+      - get-ci-artifacts
+    permissions:
+      contents: write
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download version-changelog artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: version-changelog
+      - name: Download packaged-crates artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: packaged-crates
+      - name: Download dist-linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-linux
+      - name: Download dist-windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-windows
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.get-version.outputs.version }}
+        run: |
+          gh release create "${GITHUB_REF#refs/tags/}" \
+            "rsjsonnet-lang-$RELEASE_VERSION.crate" \
+            "rsjsonnet-front-$RELEASE_VERSION.crate" \
+            "rsjsonnet-$RELEASE_VERSION.crate" \
+            "rsjsonnet-linux-x86_64.tar.gz" \
+            "rsjsonnet-linux-i686.tar.gz" \
+            "rsjsonnet-windows-x86_64.zip" \
+            "rsjsonnet-windows-i686.zip" \
+            --verify-tag \
+            --title "$RELEASE_VERSION" \
+            --notes-file version-changelog
+
+  publish-crates:
+    needs: create-gh-release
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish
+        env:
+          CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: ./ci/publish-crates.sh
