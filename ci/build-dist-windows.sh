@@ -24,7 +24,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     -t x86_64-pc-windows-gnu \
     -t i686-pc-windows-gnu
 
-# shellcheck disable=SC1090
+# shellcheck disable=SC1091
 . "$HOME/.cargo/env"
 
 end_group

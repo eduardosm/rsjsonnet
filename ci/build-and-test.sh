@@ -11,7 +11,7 @@ rust_version="$1"
 
 begin_group "Install Rust"
 ./ci/install-rust.sh "$rust_version" --profile minimal
-# shellcheck disable=SC1090
+# shellcheck disable=SC1091
 . "$HOME/.cargo/env"
 end_group
 

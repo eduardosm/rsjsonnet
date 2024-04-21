@@ -5,7 +5,7 @@ set -euo pipefail
 
 begin_group "Install Rust"
 ./ci/install-rust.sh stable.txt --profile minimal
-# shellcheck disable=SC1090
+# shellcheck disable=SC1091
 . "$HOME/.cargo/env"
 end_group
 

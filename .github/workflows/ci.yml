@@ -18,7 +18,7 @@ jobs:
     # 'always()' is needed because GitHub treats a skipped job (due to a failed
     # dependency) a success.
     if: always()
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Report status
         env:
@@ -27,14 +27,14 @@ jobs:
         run: jq --exit-status 'all(.result == "success")' <<< "$NEEDS_JSON"
 
   lint-aux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Run job
         run: ./ci/lint-aux.sh
 
   extract-changelog:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Run job
@@ -47,21 +47,21 @@ jobs:
           if-no-files-found: error
 
   rustfmt:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Run job
         run: ./ci/rustfmt.sh
 
   clippy:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Run job
         run: ./ci/clippy.sh
 
   build-and-test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         include:
@@ -73,7 +73,7 @@ jobs:
         run: ./ci/build-and-test.sh "${{ matrix.rust-version }}"
 
   package-crates:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Run job
@@ -86,7 +86,7 @@ jobs:
           if-no-files-found: error
 
   build-dist-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       IMAGE_NAME: quay.io/pypa/manylinux2014_x86_64
     steps:
@@ -110,7 +110,7 @@ jobs:
           if-no-files-found: error
 
   build-dist-windows:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       IMAGE_NAME: debian:12-slim
     steps:
