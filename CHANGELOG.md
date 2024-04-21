@@ -12,6 +12,8 @@
 
 - Do not use `f64::log2` to implement `std.exponent` and `std.mantissa`, which
   can be too inaccurate in some platforms.
+- Errors will not show `<000D>` at the end of each source line when source has
+  CRLF line endings.
 
 ## 0.1.0 (2024-04-06)
 

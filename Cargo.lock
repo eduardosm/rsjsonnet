@@ -499,9 +499,9 @@ checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
 name = "sourceannot"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd060be559e1cafa55931e0361501000ebc0cf9fe0cee721b38d9f2900128166"
+checksum = "806ab42b7a19d82b5f611462f3de3234a1032e16f1837209fc874d7041401d91"
 dependencies = [
  "unicode-width",
 ]
