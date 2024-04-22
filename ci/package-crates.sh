@@ -3,11 +3,6 @@ set -euo pipefail
 
 . ci/utils.sh
 
-begin_group "Install Rust"
-./ci/install-rust.sh stable.txt --profile minimal
-. ci/cargo-env.sh
-end_group
-
 pkgs_dir="packages"
 if [ -e "$pkgs_dir" ]; then
   echo "$pkgs_dir already exists"

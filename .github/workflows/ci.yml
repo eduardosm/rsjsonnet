@@ -32,15 +32,19 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Run job
-        run: ./ci/lint-aux.sh
+      - name: Install lint utilities
+        run: sudo npm install -g markdownlint-cli
+      - name: Install Rust
+        run: ./ci/install-rust.sh stable.txt --profile minimal
+      - run: ./ci/lint-aux.sh
 
   extract-changelog:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Run job
-        run: ./ci/extract-changelog.sh
+      - name: Install Rust
+        run: ./ci/install-rust.sh stable.txt --profile minimal
+      - run: ./ci/extract-changelog.sh
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -52,15 +56,17 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Run job
-        run: ./ci/rustfmt.sh
+      - name: Install Rust
+        run: ./ci/install-rust.sh stable.txt --profile minimal -c rustfmt
+      - run: cargo fmt --all -- --check
 
   clippy:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Run job
-        run: ./ci/clippy.sh
+      - name: Install Rust
+        run: ./ci/install-rust.sh stable.txt --profile minimal -c clippy
+      - run: ./ci/clippy.sh
 
   build-and-test:
     runs-on: ubuntu-22.04
@@ -71,15 +77,17 @@ jobs:
           - rust-version: stable.txt
     steps:
       - uses: actions/checkout@v4
-      - name: Run job
-        run: ./ci/build-and-test.sh "${{ matrix.rust-version }}"
+      - name: Install Rust
+        run: ./ci/install-rust.sh "${{ matrix.rust-version }}" --profile minimal
+      - run: ./ci/build-and-test.sh
 
   package-crates:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Run job
-        run: ./ci/package-crates.sh
+      - name: Install Rust
+        run: ./ci/install-rust.sh stable.txt --profile minimal
+      - run: ./ci/package-crates.sh
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -90,17 +98,17 @@ jobs:
   build-dist-linux:
     runs-on: ubuntu-22.04
     env:
-      IMAGE_NAME: quay.io/pypa/manylinux2014_x86_64
+      DOCKER_IMAGE: quay.io/pypa/manylinux2014_x86_64
     steps:
       - uses: actions/checkout@v4
-      - name: Pull image
-        run: docker pull "$IMAGE_NAME"
-      - name: Build
+      - name: Pull Docker image ${{ env.DOCKER_IMAGE }}
+        run: docker pull "$DOCKER_IMAGE"
+      - name: Run Docker container
         run: |
           docker run \
             -v "$(pwd):/workdir" \
             -w /workdir \
-            "$IMAGE_NAME" \
+            "$DOCKER_IMAGE" \
             bash ./ci/build-dist-linux.sh
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -114,17 +122,17 @@ jobs:
   build-dist-windows:
     runs-on: ubuntu-22.04
     env:
-      IMAGE_NAME: debian:12-slim
+      DOCKER_IMAGE: debian:12-slim
     steps:
       - uses: actions/checkout@v4
-      - name: Pull image
-        run: docker pull "$IMAGE_NAME"
-      - name: Build
+      - name: Pull Docker image ${{ env.DOCKER_IMAGE }}
+        run: docker pull "$DOCKER_IMAGE"
+      - name: Run Docker container
         run: |
           docker run \
             -v "$(pwd):/workdir" \
             -w /workdir \
-            "$IMAGE_NAME" \
+            "$DOCKER_IMAGE" \
             bash ./ci/build-dist-windows.sh
       - name: Upload artifact
         uses: actions/upload-artifact@v4

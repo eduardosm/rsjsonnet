@@ -3,17 +3,6 @@ set -euo pipefail
 
 . ci/utils.sh
 
-begin_group "Install lint utilities"
-sudo apt-get update
-sudo apt-get install -y --no-install-recommends shellcheck
-sudo npm install -g markdownlint-cli
-end_group
-
-begin_group "Install Rust"
-./ci/install-rust.sh stable.txt --profile minimal
-. ci/cargo-env.sh
-end_group
-
 crates=(
   rsjsonnet-lang
   rsjsonnet-front
