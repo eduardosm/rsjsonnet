@@ -5,8 +5,7 @@ set -euo pipefail
 
 begin_group "Install Rust"
 ./ci/install-rust.sh stable.txt --profile minimal -c clippy
-# shellcheck disable=SC1091
-. "$HOME/.cargo/env"
+. ci/cargo-env.sh
 end_group
 
 begin_group "Fetch dependencies"

@@ -11,8 +11,7 @@ end_group
 
 begin_group "Install Rust"
 ./ci/install-rust.sh stable.txt --profile minimal
-# shellcheck disable=SC1091
-. "$HOME/.cargo/env"
+. ci/cargo-env.sh
 end_group
 
 crates=(
