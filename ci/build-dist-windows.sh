@@ -16,17 +16,8 @@ apt-get install -y --no-install-recommends \
 end_group
 
 begin_group "Install Rust"
-
-rust_version="$(cat "ci/rust-versions/stable.txt")"
-
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-  sh -s -- -y --default-toolchain "$rust_version" --profile minimal \
-    -t x86_64-pc-windows-gnu \
-    -t i686-pc-windows-gnu
-
-# shellcheck disable=SC1091
-. "$HOME/.cargo/env"
-
+./ci/install-rust.sh stable.txt --profile minimal -t x86_64-pc-windows-gnu -t i686-pc-windows-gnu
+. ci/cargo-env.sh
 end_group
 
 export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
