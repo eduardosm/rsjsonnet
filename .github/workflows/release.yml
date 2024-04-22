@@ -12,6 +12,8 @@ jobs:
       version: ${{ steps.get-version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+      - name: Install Rust
+        run: ./ci/install-rust.sh stable.txt --profile minimal
       - id: get-version
         run: ./ci/get-release-version.sh
 
@@ -97,6 +99,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - name: Install Rust
+        run: ./ci/install-rust.sh stable.txt --profile minimal
       - name: Publish
         env:
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
