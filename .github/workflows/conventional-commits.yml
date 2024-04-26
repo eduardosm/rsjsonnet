@@ -1,0 +1,13 @@
+name: Conventional Commits
+
+on:
+  pull_request:
+
+jobs:
+  check-conventional-commits:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: ./ci/check-conventional-commits.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
