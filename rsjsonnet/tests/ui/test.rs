@@ -4,7 +4,7 @@ use std::path::Path;
 use crate::defs;
 
 pub(crate) fn run(
-    tests_dir: &Path,
+    root_path: &Path,
     test_subpath: &Path,
     test_params: &defs::TestParams,
     cmd_bin_path: &Path,
@@ -12,7 +12,7 @@ pub(crate) fn run(
 ) -> Result<(), String> {
     assert!(!test_params.not_test);
 
-    let test_path = tests_dir.join(test_subpath);
+    let test_path = root_path.join(test_subpath);
     let test_dir = test_path.parent().unwrap();
     let test_name = test_path.file_name().unwrap();
 

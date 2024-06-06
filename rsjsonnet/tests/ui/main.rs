@@ -25,8 +25,13 @@ fn main() -> ExitCode {
 
     let args = libtest_mimic::Arguments::from_iter(args);
 
-    let tests_dir = tests_dir();
-    let tests_paths = gather_tests(&tests_dir);
+    let root_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .canonicalize()
+        .unwrap();
+    let tests_path = Path::new("ui-tests");
+
+    let tests_paths = gather_tests(&root_path, tests_path);
 
     let cmd_bin_path = Path::new(env!("CARGO_BIN_EXE_rsjsonnet"))
         .canonicalize()
@@ -34,12 +39,12 @@ fn main() -> ExitCode {
 
     let mut tests = Vec::new();
     for (test_subpath, test_params) in tests_paths {
-        let tests_dir = tests_dir.clone();
+        let root_path = root_path.clone();
         let test_name = test_subpath.to_string_lossy().into_owned();
         let cmd_bin_path = cmd_bin_path.clone();
         tests.push(libtest_mimic::Trial::test(test_name, move || {
             test::run(
-                &tests_dir,
+                &root_path,
                 &test_subpath,
                 &test_params,
                 &cmd_bin_path,
@@ -57,28 +62,21 @@ fn main() -> ExitCode {
     }
 }
 
-fn tests_dir() -> PathBuf {
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.push("..");
-    path.push("ui-tests");
-    path.canonicalize().unwrap()
-}
-
-fn gather_tests(tests_dir: &Path) -> BTreeMap<PathBuf, defs::TestParams> {
+fn gather_tests(root_path: &Path, tests_path: &Path) -> BTreeMap<PathBuf, defs::TestParams> {
     let mut tests = BTreeMap::new();
 
     let mut dir_queue = Vec::new();
-    dir_queue.push(PathBuf::from(""));
+    dir_queue.push(tests_path.to_path_buf());
 
-    while let Some(current_sub_dir) = dir_queue.pop() {
-        let current_dir = tests_dir.join(&current_sub_dir);
+    while let Some(current_sub_path) = dir_queue.pop() {
+        let current_dir = root_path.join(&current_sub_path);
         for entry in current_dir.read_dir().unwrap() {
             let entry = entry.unwrap();
             let entry_type = entry.file_type().unwrap();
             let entry_name = entry.file_name();
 
             if entry_type.is_dir() {
-                dir_queue.push(current_sub_dir.join(entry_name));
+                dir_queue.push(current_sub_path.join(entry_name));
                 continue;
             }
 
@@ -103,7 +101,7 @@ fn gather_tests(tests_dir: &Path) -> BTreeMap<PathBuf, defs::TestParams> {
                 };
 
                 if !params.not_test {
-                    let prev = tests.insert(current_sub_dir.join(entry_name), params);
+                    let prev = tests.insert(current_sub_path.join(entry_name), params);
                     assert!(prev.is_none());
                 }
             }
