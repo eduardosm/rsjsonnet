@@ -24,18 +24,22 @@ pub(crate) fn run(
     stderr_name.push(".stderr");
     let stderr_path = test_dir.join(stderr_name);
 
-    let expected_stderr = if stderr_path.exists() {
-        std::fs::read(&stderr_path).map_err(|e| format!("failed to read {stderr_path:?}: {e}"))?
-    } else {
-        Vec::new()
+    let expected_stderr = match std::fs::read(&stderr_path) {
+        Ok(data) => data,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(e) => return Err(format!("failed to read {stderr_path:?}: {e}")),
     };
 
-    let expected_stdout = if stdout_path.exists() {
-        std::fs::read(&stdout_path).map_err(|e| format!("failed to read {stdout_path:?}: {e}"))?
-    } else if expected_stderr.is_empty() {
-        b"true\n".to_vec()
-    } else {
-        Vec::new()
+    let expected_stdout = match std::fs::read(&stdout_path) {
+        Ok(data) => data,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            if expected_stderr.is_empty() {
+                b"true\n".to_vec()
+            } else {
+                Vec::new()
+            }
+        }
+        Err(e) => return Err(format!("failed to read {stdout_path:?}: {e}")),
     };
 
     let mut expected_exit_code = test_params
@@ -93,7 +97,10 @@ pub(crate) fn run(
         if (!cmd_output.stderr.is_empty() && cmd_output.stdout.is_empty())
             || (cmd_output.stderr.is_empty() && cmd_output.stdout == b"true\n")
         {
-            if stdout_path.exists() {
+            if stdout_path
+                .try_exists()
+                .map_err(|e| format!("failed to check {stdout_path:?}: {e}"))?
+            {
                 std::fs::remove_file(&stdout_path)
                     .map_err(|e| format!("failed to remove {stdout_path:?}: {e}"))?;
             }
@@ -103,7 +110,10 @@ pub(crate) fn run(
         }
 
         if cmd_output.stderr.is_empty() {
-            if stderr_path.exists() {
+            if stderr_path
+                .try_exists()
+                .map_err(|e| format!("failed to check {stderr_path:?}: {e}"))?
+            {
                 std::fs::remove_file(&stderr_path)
                     .map_err(|e| format!("failed to remove {stderr_path:?}: {e}"))?;
             }

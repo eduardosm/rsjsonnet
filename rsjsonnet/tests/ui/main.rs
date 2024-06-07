@@ -86,18 +86,21 @@ fn gather_tests(root_path: &Path, tests_path: &Path) -> BTreeMap<PathBuf, defs::
                 params_file_name.push(".params.toml");
                 let params_path = current_dir.join(&params_file_name);
 
-                let params = if params_path.exists() {
-                    let params = std::fs::read(&params_path).unwrap_or_else(|e| {
+                let params = match std::fs::read(&params_path) {
+                    Ok(params) => {
+                        let params = String::from_utf8(params).unwrap_or_else(|_| {
+                            panic!("{params_path:?} is not valid UTF-8");
+                        });
+                        toml::from_str(&params).unwrap_or_else(|e| {
+                            panic!("failed to parse {params_path:?}: {e}");
+                        })
+                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                        defs::TestParams::default()
+                    }
+                    Err(e) => {
                         panic!("failed to read {params_path:?}: {e}");
-                    });
-                    let params = String::from_utf8(params).unwrap_or_else(|_| {
-                        panic!("{params_path:?} is not valid UTF-8");
-                    });
-                    toml::from_str(&params).unwrap_or_else(|e| {
-                        panic!("failed to parse {params_path:?}: {e}");
-                    })
-                } else {
-                    defs::TestParams::default()
+                    }
                 };
 
                 if !params.not_test {
