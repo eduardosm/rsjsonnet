@@ -15,12 +15,12 @@ name = "ui"
 harness = false
 
 [dependencies]
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.8", features = ["derive"] }
 rsjsonnet-front = { workspace = true, features = ["crossterm"] }
 rsjsonnet-lang = { workspace = true }
 
 [dev-dependencies]
-libtest-mimic = "0.7.2"
-serde = { version = "1.0.198", features = ["derive"] }
-toml = "0.8.12"
+libtest-mimic = "0.7.3"
+serde = { version = "1.0.203", features = ["derive"] }
+toml = "0.8.14"
 unified-diff = "0.2.1"
