@@ -277,20 +277,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    #[inline]
-    fn build_binary_expr(
-        &mut self,
-        lhs: ast::Expr,
-        op: ast::BinaryOp,
-        rhs: ast::Expr,
-    ) -> ast::Expr {
-        let span = self.span_mgr.make_surrounding_span(lhs.span, rhs.span);
-        ast::Expr {
-            kind: ast::ExprKind::Binary(Box::new(lhs), op, Box::new(rhs)),
-            span,
-        }
-    }
-
     /// Parses the tokens into an expression.
     pub fn parse_root_expr(mut self) -> Result<ast::Expr, ParseError> {
         let expr = self.parse_expr()?;

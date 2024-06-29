@@ -5,209 +5,197 @@ use crate::token::STokenKind;
 
 impl Parser<'_> {
     pub(super) fn parse_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        self.parse_logic_or_expr()
-    }
-
-    fn parse_logic_or_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        let mut lhs = self.parse_logic_and_expr()?;
-        loop {
-            if self.eat_simple(STokenKind::PipePipe, false).is_some() {
-                let rhs = self.parse_logic_and_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::LogicOr, rhs);
-            } else {
-                self.expected_things.push(ExpectedThing::BinaryOp);
-                return Ok(lhs);
-            }
+        #[derive(Copy, Clone)]
+        enum BinOpKind {
+            LogicOr,
+            LogicAnd,
+            BitwiseOr,
+            BitwiseXor,
+            BitwiseAnd,
+            EqCmp,
+            OrdCmp,
+            Shift,
+            Add,
+            Mul,
         }
-    }
 
-    fn parse_logic_and_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        let mut lhs = self.parse_bitwise_or_expr()?;
-        loop {
-            if self.eat_simple(STokenKind::AmpAmp, false).is_some() {
-                let rhs = self.parse_bitwise_or_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::LogicAnd, rhs);
-            } else {
-                self.expected_things.push(ExpectedThing::BinaryOp);
-                return Ok(lhs);
-            }
+        enum State {
+            Parsed(ast::Expr),
+            Binary(BinOpKind),
+            BinaryRhs(BinOpKind, ast::Expr),
+            Unary,
         }
-    }
 
-    fn parse_bitwise_or_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        let mut lhs = self.parse_bitwise_xor_expr()?;
-        loop {
-            if self.eat_simple(STokenKind::Pipe, false).is_some() {
-                let rhs = self.parse_bitwise_xor_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::BitwiseOr, rhs);
-            } else {
-                self.expected_things.push(ExpectedThing::BinaryOp);
-                return Ok(lhs);
-            }
+        enum StackItem {
+            BinaryLhs(BinOpKind),
+            BinaryRhs(BinOpKind, Box<ast::Expr>, ast::BinaryOp),
+            Unary(ast::UnaryOp, SpanId),
         }
-    }
 
-    fn parse_bitwise_xor_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        let mut lhs = self.parse_bitwise_and_expr()?;
-        loop {
-            if self.eat_simple(STokenKind::Hat, false).is_some() {
-                let rhs = self.parse_bitwise_and_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::BitwiseXor, rhs);
-            } else {
-                self.expected_things.push(ExpectedThing::BinaryOp);
-                return Ok(lhs);
-            }
-        }
-    }
-
-    fn parse_bitwise_and_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        let mut lhs = self.parse_eq_cmp_expr()?;
-        loop {
-            if self.eat_simple(STokenKind::Amp, false).is_some() {
-                let rhs = self.parse_eq_cmp_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::BitwiseAnd, rhs);
-            } else {
-                self.expected_things.push(ExpectedThing::BinaryOp);
-                return Ok(lhs);
-            }
-        }
-    }
-
-    fn parse_eq_cmp_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        let mut lhs = self.parse_ord_cmp_expr()?;
-        loop {
-            if self.eat_simple(STokenKind::EqEq, false).is_some() {
-                let rhs = self.parse_ord_cmp_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Eq, rhs);
-            } else if self.eat_simple(STokenKind::ExclamEq, false).is_some() {
-                let rhs = self.parse_ord_cmp_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Ne, rhs);
-            } else {
-                self.expected_things.push(ExpectedThing::BinaryOp);
-                return Ok(lhs);
-            }
-        }
-    }
-
-    fn parse_ord_cmp_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        let mut lhs = self.parse_shift_expr()?;
-        loop {
-            if self.eat_simple(STokenKind::Lt, false).is_some() {
-                let rhs = self.parse_shift_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Lt, rhs);
-            } else if self.eat_simple(STokenKind::LtEq, false).is_some() {
-                let rhs = self.parse_shift_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Le, rhs);
-            } else if self.eat_simple(STokenKind::Gt, false).is_some() {
-                let rhs = self.parse_shift_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Gt, rhs);
-            } else if self.eat_simple(STokenKind::GtEq, false).is_some() {
-                let rhs = self.parse_shift_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Ge, rhs);
-            } else if self.eat_simple(STokenKind::In, false).is_some() {
-                if self.peek_simple(STokenKind::Super, 0)
-                    && !self.peek_simple(STokenKind::Dot, 1)
-                    && !self.peek_simple(STokenKind::LeftBracket, 1)
-                {
-                    let super_span = self.eat_simple(STokenKind::Super, true).unwrap();
-                    let span = self.span_mgr.make_surrounding_span(lhs.span, super_span);
-                    lhs = ast::Expr {
-                        kind: ast::ExprKind::InSuper(Box::new(lhs), super_span),
-                        span,
-                    };
-                } else {
-                    let rhs = self.parse_shift_expr()?;
-                    lhs = self.build_binary_expr(lhs, ast::BinaryOp::In, rhs);
+        impl BinOpKind {
+            #[inline]
+            fn next_state(self) -> State {
+                match self {
+                    BinOpKind::LogicOr => State::Binary(BinOpKind::LogicAnd),
+                    BinOpKind::LogicAnd => State::Binary(BinOpKind::BitwiseOr),
+                    BinOpKind::BitwiseOr => State::Binary(BinOpKind::BitwiseXor),
+                    BinOpKind::BitwiseXor => State::Binary(BinOpKind::BitwiseAnd),
+                    BinOpKind::BitwiseAnd => State::Binary(BinOpKind::EqCmp),
+                    BinOpKind::EqCmp => State::Binary(BinOpKind::OrdCmp),
+                    BinOpKind::OrdCmp => State::Binary(BinOpKind::Shift),
+                    BinOpKind::Shift => State::Binary(BinOpKind::Add),
+                    BinOpKind::Add => State::Binary(BinOpKind::Mul),
+                    BinOpKind::Mul => State::Unary,
                 }
-            } else {
-                self.expected_things.push(ExpectedThing::BinaryOp);
-                return Ok(lhs);
             }
         }
-    }
 
-    fn parse_shift_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        let mut lhs = self.parse_add_expr()?;
+        let mut stack = Vec::new();
+        let mut state = State::Binary(BinOpKind::LogicOr);
+
         loop {
-            if self.eat_simple(STokenKind::LtLt, false).is_some() {
-                let rhs = self.parse_add_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Shl, rhs);
-            } else if self.eat_simple(STokenKind::GtGt, false).is_some() {
-                let rhs = self.parse_add_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Shr, rhs);
-            } else {
-                self.expected_things.push(ExpectedThing::BinaryOp);
-                return Ok(lhs);
-            }
-        }
-    }
+            match state {
+                State::Parsed(expr) => match stack.pop() {
+                    None => return Ok(expr),
+                    Some(StackItem::BinaryLhs(kind)) => {
+                        state = State::BinaryRhs(kind, expr);
+                    }
+                    Some(StackItem::BinaryRhs(kind, lhs, op)) => {
+                        let rhs = Box::new(expr);
+                        let span = self.span_mgr.make_surrounding_span(lhs.span, rhs.span);
+                        state = State::BinaryRhs(
+                            kind,
+                            ast::Expr {
+                                kind: ast::ExprKind::Binary(lhs, op, rhs),
+                                span,
+                            },
+                        );
+                    }
+                    Some(StackItem::Unary(op, op_span)) => {
+                        let rhs = Box::new(expr);
+                        let span = self.span_mgr.make_surrounding_span(op_span, rhs.span);
+                        state = State::Parsed(ast::Expr {
+                            kind: ast::ExprKind::Unary(op, rhs),
+                            span,
+                        });
+                    }
+                },
+                State::Binary(kind) => {
+                    stack.push(StackItem::BinaryLhs(kind));
+                    state = kind.next_state();
+                }
+                State::BinaryRhs(kind, lhs) => {
+                    let op = match kind {
+                        BinOpKind::LogicOr => self
+                            .eat_simple(STokenKind::PipePipe, false)
+                            .map(|_| ast::BinaryOp::LogicOr),
+                        BinOpKind::LogicAnd => self
+                            .eat_simple(STokenKind::AmpAmp, false)
+                            .map(|_| ast::BinaryOp::LogicAnd),
+                        BinOpKind::BitwiseOr => self
+                            .eat_simple(STokenKind::Pipe, false)
+                            .map(|_| ast::BinaryOp::BitwiseOr),
+                        BinOpKind::BitwiseXor => self
+                            .eat_simple(STokenKind::Hat, false)
+                            .map(|_| ast::BinaryOp::BitwiseXor),
+                        BinOpKind::BitwiseAnd => self
+                            .eat_simple(STokenKind::Amp, false)
+                            .map(|_| ast::BinaryOp::BitwiseAnd),
+                        BinOpKind::EqCmp => {
+                            if self.eat_simple(STokenKind::EqEq, false).is_some() {
+                                Some(ast::BinaryOp::Eq)
+                            } else if self.eat_simple(STokenKind::ExclamEq, false).is_some() {
+                                Some(ast::BinaryOp::Ne)
+                            } else {
+                                None
+                            }
+                        }
+                        BinOpKind::OrdCmp => {
+                            if self.eat_simple(STokenKind::Lt, false).is_some() {
+                                Some(ast::BinaryOp::Lt)
+                            } else if self.eat_simple(STokenKind::LtEq, false).is_some() {
+                                Some(ast::BinaryOp::Le)
+                            } else if self.eat_simple(STokenKind::Gt, false).is_some() {
+                                Some(ast::BinaryOp::Gt)
+                            } else if self.eat_simple(STokenKind::GtEq, false).is_some() {
+                                Some(ast::BinaryOp::Ge)
+                            } else if self.eat_simple(STokenKind::In, false).is_some() {
+                                if self.peek_simple(STokenKind::Super, 0)
+                                    && !self.peek_simple(STokenKind::Dot, 1)
+                                    && !self.peek_simple(STokenKind::LeftBracket, 1)
+                                {
+                                    let super_span =
+                                        self.eat_simple(STokenKind::Super, true).unwrap();
+                                    let span =
+                                        self.span_mgr.make_surrounding_span(lhs.span, super_span);
+                                    state = State::BinaryRhs(
+                                        kind,
+                                        ast::Expr {
+                                            kind: ast::ExprKind::InSuper(Box::new(lhs), super_span),
+                                            span,
+                                        },
+                                    );
+                                    continue;
+                                } else {
+                                    Some(ast::BinaryOp::In)
+                                }
+                            } else {
+                                None
+                            }
+                        }
+                        BinOpKind::Shift => {
+                            if self.eat_simple(STokenKind::LtLt, false).is_some() {
+                                Some(ast::BinaryOp::Shl)
+                            } else if self.eat_simple(STokenKind::GtGt, false).is_some() {
+                                Some(ast::BinaryOp::Shr)
+                            } else {
+                                None
+                            }
+                        }
+                        BinOpKind::Add => {
+                            if self.eat_simple(STokenKind::Plus, false).is_some() {
+                                Some(ast::BinaryOp::Add)
+                            } else if self.eat_simple(STokenKind::Minus, false).is_some() {
+                                Some(ast::BinaryOp::Sub)
+                            } else {
+                                None
+                            }
+                        }
+                        BinOpKind::Mul => {
+                            if self.eat_simple(STokenKind::Asterisk, false).is_some() {
+                                Some(ast::BinaryOp::Mul)
+                            } else if self.eat_simple(STokenKind::Slash, false).is_some() {
+                                Some(ast::BinaryOp::Div)
+                            } else if self.eat_simple(STokenKind::Percent, false).is_some() {
+                                Some(ast::BinaryOp::Rem)
+                            } else {
+                                None
+                            }
+                        }
+                    };
 
-    fn parse_add_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        let mut lhs = self.parse_mul_expr()?;
-        loop {
-            if self.eat_simple(STokenKind::Plus, false).is_some() {
-                let rhs = self.parse_mul_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Add, rhs);
-            } else if self.eat_simple(STokenKind::Minus, false).is_some() {
-                let rhs = self.parse_mul_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Sub, rhs);
-            } else {
-                self.expected_things.push(ExpectedThing::BinaryOp);
-                return Ok(lhs);
+                    if let Some(op) = op {
+                        stack.push(StackItem::BinaryRhs(kind, Box::new(lhs), op));
+                        state = kind.next_state();
+                    } else {
+                        self.expected_things.push(ExpectedThing::BinaryOp);
+                        state = State::Parsed(lhs);
+                    }
+                }
+                State::Unary => {
+                    if let Some(op_span) = self.eat_simple(STokenKind::Plus, false) {
+                        stack.push(StackItem::Unary(ast::UnaryOp::Plus, op_span));
+                    } else if let Some(op_span) = self.eat_simple(STokenKind::Minus, false) {
+                        stack.push(StackItem::Unary(ast::UnaryOp::Minus, op_span));
+                    } else if let Some(op_span) = self.eat_simple(STokenKind::Tilde, false) {
+                        stack.push(StackItem::Unary(ast::UnaryOp::BitwiseNot, op_span));
+                    } else if let Some(op_span) = self.eat_simple(STokenKind::Exclam, false) {
+                        stack.push(StackItem::Unary(ast::UnaryOp::LogicNot, op_span));
+                    } else {
+                        state = State::Parsed(self.parse_suffix_expr()?);
+                    }
+                }
             }
-        }
-    }
-
-    fn parse_mul_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        let mut lhs = self.parse_unary_expr()?;
-        loop {
-            if self.eat_simple(STokenKind::Asterisk, false).is_some() {
-                let rhs = self.parse_unary_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Mul, rhs);
-            } else if self.eat_simple(STokenKind::Slash, false).is_some() {
-                let rhs = self.parse_unary_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Div, rhs);
-            } else if self.eat_simple(STokenKind::Percent, false).is_some() {
-                let rhs = self.parse_unary_expr()?;
-                lhs = self.build_binary_expr(lhs, ast::BinaryOp::Rem, rhs);
-            } else {
-                self.expected_things.push(ExpectedThing::BinaryOp);
-                return Ok(lhs);
-            }
-        }
-    }
-
-    fn parse_unary_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        if let Some(op_span) = self.eat_simple(STokenKind::Plus, false) {
-            let rhs = self.parse_unary_expr()?;
-            let span = self.span_mgr.make_surrounding_span(op_span, rhs.span);
-            Ok(ast::Expr {
-                kind: ast::ExprKind::Unary(ast::UnaryOp::Plus, Box::new(rhs)),
-                span,
-            })
-        } else if let Some(op_span) = self.eat_simple(STokenKind::Minus, false) {
-            let rhs = self.parse_unary_expr()?;
-            let span = self.span_mgr.make_surrounding_span(op_span, rhs.span);
-            Ok(ast::Expr {
-                kind: ast::ExprKind::Unary(ast::UnaryOp::Minus, Box::new(rhs)),
-                span,
-            })
-        } else if let Some(op_span) = self.eat_simple(STokenKind::Tilde, false) {
-            let rhs = self.parse_unary_expr()?;
-            let span = self.span_mgr.make_surrounding_span(op_span, rhs.span);
-            Ok(ast::Expr {
-                kind: ast::ExprKind::Unary(ast::UnaryOp::BitwiseNot, Box::new(rhs)),
-                span,
-            })
-        } else if let Some(op_span) = self.eat_simple(STokenKind::Exclam, false) {
-            let rhs = self.parse_unary_expr()?;
-            let span = self.span_mgr.make_surrounding_span(op_span, rhs.span);
-            Ok(ast::Expr {
-                kind: ast::ExprKind::Unary(ast::UnaryOp::LogicNot, Box::new(rhs)),
-                span,
-            })
-        } else {
-            self.parse_suffix_expr()
         }
     }
 
