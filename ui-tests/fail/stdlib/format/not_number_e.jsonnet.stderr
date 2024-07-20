@@ -1,0 +1,8 @@
+error: 'e' / 'E' formatting requires a number, got null
+note: while evaluating call to `format`
+ --> not_number_e.jsonnet:1:1
+  |
+1 | std.format("%e", [null])
+  | ------------------------
+note: during top-level value evaluation
+
