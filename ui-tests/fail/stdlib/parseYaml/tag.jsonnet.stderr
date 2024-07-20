@@ -1,0 +1,8 @@
+error: failed to parse YAML: tags are not allowed
+note: while evaluating call to `parseYaml`
+ --> tag.jsonnet:1:1
+  |
+1 | std.parseYaml("x: !!str 123")
+  | -----------------------------
+note: during top-level value evaluation
+
