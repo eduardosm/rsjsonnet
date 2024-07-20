@@ -1,0 +1,7 @@
+error: expected boolean for condition, got null
+ --> if_spec_cond_not_bool.jsonnet:1:40
+  |
+1 | { [std.toString(x)]: x for x in [0] if null }
+  |                                        ^^^^
+note: during top-level value evaluation
+
