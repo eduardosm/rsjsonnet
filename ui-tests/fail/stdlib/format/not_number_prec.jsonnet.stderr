@@ -1,0 +1,8 @@
+error: format precision must be a number, got null
+note: while evaluating call to `format`
+ --> not_number_prec.jsonnet:1:1
+  |
+1 | std.format("%.*f", [null, 1])
+  | -----------------------------
+note: during top-level value evaluation
+

@@ -1,0 +1,8 @@
+error: mapping keys are required with object formatting
+note: while evaluating call to `format`
+ --> missing_mkey.jsonnet:1:1
+  |
+1 | std.format("%i", { a: 1 })
+  | --------------------------
+note: during top-level value evaluation
+

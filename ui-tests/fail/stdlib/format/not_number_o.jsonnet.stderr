@@ -1,0 +1,8 @@
+error: 'o' formatting requires a number, got null
+note: while evaluating call to `format`
+ --> not_number_o.jsonnet:1:1
+  |
+1 | std.format("%o", [null])
+  | ------------------------
+note: during top-level value evaluation
+
