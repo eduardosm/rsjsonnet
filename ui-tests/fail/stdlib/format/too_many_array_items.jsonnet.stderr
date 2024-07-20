@@ -1,0 +1,8 @@
+error: too many array items for format: expected 1, got 2
+note: while evaluating call to `format`
+ --> too_many_array_items.jsonnet:1:1
+  |
+1 | std.format("%d", [1, 2])
+  | ------------------------
+note: during top-level value evaluation
+
