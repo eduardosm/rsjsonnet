@@ -1,0 +1,7 @@
+error: unary operator `-` cannot be applied to value of type string
+ --> minus_string.jsonnet:1:1
+  |
+1 | -"string"
+  | ^^^^^^^^^
+note: during top-level value evaluation
+
