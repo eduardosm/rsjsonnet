@@ -1,0 +1,8 @@
+error: failed to parse JSON: line 1, column 16: repeated field name "x"
+note: while evaluating call to `parseJson`
+ --> repeated_field_name.jsonnet:1:1
+  |
+1 | std.parseJson("{\"x\": 0, \"x\": 0}")
+  | -------------------------------------
+note: during top-level value evaluation
+
