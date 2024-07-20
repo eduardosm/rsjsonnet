@@ -1,0 +1,7 @@
+error: unary operator `-` cannot be applied to value of type null
+ --> minus_null.jsonnet:1:1
+  |
+1 | -null
+  | ^^^^^
+note: during top-level value evaluation
+
