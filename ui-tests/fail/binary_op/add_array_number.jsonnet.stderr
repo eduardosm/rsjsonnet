@@ -1,0 +1,7 @@
+error: binary operator `+` cannot be applied to values of types array and number
+ --> add_array_number.jsonnet:1:1
+  |
+1 | [] + 0
+  | ^^^^^^
+note: during top-level value evaluation
+

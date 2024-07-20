@@ -1,0 +1,7 @@
+error: binary operator `+` cannot be applied to values of types null and number
+ --> add_null_number.jsonnet:1:1
+  |
+1 | null + 0
+  | ^^^^^^^^
+note: during top-level value evaluation
+
