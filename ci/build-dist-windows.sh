@@ -16,7 +16,7 @@ apt-get install -y --no-install-recommends \
 end_group
 
 begin_group "Install Rust"
-./ci/install-rust.sh stable.txt --profile minimal -t x86_64-pc-windows-gnu -t i686-pc-windows-gnu
+./ci/install-rust.sh stable --profile minimal -t x86_64-pc-windows-gnu -t i686-pc-windows-gnu
 . ci/cargo-env.sh
 end_group
 
