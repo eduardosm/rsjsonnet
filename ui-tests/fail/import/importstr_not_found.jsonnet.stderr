@@ -1,0 +1,8 @@
+error: import "missing.txt" not found in search path
+error: failed to import "missing.txt"
+ --> importstr_not_found.jsonnet:1:1
+  |
+1 | import "missing.txt"
+  | ^^^^^^^^^^^^^^^^^^^^
+note: during top-level value evaluation
+
