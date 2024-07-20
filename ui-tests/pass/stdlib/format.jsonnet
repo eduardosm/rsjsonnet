@@ -22,14 +22,26 @@ std.assertEqual(std.format("%01i", [31]), "31") &&
 std.assertEqual(std.format("%01i", [-31]), "-31") &&
 std.assertEqual(std.format("%04i", [31]), "0031") &&
 std.assertEqual(std.format("%04i", [-31]), "-031") &&
+std.assertEqual(std.format("%0*i", [1, 31]), "31") &&
+std.assertEqual(std.format("%0*i", [1, -31]), "-31") &&
+std.assertEqual(std.format("%0*i", [4, 31]), "0031") &&
+std.assertEqual(std.format("%0*i", [4, -31]), "-031") &&
 std.assertEqual(std.format("%.1i", [31]), "31") &&
 std.assertEqual(std.format("%.1i", [-31]), "-31") &&
 std.assertEqual(std.format("%.4i", [31]), "0031") &&
 std.assertEqual(std.format("%.4i", [-31]), "-0031") &&
+std.assertEqual(std.format("%.*i", [1, 31]), "31") &&
+std.assertEqual(std.format("%.*i", [1, -31]), "-31") &&
+std.assertEqual(std.format("%.*i", [4, 31]), "0031") &&
+std.assertEqual(std.format("%.*i", [4, -31]), "-0031") &&
 std.assertEqual(std.format("%05.4i", [31]), "00031") &&
 std.assertEqual(std.format("%05.4i", [-31]), "-0031") &&
 std.assertEqual(std.format("%04.5i", [31]), "00031") &&
 std.assertEqual(std.format("%04.5i", [-31]), "-00031") &&
+std.assertEqual(std.format("%0*.*i", [5, 4, 31]), "00031") &&
+std.assertEqual(std.format("%0*.*i", [5, 4, -31]), "-0031") &&
+std.assertEqual(std.format("%0*.*i", [4, 5, 31]), "00031") &&
+std.assertEqual(std.format("%0*.*i", [4, 5, -31]), "-00031") &&
 
 std.assertEqual(std.format("%o", [0]), "0") &&
 std.assertEqual(std.format("%o", [1]), "1") &&
@@ -66,6 +78,8 @@ std.assertEqual(std.format("%.3f", [0]), "0.000") &&
 std.assertEqual(std.format("%.3f", [-0]), "0.000") &&
 std.assertEqual(std.format("%.24f", [1e-20]), "0.000000000000000000010000") &&
 
+std.assertEqual(std.format("%e", [0]), "0.000000e+00") &&
+std.assertEqual(std.format("%E", [0]), "0.000000E+00") &&
 std.assertEqual(std.format("%e", [10.25]), "1.025000e+01") &&
 std.assertEqual(std.format("%E", [10.25]), "1.025000E+01") &&
 std.assertEqual(std.format("%e", [0.25]), "2.500000e-01") &&
@@ -84,6 +98,8 @@ std.assertEqual(std.format("%04.3e", [-1.5e1]), "-1.500e+01") &&
 std.assertEqual(std.format("%012.3e", [1.5e1]), "0001.500e+01") &&
 std.assertEqual(std.format("%012.3e", [-1.5e1]), "-001.500e+01") &&
 
+std.assertEqual(std.format("%g", [0]), "0") &&
+std.assertEqual(std.format("%G", [0]), "0") &&
 std.assertEqual(std.format("%g", [1.25]), "1.25") &&
 std.assertEqual(std.format("%g", [-1.25]), "-1.25") &&
 std.assertEqual(std.format("%+g", [1.25]), "+1.25") &&

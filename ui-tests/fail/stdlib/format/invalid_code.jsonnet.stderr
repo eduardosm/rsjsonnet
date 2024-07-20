@@ -1,0 +1,8 @@
+error: invalid format conversion code 'k'
+note: while evaluating call to `format`
+ --> invalid_code.jsonnet:1:1
+  |
+1 | std.format("%k", [1])
+  | ---------------------
+note: during top-level value evaluation
+

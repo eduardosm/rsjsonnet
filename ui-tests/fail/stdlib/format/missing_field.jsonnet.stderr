@@ -1,0 +1,8 @@
+error: missing field "b" in object formatting
+note: while evaluating call to `format`
+ --> missing_field.jsonnet:1:1
+  |
+1 | std.format("%(b)i", { a: 1 })
+  | -----------------------------
+note: during top-level value evaluation
+

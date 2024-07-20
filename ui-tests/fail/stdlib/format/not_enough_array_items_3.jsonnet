@@ -1,1 +1,1 @@
-std.format("%.*d", [1])
+std.format("%d %0*d", [1])

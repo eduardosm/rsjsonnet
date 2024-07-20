@@ -1,0 +1,8 @@
+error: '*' precision cannot be used with object formatting
+note: while evaluating call to `format`
+ --> object_asterisk_prec.jsonnet:1:1
+  |
+1 | std.format("%(a).*f", { a: 1 })
+  | -------------------------------
+note: during top-level value evaluation
+
