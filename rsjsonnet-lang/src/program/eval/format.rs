@@ -462,6 +462,12 @@ impl Evaluator<'_> {
         let item = if code.ctype == ConvType::Percent {
             None
         } else {
+            if array_i >= array.len() {
+                return Err(self.report_error(EvalErrorKind::Other {
+                    span: None,
+                    message: format!("not enough array items for format, got {}", array.len()),
+                }));
+            }
             let item = array[array_i].view();
             array_i += 1;
             Some(item)

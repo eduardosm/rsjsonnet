@@ -1,0 +1,8 @@
+error: not enough array items for format, got 1
+note: while evaluating call to `format`
+ --> not_enough_array_items_2.jsonnet:1:1
+  |
+1 | std.format("%0*d", [1])
+  | -----------------------
+note: during top-level value evaluation
+
