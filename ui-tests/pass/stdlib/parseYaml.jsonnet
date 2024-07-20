@@ -80,12 +80,14 @@ std.assertEqual(
       c:
         - x: 4
         - y: 5
+      d: plain string
     |||
   ),
   {
     a: null,
     b: [1, 2, 3],
     c: [{ x: 4 }, { y: 5 }],
+    d: "plain string",
   },
 ) &&
 
