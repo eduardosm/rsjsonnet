@@ -8,7 +8,7 @@ yum install -y glibc-devel.i686 libgcc.i686
 end_group
 
 begin_group "Install Rust"
-./ci/install-rust.sh stable.txt --profile minimal -t x86_64-unknown-linux-gnu -t i686-unknown-linux-gnu
+./ci/install-rust.sh stable --profile minimal -t x86_64-unknown-linux-gnu -t i686-unknown-linux-gnu
 . ci/cargo-env.sh
 end_group
 
