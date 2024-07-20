@@ -1,0 +1,8 @@
+error: import "missing.bin" not found in search path
+error: failed to import "missing.bin"
+ --> importbin_not_found.jsonnet:1:1
+  |
+1 | importbin "missing.bin"
+  | ^^^^^^^^^^^^^^^^^^^^^^^
+note: during top-level value evaluation
+
