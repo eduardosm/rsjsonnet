@@ -29,7 +29,7 @@ impl std::fmt::Display for ParseError {
             Self::LibYaml(ref e) => write!(f, "{e}"),
             Self::Stream => write!(f, "YAML stream not allowed"),
             Self::EmptyStream => write!(f, "empty stream"),
-            Self::Anchor => write!(f, "anchors e not allowed"),
+            Self::Anchor => write!(f, "anchors are not allowed"),
             Self::Tag => write!(f, "tags are not allowed"),
             Self::NumberOverflow => write!(f, "number overflow"),
             Self::RepeatedFieldName(ref name) => {
