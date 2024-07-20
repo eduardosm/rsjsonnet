@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 (unreleased)
+
+### Fixed
+
+- Avoid panic if the array passed to `std.format` does not have enough items.
+
 ## 0.1.1 (2024-04-24)
 
 ### Changed
