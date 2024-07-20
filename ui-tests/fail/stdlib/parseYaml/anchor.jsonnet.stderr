@@ -1,0 +1,10 @@
+error: failed to parse YAML: anchors are not allowed
+note: while evaluating call to `parseYaml`
+ --> anchor.jsonnet:1:1
+  |
+1 | / std.parseYaml(|||
+  : | 
+6 | | |||)
+  | |____- 
+note: during top-level value evaluation
+

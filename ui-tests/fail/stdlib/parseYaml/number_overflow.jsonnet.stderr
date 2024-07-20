@@ -1,0 +1,8 @@
+error: failed to parse YAML: number overflow
+note: while evaluating call to `parseYaml`
+ --> number_overflow.jsonnet:1:1
+  |
+1 | std.parseYaml("1e1000")
+  | -----------------------
+note: during top-level value evaluation
+
