@@ -1,0 +1,7 @@
+error: expected array for comprenhension, got number
+ --> for_spec_not_array.jsonnet:1:13
+  |
+1 | [x for x in 0]
+  |             ^
+note: during top-level value evaluation
+
