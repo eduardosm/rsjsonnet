@@ -33,12 +33,6 @@ jobs:
           name: version-changelog
           path: version-changelog/*
           if-no-files-found: error
-      - name: Upload packaged-crates artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: packaged-crates
-          path: packaged-crates/*
-          if-no-files-found: error
       - name: Upload dist-linux artifact
         uses: actions/upload-artifact@v4
         with:
@@ -65,10 +59,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: version-changelog
-      - name: Download packaged-crates artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: packaged-crates
       - name: Download dist-linux artifact
         uses: actions/download-artifact@v4
         with:
@@ -83,9 +73,6 @@ jobs:
           RELEASE_VERSION: ${{ needs.get-version.outputs.version }}
         run: |
           gh release create "${GITHUB_REF#refs/tags/}" \
-            "rsjsonnet-lang-$RELEASE_VERSION.crate" \
-            "rsjsonnet-front-$RELEASE_VERSION.crate" \
-            "rsjsonnet-$RELEASE_VERSION.crate" \
             "rsjsonnet-linux-x86_64.tar.gz" \
             "rsjsonnet-linux-i686.tar.gz" \
             "rsjsonnet-windows-x86_64.zip" \
