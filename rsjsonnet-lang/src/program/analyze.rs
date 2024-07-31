@@ -2,18 +2,18 @@ use std::collections::hash_map::Entry as HashMapEntry;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
-use super::{ir, AnalyzeError};
+use super::{ir, AnalyzeError, Program};
 use crate::ast;
-use crate::interner::{InternedStr, StrInterner};
+use crate::interner::InternedStr;
 use crate::span::SpanId;
 
 pub(super) struct Analyzer<'a> {
-    str_interner: &'a StrInterner,
+    program: &'a Program,
 }
 
 impl<'a> Analyzer<'a> {
-    pub(super) fn new(str_interner: &'a StrInterner) -> Self {
-        Self { str_interner }
+    pub(super) fn new(program: &'a Program) -> Self {
+        Self { program }
     }
 
     pub(super) fn analyze(
@@ -39,11 +39,17 @@ impl<'a> Analyzer<'a> {
         }
 
         let ir_expr = match expr_ast.kind {
-            ast::ExprKind::Null => Rc::new(ir::Expr::Null),
-            ast::ExprKind::Bool(value) => Rc::new(ir::Expr::Bool(value)),
+            ast::ExprKind::Null => self.program.null_expr.clone(),
+            ast::ExprKind::Bool(value) => {
+                if value {
+                    self.program.true_expr.clone()
+                } else {
+                    self.program.false_expr.clone()
+                }
+            }
             ast::ExprKind::SelfObj => {
                 if env.is_obj {
-                    Rc::new(ir::Expr::SelfObj)
+                    self.program.self_obj_expr.clone()
                 } else {
                     return Err(AnalyzeError::SelfOutsideObject {
                         self_span: expr_ast.span,
@@ -52,7 +58,7 @@ impl<'a> Analyzer<'a> {
             }
             ast::ExprKind::Dollar => {
                 if env.is_obj {
-                    Rc::new(ir::Expr::TopObj)
+                    self.program.top_obj_expr.clone()
                 } else {
                     return Err(AnalyzeError::DollarOutsideObject {
                         dollar_span: expr_ast.span,
@@ -126,7 +132,7 @@ impl<'a> Analyzer<'a> {
 
                 Rc::new(ir::Expr::Call {
                     callee: Rc::new(ir::Expr::StdField {
-                        field_name: self.str_interner.intern("slice"),
+                        field_name: self.program.str_interner.intern("slice"),
                     }),
                     positional_args: vec![object, start_index, end_index, step],
                     named_args: Vec::new(),
@@ -260,7 +266,7 @@ impl<'a> Analyzer<'a> {
                 match op {
                     ast::BinaryOp::Rem => Rc::new(ir::Expr::Call {
                         callee: Rc::new(ir::Expr::StdField {
-                            field_name: self.str_interner.intern("mod"),
+                            field_name: self.program.str_interner.intern("mod"),
                         }),
                         positional_args: vec![lhs, rhs],
                         named_args: Vec::new(),

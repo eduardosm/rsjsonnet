@@ -188,6 +188,11 @@ pub struct Program {
     gc_ctx: GcContext,
     objs_after_last_gc: usize,
     max_stack: usize,
+    null_expr: Rc<ir::Expr>,
+    false_expr: Rc<ir::Expr>,
+    true_expr: Rc<ir::Expr>,
+    self_obj_expr: Rc<ir::Expr>,
+    top_obj_expr: Rc<ir::Expr>,
     stdlib_src_id: SourceId,
     stdlib_data: &'static [u8],
     stdlib_obj: Option<GcView<ObjectData>>,
@@ -226,6 +231,11 @@ impl Program {
             gc_ctx,
             objs_after_last_gc: 0,
             max_stack: 500,
+            null_expr: Rc::new(ir::Expr::Null),
+            false_expr: Rc::new(ir::Expr::Bool(false)),
+            true_expr: Rc::new(ir::Expr::Bool(true)),
+            self_obj_expr: Rc::new(ir::Expr::SelfObj),
+            top_obj_expr: Rc::new(ir::Expr::TopObj),
             stdlib_src_id,
             stdlib_data,
             stdlib_obj: None,
@@ -421,7 +431,7 @@ impl Program {
             .as_ref()
             .map(|env| env.keys().cloned().collect())
             .unwrap_or_default();
-        let ir_expr = analyze::Analyzer::new(&self.str_interner).analyze(ast, analyze_env)?;
+        let ir_expr = analyze::Analyzer::new(self).analyze(ast, analyze_env)?;
 
         let mut thunk_env_data = ThunkEnvData::new(None);
         if let Some(env) = env {
