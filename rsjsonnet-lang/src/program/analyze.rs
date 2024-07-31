@@ -39,11 +39,11 @@ impl<'a> Analyzer<'a> {
         }
 
         let ir_expr = match expr_ast.kind {
-            ast::ExprKind::Null => ir::Expr::Null,
-            ast::ExprKind::Bool(value) => ir::Expr::Bool(value),
+            ast::ExprKind::Null => Rc::new(ir::Expr::Null),
+            ast::ExprKind::Bool(value) => Rc::new(ir::Expr::Bool(value)),
             ast::ExprKind::SelfObj => {
                 if env.is_obj {
-                    ir::Expr::SelfObj
+                    Rc::new(ir::Expr::SelfObj)
                 } else {
                     return Err(AnalyzeError::SelfOutsideObject {
                         self_span: expr_ast.span,
@@ -52,18 +52,18 @@ impl<'a> Analyzer<'a> {
             }
             ast::ExprKind::Dollar => {
                 if env.is_obj {
-                    ir::Expr::TopObj
+                    Rc::new(ir::Expr::TopObj)
                 } else {
                     return Err(AnalyzeError::DollarOutsideObject {
                         dollar_span: expr_ast.span,
                     });
                 }
             }
-            ast::ExprKind::String(ref s) => ir::Expr::String((**s).into()),
-            ast::ExprKind::TextBlock(ref s) => ir::Expr::String((**s).into()),
+            ast::ExprKind::String(ref s) => Rc::new(ir::Expr::String((**s).into())),
+            ast::ExprKind::TextBlock(ref s) => Rc::new(ir::Expr::String((**s).into())),
             ast::ExprKind::Number(ref value) => {
                 let float_value = format!("{}e{}", value.digits, value.exp).parse().unwrap();
-                ir::Expr::Number(float_value, expr_ast.span)
+                Rc::new(ir::Expr::Number(float_value, expr_ast.span))
             }
             ast::ExprKind::Paren(_) => unreachable!(),
             ast::ExprKind::Object(ref inside) => {
@@ -74,32 +74,32 @@ impl<'a> Analyzer<'a> {
                 for item_ast in items_ast.iter() {
                     items.push(self.analyze_expr(item_ast, env, false)?);
                 }
-                ir::Expr::Array(items)
+                Rc::new(ir::Expr::Array(items))
             }
             ast::ExprKind::ArrayComp(ref body_ast, ref comp_spec_ast) => {
                 let (comp_spec, env) = self.analyze_comp_spec(comp_spec_ast, env)?;
                 let body = self.analyze_expr(body_ast, &env, false)?;
-                ir::Expr::ArrayComp {
+                Rc::new(ir::Expr::ArrayComp {
                     value: body,
                     comp_spec,
-                }
+                })
             }
             ast::ExprKind::Field(ref obj_ast, ref field_name_ast) => {
                 let object = self.analyze_expr(obj_ast, env, false)?;
-                ir::Expr::Field {
+                Rc::new(ir::Expr::Field {
                     object,
                     field_name: field_name_ast.value.clone(),
                     expr_span: expr_ast.span,
-                }
+                })
             }
             ast::ExprKind::Index(ref obj_ast, ref index_ast) => {
                 let object = self.analyze_expr(obj_ast, env, false)?;
                 let index = self.analyze_expr(index_ast, env, false)?;
-                ir::Expr::Index {
+                Rc::new(ir::Expr::Index {
                     object,
                     index,
                     expr_span: expr_ast.span,
-                }
+                })
             }
             ast::ExprKind::Slice(
                 ref object_ast,
@@ -124,7 +124,7 @@ impl<'a> Analyzer<'a> {
                     .transpose()?
                     .unwrap_or_else(|| Rc::new(ir::Expr::Null));
 
-                ir::Expr::Call {
+                Rc::new(ir::Expr::Call {
                     callee: Rc::new(ir::Expr::StdField {
                         field_name: self.str_interner.intern("slice"),
                     }),
@@ -132,15 +132,15 @@ impl<'a> Analyzer<'a> {
                     named_args: Vec::new(),
                     tailstrict: false,
                     span: expr_ast.span,
-                }
+                })
             }
             ast::ExprKind::SuperField(super_span, ref field_name_ast) => {
                 if env.is_obj {
-                    ir::Expr::SuperField {
+                    Rc::new(ir::Expr::SuperField {
                         super_span,
                         field_name: field_name_ast.value.clone(),
                         expr_span: expr_ast.span,
-                    }
+                    })
                 } else {
                     return Err(AnalyzeError::SuperOutsideObject { super_span });
                 }
@@ -148,11 +148,11 @@ impl<'a> Analyzer<'a> {
             ast::ExprKind::SuperIndex(super_span, ref index_ast) => {
                 if env.is_obj {
                     let index = self.analyze_expr(index_ast, env, false)?;
-                    ir::Expr::SuperIndex {
+                    Rc::new(ir::Expr::SuperIndex {
                         super_span,
                         index,
                         expr_span: expr_ast.span,
-                    }
+                    })
                 } else {
                     return Err(AnalyzeError::SuperOutsideObject { super_span });
                 }
@@ -182,17 +182,17 @@ impl<'a> Analyzer<'a> {
                     }
                 }
 
-                ir::Expr::Call {
+                Rc::new(ir::Expr::Call {
                     callee,
                     positional_args,
                     named_args,
                     tailstrict: can_be_tailstrict && tailstrict,
                     span: expr_ast.span,
-                }
+                })
             }
             ast::ExprKind::Ident(ref name) => {
                 if env.vars.contains(&name.value) {
-                    ir::Expr::Var(name.value.clone(), expr_ast.span)
+                    Rc::new(ir::Expr::Var(name.value.clone(), expr_ast.span))
                 } else {
                     return Err(AnalyzeError::UnknownVariable {
                         span: name.span,
@@ -236,7 +236,7 @@ impl<'a> Analyzer<'a> {
 
                 let inner = self.analyze_expr(inner_ast, &inner_env, can_be_tailstrict)?;
 
-                ir::Expr::Local { bindings, inner }
+                Rc::new(ir::Expr::Local { bindings, inner })
             }
             ast::ExprKind::If(ref cond_ast, ref then_body_ast, ref else_body_ast) => {
                 let cond = self.analyze_expr(cond_ast, env, false)?;
@@ -246,19 +246,19 @@ impl<'a> Analyzer<'a> {
                     .map(|e| self.analyze_expr(e, env, can_be_tailstrict))
                     .transpose()?;
 
-                ir::Expr::If {
+                Rc::new(ir::Expr::If {
                     cond,
                     cond_span: cond_ast.span,
                     then_body,
                     else_body,
-                }
+                })
             }
             ast::ExprKind::Binary(ref lhs_ast, op, ref rhs_ast) => {
                 let lhs = self.analyze_expr(lhs_ast, env, false)?;
                 let rhs = self.analyze_expr(rhs_ast, env, false)?;
 
                 match op {
-                    ast::BinaryOp::Rem => ir::Expr::Call {
+                    ast::BinaryOp::Rem => Rc::new(ir::Expr::Call {
                         callee: Rc::new(ir::Expr::StdField {
                             field_name: self.str_interner.intern("mod"),
                         }),
@@ -266,34 +266,34 @@ impl<'a> Analyzer<'a> {
                         named_args: Vec::new(),
                         tailstrict: false,
                         span: expr_ast.span,
-                    },
-                    _ => ir::Expr::Binary {
+                    }),
+                    _ => Rc::new(ir::Expr::Binary {
                         op,
                         lhs,
                         rhs,
                         span: expr_ast.span,
-                    },
+                    }),
                 }
             }
             ast::ExprKind::Unary(op, ref rhs_ast) => {
                 let rhs = self.analyze_expr(rhs_ast, env, false)?;
 
-                ir::Expr::Unary {
+                Rc::new(ir::Expr::Unary {
                     op,
                     rhs,
                     span: expr_ast.span,
-                }
+                })
             }
             ast::ExprKind::ObjExt(ref lhs_ast, ref rhs_ast, _) => {
                 let lhs = self.analyze_expr(lhs_ast, env, false)?;
                 let rhs = self.analyze_objinside(rhs_ast, env)?;
 
-                ir::Expr::Binary {
+                Rc::new(ir::Expr::Binary {
                     op: ast::BinaryOp::Add,
                     lhs,
                     rhs,
                     span: expr_ast.span,
-                }
+                })
             }
             ast::ExprKind::Func(ref params_ast, ref body_ast) => {
                 return self.analyze_function(params_ast, body_ast, env);
@@ -302,13 +302,13 @@ impl<'a> Analyzer<'a> {
                 let assert = self.analyze_assert(assert_ast, env)?;
                 let inner = self.analyze_expr(inner_ast, env, can_be_tailstrict)?;
 
-                ir::Expr::Assert { assert, inner }
+                Rc::new(ir::Expr::Assert { assert, inner })
             }
             ast::ExprKind::Import(ref path_ast) => match path_ast.kind {
-                ast::ExprKind::String(ref path) => ir::Expr::Import {
+                ast::ExprKind::String(ref path) => Rc::new(ir::Expr::Import {
                     path: (**path).into(),
                     span: expr_ast.span,
-                },
+                }),
                 ast::ExprKind::TextBlock(_) => {
                     return Err(AnalyzeError::TextBlockAsImportPath {
                         span: path_ast.span,
@@ -321,10 +321,10 @@ impl<'a> Analyzer<'a> {
                 }
             },
             ast::ExprKind::ImportStr(ref path_ast) => match path_ast.kind {
-                ast::ExprKind::String(ref path) => ir::Expr::ImportStr {
+                ast::ExprKind::String(ref path) => Rc::new(ir::Expr::ImportStr {
                     path: (**path).into(),
                     span: expr_ast.span,
-                },
+                }),
                 ast::ExprKind::TextBlock(_) => {
                     return Err(AnalyzeError::TextBlockAsImportPath {
                         span: path_ast.span,
@@ -337,10 +337,10 @@ impl<'a> Analyzer<'a> {
                 }
             },
             ast::ExprKind::ImportBin(ref path_ast) => match path_ast.kind {
-                ast::ExprKind::String(ref path) => ir::Expr::ImportBin {
+                ast::ExprKind::String(ref path) => Rc::new(ir::Expr::ImportBin {
                     path: (**path).into(),
                     span: expr_ast.span,
-                },
+                }),
                 ast::ExprKind::TextBlock(_) => {
                     return Err(AnalyzeError::TextBlockAsImportPath {
                         span: path_ast.span,
@@ -355,24 +355,24 @@ impl<'a> Analyzer<'a> {
             ast::ExprKind::Error(ref msg_ast) => {
                 let msg = self.analyze_expr(msg_ast, env, false)?;
 
-                ir::Expr::Error {
+                Rc::new(ir::Expr::Error {
                     msg,
                     span: expr_ast.span,
-                }
+                })
             }
             ast::ExprKind::InSuper(ref lhs_ast, super_span) => {
                 if env.is_obj {
                     let lhs = self.analyze_expr(lhs_ast, env, false)?;
-                    ir::Expr::InSuper {
+                    Rc::new(ir::Expr::InSuper {
                         lhs,
                         span: expr_ast.span,
-                    }
+                    })
                 } else {
                     return Err(AnalyzeError::SuperOutsideObject { super_span });
                 }
             }
         };
-        Ok(Rc::new(ir_expr))
+        Ok(ir_expr)
     }
 
     fn analyze_objinside(
