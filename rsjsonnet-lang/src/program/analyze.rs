@@ -30,355 +30,391 @@ impl<'a> Analyzer<'a> {
 
     fn analyze_expr(
         &mut self,
-        mut expr_ast: &ast::Expr,
+        root_expr_ast: &ast::Expr,
         env: &Env,
         can_be_tailstrict: bool,
     ) -> Result<Rc<ir::Expr>, AnalyzeError> {
-        while let ast::ExprKind::Paren(ref inner) = expr_ast.kind {
-            expr_ast = inner;
+        enum State<'a> {
+            Analyzed(Rc<ir::Expr>),
+            Expr(&'a ast::Expr),
         }
 
-        let ir_expr = match expr_ast.kind {
-            ast::ExprKind::Null => self.program.null_expr.clone(),
-            ast::ExprKind::Bool(value) => {
-                if value {
-                    self.program.true_expr.clone()
-                } else {
-                    self.program.false_expr.clone()
-                }
-            }
-            ast::ExprKind::SelfObj => {
-                if env.is_obj {
-                    self.program.self_obj_expr.clone()
-                } else {
-                    return Err(AnalyzeError::SelfOutsideObject {
-                        self_span: expr_ast.span,
-                    });
-                }
-            }
-            ast::ExprKind::Dollar => {
-                if env.is_obj {
-                    self.program.top_obj_expr.clone()
-                } else {
-                    return Err(AnalyzeError::DollarOutsideObject {
-                        dollar_span: expr_ast.span,
-                    });
-                }
-            }
-            ast::ExprKind::String(ref s) => Rc::new(ir::Expr::String((**s).into())),
-            ast::ExprKind::TextBlock(ref s) => Rc::new(ir::Expr::String((**s).into())),
-            ast::ExprKind::Number(ref value) => {
-                let float_value = format!("{}e{}", value.digits, value.exp).parse().unwrap();
-                Rc::new(ir::Expr::Number(float_value, expr_ast.span))
-            }
-            ast::ExprKind::Paren(_) => unreachable!(),
-            ast::ExprKind::Object(ref inside) => {
-                return self.analyze_objinside(inside, env);
-            }
-            ast::ExprKind::Array(ref items_ast) => {
-                let mut items = Vec::with_capacity(items_ast.len());
-                for item_ast in items_ast.iter() {
-                    items.push(self.analyze_expr(item_ast, env, false)?);
-                }
-                Rc::new(ir::Expr::Array(items))
-            }
-            ast::ExprKind::ArrayComp(ref body_ast, ref comp_spec_ast) => {
-                let (comp_spec, env) = self.analyze_comp_spec(comp_spec_ast, env)?;
-                let body = self.analyze_expr(body_ast, &env, false)?;
-                Rc::new(ir::Expr::ArrayComp {
-                    value: body,
-                    comp_spec,
-                })
-            }
-            ast::ExprKind::Field(ref obj_ast, ref field_name_ast) => {
-                let object = self.analyze_expr(obj_ast, env, false)?;
-                Rc::new(ir::Expr::Field {
-                    object,
-                    field_name: field_name_ast.value.clone(),
-                    expr_span: expr_ast.span,
-                })
-            }
-            ast::ExprKind::Index(ref obj_ast, ref index_ast) => {
-                let object = self.analyze_expr(obj_ast, env, false)?;
-                let index = self.analyze_expr(index_ast, env, false)?;
-                Rc::new(ir::Expr::Index {
-                    object,
-                    index,
-                    expr_span: expr_ast.span,
-                })
-            }
-            ast::ExprKind::Slice(
-                ref object_ast,
-                ref start_index_ast,
-                ref end_index_ast,
-                ref step_ast,
-            ) => {
-                let object = self.analyze_expr(object_ast, env, false)?;
-                let start_index = start_index_ast
-                    .as_ref()
-                    .map(|e| self.analyze_expr(e, env, false))
-                    .transpose()?
-                    .unwrap_or_else(|| Rc::new(ir::Expr::Null));
-                let end_index = end_index_ast
-                    .as_ref()
-                    .map(|e| self.analyze_expr(e, env, false))
-                    .transpose()?
-                    .unwrap_or_else(|| Rc::new(ir::Expr::Null));
-                let step = step_ast
-                    .as_ref()
-                    .map(|e| self.analyze_expr(e, env, false))
-                    .transpose()?
-                    .unwrap_or_else(|| Rc::new(ir::Expr::Null));
+        enum StackItem<'a> {
+            BinaryLhs(SpanId, ast::BinaryOp, &'a ast::Expr),
+            BinaryRhs(SpanId, ast::BinaryOp, Rc<ir::Expr>),
+            UnaryRhs(SpanId, ast::UnaryOp),
+        }
 
-                Rc::new(ir::Expr::Call {
-                    callee: Rc::new(ir::Expr::StdField {
-                        field_name: self.program.str_interner.intern("slice"),
-                    }),
-                    positional_args: vec![object, start_index, end_index, step],
-                    named_args: Vec::new(),
-                    tailstrict: false,
-                    span: expr_ast.span,
-                })
-            }
-            ast::ExprKind::SuperField(super_span, ref field_name_ast) => {
-                if env.is_obj {
-                    Rc::new(ir::Expr::SuperField {
-                        super_span,
-                        field_name: field_name_ast.value.clone(),
-                        expr_span: expr_ast.span,
-                    })
-                } else {
-                    return Err(AnalyzeError::SuperOutsideObject { super_span });
-                }
-            }
-            ast::ExprKind::SuperIndex(super_span, ref index_ast) => {
-                if env.is_obj {
-                    let index = self.analyze_expr(index_ast, env, false)?;
-                    Rc::new(ir::Expr::SuperIndex {
-                        super_span,
-                        index,
-                        expr_span: expr_ast.span,
-                    })
-                } else {
-                    return Err(AnalyzeError::SuperOutsideObject { super_span });
-                }
-            }
-            ast::ExprKind::Call(ref callee_ast, ref args_ast, tailstrict) => {
-                let callee = self.analyze_expr(callee_ast, env, false)?;
+        let mut stack = Vec::new();
+        let mut state = State::Expr(root_expr_ast);
 
-                let mut positional_args = Vec::new();
-                let mut named_args = Vec::new();
-                for arg_ast in args_ast.iter() {
-                    match arg_ast {
-                        ast::Arg::Positional(value_ast) => {
-                            if !named_args.is_empty() {
-                                return Err(AnalyzeError::PositionalArgAfterNamed {
-                                    arg_span: value_ast.span,
-                                });
-                            }
-                            positional_args.push(self.analyze_expr(value_ast, env, false)?);
-                        }
-                        ast::Arg::Named(arg_name, value_ast) => {
-                            named_args.push((
-                                arg_name.value.clone(),
-                                arg_name.span,
-                                self.analyze_expr(value_ast, env, false)?,
-                            ));
-                        }
+        loop {
+            match state {
+                State::Analyzed(expr_ir) => match stack.pop() {
+                    None => return Ok(expr_ir),
+                    Some(StackItem::BinaryLhs(span, op, rhs_ast)) => {
+                        stack.push(StackItem::BinaryRhs(span, op, expr_ir));
+                        state = State::Expr(rhs_ast);
                     }
-                }
-
-                Rc::new(ir::Expr::Call {
-                    callee,
-                    positional_args,
-                    named_args,
-                    tailstrict: can_be_tailstrict && tailstrict,
-                    span: expr_ast.span,
-                })
-            }
-            ast::ExprKind::Ident(ref name) => {
-                if env.vars.contains(&name.value) {
-                    Rc::new(ir::Expr::Var(name.value.clone(), expr_ast.span))
-                } else {
-                    return Err(AnalyzeError::UnknownVariable {
-                        span: name.span,
-                        name: name.value.value().into(),
-                    });
-                }
-            }
-            ast::ExprKind::Local(ref binds_ast, ref inner_ast) => {
-                let mut inner_env = env.clone();
-
-                let mut locals_spans = HashMap::<InternedStr, SpanId>::new();
-                for bind_ast in binds_ast.iter() {
-                    let name = &bind_ast.name.value;
-                    match locals_spans.entry(name.clone()) {
-                        HashMapEntry::Occupied(entry) => {
-                            return Err(AnalyzeError::RepeatedLocalName {
-                                original_span: *entry.get(),
-                                repeated_span: bind_ast.name.span,
-                                name: name.value().into(),
+                    Some(StackItem::BinaryRhs(span, op, lhs)) => {
+                        let rhs = expr_ir;
+                        let bin_expr_ir = match op {
+                            ast::BinaryOp::Rem => Rc::new(ir::Expr::Call {
+                                callee: Rc::new(ir::Expr::StdField {
+                                    field_name: self.program.str_interner.intern("mod"),
+                                }),
+                                positional_args: vec![lhs, rhs],
+                                named_args: Vec::new(),
+                                tailstrict: false,
+                                span,
+                            }),
+                            _ => Rc::new(ir::Expr::Binary { op, lhs, rhs, span }),
+                        };
+                        state = State::Analyzed(bin_expr_ir);
+                    }
+                    Some(StackItem::UnaryRhs(span, op)) => {
+                        let rhs = expr_ir;
+                        state = State::Analyzed(Rc::new(ir::Expr::Unary { op, rhs, span }));
+                    }
+                },
+                State::Expr(expr_ast) => match expr_ast.kind {
+                    ast::ExprKind::Null => {
+                        state = State::Analyzed(self.program.null_expr.clone());
+                    }
+                    ast::ExprKind::Bool(value) => {
+                        state = State::Analyzed(if value {
+                            self.program.true_expr.clone()
+                        } else {
+                            self.program.false_expr.clone()
+                        });
+                    }
+                    ast::ExprKind::SelfObj => {
+                        if env.is_obj {
+                            state = State::Analyzed(self.program.self_obj_expr.clone());
+                        } else {
+                            return Err(AnalyzeError::SelfOutsideObject {
+                                self_span: expr_ast.span,
                             });
                         }
-                        HashMapEntry::Vacant(entry) => {
-                            entry.insert(bind_ast.name.span);
-                            inner_env.vars.insert(name.clone());
+                    }
+                    ast::ExprKind::Dollar => {
+                        if env.is_obj {
+                            state = State::Analyzed(self.program.top_obj_expr.clone())
+                        } else {
+                            return Err(AnalyzeError::DollarOutsideObject {
+                                dollar_span: expr_ast.span,
+                            });
                         }
                     }
-                }
-
-                let mut bindings = HashMap::new();
-                for bind_ast in binds_ast.iter() {
-                    let name = &bind_ast.name.value;
-                    if let HashMapEntry::Vacant(entry) = bindings.entry(name.clone()) {
-                        let value = if let Some((ref params, _)) = bind_ast.params {
-                            self.analyze_function(params, &bind_ast.value, &inner_env)?
-                        } else {
-                            self.analyze_expr(&bind_ast.value, &inner_env, false)?
-                        };
-                        entry.insert(value);
+                    ast::ExprKind::String(ref s) => {
+                        state = State::Analyzed(Rc::new(ir::Expr::String((**s).into())));
                     }
-                }
+                    ast::ExprKind::TextBlock(ref s) => {
+                        state = State::Analyzed(Rc::new(ir::Expr::String((**s).into())));
+                    }
+                    ast::ExprKind::Number(ref value) => {
+                        let float_value =
+                            format!("{}e{}", value.digits, value.exp).parse().unwrap();
+                        state =
+                            State::Analyzed(Rc::new(ir::Expr::Number(float_value, expr_ast.span)));
+                    }
+                    ast::ExprKind::Paren(ref inner) => {
+                        state = State::Expr(inner);
+                    }
+                    ast::ExprKind::Object(ref inside) => {
+                        state = State::Analyzed(self.analyze_objinside(inside, env)?);
+                    }
+                    ast::ExprKind::Array(ref items_ast) => {
+                        let mut items = Vec::with_capacity(items_ast.len());
+                        for item_ast in items_ast.iter() {
+                            items.push(self.analyze_expr(item_ast, env, false)?);
+                        }
+                        state = State::Analyzed(Rc::new(ir::Expr::Array(items)));
+                    }
+                    ast::ExprKind::ArrayComp(ref body_ast, ref comp_spec_ast) => {
+                        let (comp_spec, env) = self.analyze_comp_spec(comp_spec_ast, env)?;
+                        let body = self.analyze_expr(body_ast, &env, false)?;
+                        state = State::Analyzed(Rc::new(ir::Expr::ArrayComp {
+                            value: body,
+                            comp_spec,
+                        }));
+                    }
+                    ast::ExprKind::Field(ref obj_ast, ref field_name_ast) => {
+                        let object = self.analyze_expr(obj_ast, env, false)?;
+                        state = State::Analyzed(Rc::new(ir::Expr::Field {
+                            object,
+                            field_name: field_name_ast.value.clone(),
+                            expr_span: expr_ast.span,
+                        }));
+                    }
+                    ast::ExprKind::Index(ref obj_ast, ref index_ast) => {
+                        let object = self.analyze_expr(obj_ast, env, false)?;
+                        let index = self.analyze_expr(index_ast, env, false)?;
+                        state = State::Analyzed(Rc::new(ir::Expr::Index {
+                            object,
+                            index,
+                            expr_span: expr_ast.span,
+                        }));
+                    }
+                    ast::ExprKind::Slice(
+                        ref object_ast,
+                        ref start_index_ast,
+                        ref end_index_ast,
+                        ref step_ast,
+                    ) => {
+                        let object = self.analyze_expr(object_ast, env, false)?;
+                        let start_index = start_index_ast
+                            .as_ref()
+                            .map(|e| self.analyze_expr(e, env, false))
+                            .transpose()?
+                            .unwrap_or_else(|| Rc::new(ir::Expr::Null));
+                        let end_index = end_index_ast
+                            .as_ref()
+                            .map(|e| self.analyze_expr(e, env, false))
+                            .transpose()?
+                            .unwrap_or_else(|| Rc::new(ir::Expr::Null));
+                        let step = step_ast
+                            .as_ref()
+                            .map(|e| self.analyze_expr(e, env, false))
+                            .transpose()?
+                            .unwrap_or_else(|| Rc::new(ir::Expr::Null));
 
-                let inner = self.analyze_expr(inner_ast, &inner_env, can_be_tailstrict)?;
+                        state = State::Analyzed(Rc::new(ir::Expr::Call {
+                            callee: Rc::new(ir::Expr::StdField {
+                                field_name: self.program.str_interner.intern("slice"),
+                            }),
+                            positional_args: vec![object, start_index, end_index, step],
+                            named_args: Vec::new(),
+                            tailstrict: false,
+                            span: expr_ast.span,
+                        }));
+                    }
+                    ast::ExprKind::SuperField(super_span, ref field_name_ast) => {
+                        if env.is_obj {
+                            state = State::Analyzed(Rc::new(ir::Expr::SuperField {
+                                super_span,
+                                field_name: field_name_ast.value.clone(),
+                                expr_span: expr_ast.span,
+                            }));
+                        } else {
+                            return Err(AnalyzeError::SuperOutsideObject { super_span });
+                        }
+                    }
+                    ast::ExprKind::SuperIndex(super_span, ref index_ast) => {
+                        if env.is_obj {
+                            let index = self.analyze_expr(index_ast, env, false)?;
+                            state = State::Analyzed(Rc::new(ir::Expr::SuperIndex {
+                                super_span,
+                                index,
+                                expr_span: expr_ast.span,
+                            }));
+                        } else {
+                            return Err(AnalyzeError::SuperOutsideObject { super_span });
+                        }
+                    }
+                    ast::ExprKind::Call(ref callee_ast, ref args_ast, tailstrict) => {
+                        let callee = self.analyze_expr(callee_ast, env, false)?;
 
-                Rc::new(ir::Expr::Local { bindings, inner })
-            }
-            ast::ExprKind::If(ref cond_ast, ref then_body_ast, ref else_body_ast) => {
-                let cond = self.analyze_expr(cond_ast, env, false)?;
-                let then_body = self.analyze_expr(then_body_ast, env, can_be_tailstrict)?;
-                let else_body = else_body_ast
-                    .as_ref()
-                    .map(|e| self.analyze_expr(e, env, can_be_tailstrict))
-                    .transpose()?;
+                        let mut positional_args = Vec::new();
+                        let mut named_args = Vec::new();
+                        for arg_ast in args_ast.iter() {
+                            match arg_ast {
+                                ast::Arg::Positional(value_ast) => {
+                                    if !named_args.is_empty() {
+                                        return Err(AnalyzeError::PositionalArgAfterNamed {
+                                            arg_span: value_ast.span,
+                                        });
+                                    }
+                                    positional_args.push(self.analyze_expr(value_ast, env, false)?);
+                                }
+                                ast::Arg::Named(arg_name, value_ast) => {
+                                    named_args.push((
+                                        arg_name.value.clone(),
+                                        arg_name.span,
+                                        self.analyze_expr(value_ast, env, false)?,
+                                    ));
+                                }
+                            }
+                        }
 
-                Rc::new(ir::Expr::If {
-                    cond,
-                    cond_span: cond_ast.span,
-                    then_body,
-                    else_body,
-                })
-            }
-            ast::ExprKind::Binary(ref lhs_ast, op, ref rhs_ast) => {
-                let lhs = self.analyze_expr(lhs_ast, env, false)?;
-                let rhs = self.analyze_expr(rhs_ast, env, false)?;
+                        state = State::Analyzed(Rc::new(ir::Expr::Call {
+                            callee,
+                            positional_args,
+                            named_args,
+                            tailstrict: can_be_tailstrict && tailstrict,
+                            span: expr_ast.span,
+                        }));
+                    }
+                    ast::ExprKind::Ident(ref name) => {
+                        if env.vars.contains(&name.value) {
+                            state = State::Analyzed(Rc::new(ir::Expr::Var(
+                                name.value.clone(),
+                                expr_ast.span,
+                            )));
+                        } else {
+                            return Err(AnalyzeError::UnknownVariable {
+                                span: name.span,
+                                name: name.value.value().into(),
+                            });
+                        }
+                    }
+                    ast::ExprKind::Local(ref binds_ast, ref inner_ast) => {
+                        let mut inner_env = env.clone();
 
-                match op {
-                    ast::BinaryOp::Rem => Rc::new(ir::Expr::Call {
-                        callee: Rc::new(ir::Expr::StdField {
-                            field_name: self.program.str_interner.intern("mod"),
-                        }),
-                        positional_args: vec![lhs, rhs],
-                        named_args: Vec::new(),
-                        tailstrict: false,
-                        span: expr_ast.span,
-                    }),
-                    _ => Rc::new(ir::Expr::Binary {
-                        op,
-                        lhs,
-                        rhs,
-                        span: expr_ast.span,
-                    }),
-                }
-            }
-            ast::ExprKind::Unary(op, ref rhs_ast) => {
-                let rhs = self.analyze_expr(rhs_ast, env, false)?;
+                        let mut locals_spans = HashMap::<InternedStr, SpanId>::new();
+                        for bind_ast in binds_ast.iter() {
+                            let name = &bind_ast.name.value;
+                            match locals_spans.entry(name.clone()) {
+                                HashMapEntry::Occupied(entry) => {
+                                    return Err(AnalyzeError::RepeatedLocalName {
+                                        original_span: *entry.get(),
+                                        repeated_span: bind_ast.name.span,
+                                        name: name.value().into(),
+                                    });
+                                }
+                                HashMapEntry::Vacant(entry) => {
+                                    entry.insert(bind_ast.name.span);
+                                    inner_env.vars.insert(name.clone());
+                                }
+                            }
+                        }
 
-                Rc::new(ir::Expr::Unary {
-                    op,
-                    rhs,
-                    span: expr_ast.span,
-                })
-            }
-            ast::ExprKind::ObjExt(ref lhs_ast, ref rhs_ast, _) => {
-                let lhs = self.analyze_expr(lhs_ast, env, false)?;
-                let rhs = self.analyze_objinside(rhs_ast, env)?;
+                        let mut bindings = HashMap::new();
+                        for bind_ast in binds_ast.iter() {
+                            let name = &bind_ast.name.value;
+                            if let HashMapEntry::Vacant(entry) = bindings.entry(name.clone()) {
+                                let value = if let Some((ref params, _)) = bind_ast.params {
+                                    self.analyze_function(params, &bind_ast.value, &inner_env)?
+                                } else {
+                                    self.analyze_expr(&bind_ast.value, &inner_env, false)?
+                                };
+                                entry.insert(value);
+                            }
+                        }
 
-                Rc::new(ir::Expr::Binary {
-                    op: ast::BinaryOp::Add,
-                    lhs,
-                    rhs,
-                    span: expr_ast.span,
-                })
-            }
-            ast::ExprKind::Func(ref params_ast, ref body_ast) => {
-                return self.analyze_function(params_ast, body_ast, env);
-            }
-            ast::ExprKind::Assert(ref assert_ast, ref inner_ast) => {
-                let assert = self.analyze_assert(assert_ast, env)?;
-                let inner = self.analyze_expr(inner_ast, env, can_be_tailstrict)?;
+                        let inner = self.analyze_expr(inner_ast, &inner_env, can_be_tailstrict)?;
 
-                Rc::new(ir::Expr::Assert { assert, inner })
-            }
-            ast::ExprKind::Import(ref path_ast) => match path_ast.kind {
-                ast::ExprKind::String(ref path) => Rc::new(ir::Expr::Import {
-                    path: (**path).into(),
-                    span: expr_ast.span,
-                }),
-                ast::ExprKind::TextBlock(_) => {
-                    return Err(AnalyzeError::TextBlockAsImportPath {
-                        span: path_ast.span,
-                    });
-                }
-                _ => {
-                    return Err(AnalyzeError::ComputedImportPath {
-                        span: path_ast.span,
-                    });
-                }
-            },
-            ast::ExprKind::ImportStr(ref path_ast) => match path_ast.kind {
-                ast::ExprKind::String(ref path) => Rc::new(ir::Expr::ImportStr {
-                    path: (**path).into(),
-                    span: expr_ast.span,
-                }),
-                ast::ExprKind::TextBlock(_) => {
-                    return Err(AnalyzeError::TextBlockAsImportPath {
-                        span: path_ast.span,
-                    });
-                }
-                _ => {
-                    return Err(AnalyzeError::ComputedImportPath {
-                        span: path_ast.span,
-                    });
-                }
-            },
-            ast::ExprKind::ImportBin(ref path_ast) => match path_ast.kind {
-                ast::ExprKind::String(ref path) => Rc::new(ir::Expr::ImportBin {
-                    path: (**path).into(),
-                    span: expr_ast.span,
-                }),
-                ast::ExprKind::TextBlock(_) => {
-                    return Err(AnalyzeError::TextBlockAsImportPath {
-                        span: path_ast.span,
-                    });
-                }
-                _ => {
-                    return Err(AnalyzeError::ComputedImportPath {
-                        span: path_ast.span,
-                    });
-                }
-            },
-            ast::ExprKind::Error(ref msg_ast) => {
-                let msg = self.analyze_expr(msg_ast, env, false)?;
+                        state = State::Analyzed(Rc::new(ir::Expr::Local { bindings, inner }));
+                    }
+                    ast::ExprKind::If(ref cond_ast, ref then_body_ast, ref else_body_ast) => {
+                        let cond = self.analyze_expr(cond_ast, env, false)?;
+                        let then_body = self.analyze_expr(then_body_ast, env, can_be_tailstrict)?;
+                        let else_body = else_body_ast
+                            .as_ref()
+                            .map(|e| self.analyze_expr(e, env, can_be_tailstrict))
+                            .transpose()?;
 
-                Rc::new(ir::Expr::Error {
-                    msg,
-                    span: expr_ast.span,
-                })
+                        state = State::Analyzed(Rc::new(ir::Expr::If {
+                            cond,
+                            cond_span: cond_ast.span,
+                            then_body,
+                            else_body,
+                        }));
+                    }
+                    ast::ExprKind::Binary(ref lhs_ast, op, ref rhs_ast) => {
+                        stack.push(StackItem::BinaryLhs(expr_ast.span, op, rhs_ast));
+                        state = State::Expr(lhs_ast);
+                    }
+                    ast::ExprKind::Unary(op, ref rhs_ast) => {
+                        stack.push(StackItem::UnaryRhs(expr_ast.span, op));
+                        state = State::Expr(rhs_ast);
+                    }
+                    ast::ExprKind::ObjExt(ref lhs_ast, ref rhs_ast, _) => {
+                        let lhs = self.analyze_expr(lhs_ast, env, false)?;
+                        let rhs = self.analyze_objinside(rhs_ast, env)?;
+
+                        state = State::Analyzed(Rc::new(ir::Expr::Binary {
+                            op: ast::BinaryOp::Add,
+                            lhs,
+                            rhs,
+                            span: expr_ast.span,
+                        }));
+                    }
+                    ast::ExprKind::Func(ref params_ast, ref body_ast) => {
+                        state = State::Analyzed(self.analyze_function(params_ast, body_ast, env)?);
+                    }
+                    ast::ExprKind::Assert(ref assert_ast, ref inner_ast) => {
+                        let assert = self.analyze_assert(assert_ast, env)?;
+                        let inner = self.analyze_expr(inner_ast, env, can_be_tailstrict)?;
+
+                        state = State::Analyzed(Rc::new(ir::Expr::Assert { assert, inner }));
+                    }
+                    ast::ExprKind::Import(ref path_ast) => match path_ast.kind {
+                        ast::ExprKind::String(ref path) => {
+                            state = State::Analyzed(Rc::new(ir::Expr::Import {
+                                path: (**path).into(),
+                                span: expr_ast.span,
+                            }));
+                        }
+                        ast::ExprKind::TextBlock(_) => {
+                            return Err(AnalyzeError::TextBlockAsImportPath {
+                                span: path_ast.span,
+                            });
+                        }
+                        _ => {
+                            return Err(AnalyzeError::ComputedImportPath {
+                                span: path_ast.span,
+                            });
+                        }
+                    },
+                    ast::ExprKind::ImportStr(ref path_ast) => match path_ast.kind {
+                        ast::ExprKind::String(ref path) => {
+                            state = State::Analyzed(Rc::new(ir::Expr::ImportStr {
+                                path: (**path).into(),
+                                span: expr_ast.span,
+                            }));
+                        }
+                        ast::ExprKind::TextBlock(_) => {
+                            return Err(AnalyzeError::TextBlockAsImportPath {
+                                span: path_ast.span,
+                            });
+                        }
+                        _ => {
+                            return Err(AnalyzeError::ComputedImportPath {
+                                span: path_ast.span,
+                            });
+                        }
+                    },
+                    ast::ExprKind::ImportBin(ref path_ast) => match path_ast.kind {
+                        ast::ExprKind::String(ref path) => {
+                            state = State::Analyzed(Rc::new(ir::Expr::ImportBin {
+                                path: (**path).into(),
+                                span: expr_ast.span,
+                            }));
+                        }
+                        ast::ExprKind::TextBlock(_) => {
+                            return Err(AnalyzeError::TextBlockAsImportPath {
+                                span: path_ast.span,
+                            });
+                        }
+                        _ => {
+                            return Err(AnalyzeError::ComputedImportPath {
+                                span: path_ast.span,
+                            });
+                        }
+                    },
+                    ast::ExprKind::Error(ref msg_ast) => {
+                        let msg = self.analyze_expr(msg_ast, env, false)?;
+
+                        state = State::Analyzed(Rc::new(ir::Expr::Error {
+                            msg,
+                            span: expr_ast.span,
+                        }));
+                    }
+                    ast::ExprKind::InSuper(ref lhs_ast, super_span) => {
+                        if env.is_obj {
+                            let lhs = self.analyze_expr(lhs_ast, env, false)?;
+                            state = State::Analyzed(Rc::new(ir::Expr::InSuper {
+                                lhs,
+                                span: expr_ast.span,
+                            }));
+                        } else {
+                            return Err(AnalyzeError::SuperOutsideObject { super_span });
+                        }
+                    }
+                },
             }
-            ast::ExprKind::InSuper(ref lhs_ast, super_span) => {
-                if env.is_obj {
-                    let lhs = self.analyze_expr(lhs_ast, env, false)?;
-                    Rc::new(ir::Expr::InSuper {
-                        lhs,
-                        span: expr_ast.span,
-                    })
-                } else {
-                    return Err(AnalyzeError::SuperOutsideObject { super_span });
-                }
-            }
-        };
-        Ok(ir_expr)
+        }
     }
 
     fn analyze_objinside(
