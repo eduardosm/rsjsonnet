@@ -1,0 +1,155 @@
+{
+   "arrayComp": [
+      11,
+      41,
+      51,
+      61,
+      33,
+      43,
+      53,
+      63
+   ],
+   "binOps": {
+      "add": {
+         "number": [
+            3.75,
+            7
+         ],
+         "string": [
+            "ab",
+            "cd"
+         ]
+      },
+      "and": {
+         "bool": [
+            false,
+            false,
+            false,
+            true
+         ],
+         "integer": [
+            0,
+            2
+         ]
+      }
+   },
+   "if": [
+      33,
+      77
+   ],
+   "importBin": [
+      1,
+      0,
+      255
+   ],
+   "importStr": "This is some UTF-8 text 🙂\n",
+   "importedFunc": [
+      [
+         1,
+         2,
+         5
+      ],
+      [
+         1,
+         4,
+         9
+      ]
+   ],
+   "objectComp": {
+      "x=1": 10,
+      "x=3": 30
+   },
+   "std": {
+      "all": [
+         true,
+         false,
+         false
+      ],
+      "any": [
+         true,
+         true,
+         false
+      ],
+      "asciiLower": "1 abcdefghijklmnopqrstuvwxyz 2",
+      "asciiUpper": "1 ABCDEFGHIJKLMNOPQRSTUVWXYZ 2",
+      "char": "💯",
+      "codepoint": 127823,
+      "decodeUTF8": " 🏀 ",
+      "encodeUTF8": [
+         32,
+         240,
+         159,
+         167,
+         182,
+         32
+      ],
+      "endsWith": [
+         true,
+         false
+      ],
+      "foldl": [
+         [
+            "x",
+            1
+         ],
+         2
+      ],
+      "foldr": [
+         1,
+         [
+            2,
+            "x"
+         ]
+      ],
+      "format": "a = 1.250, b = 2.5000",
+      "md5": "5ac749fbeec93607fc28d666be85e73a",
+      "object": { },
+      "parseJson": {
+         "a": 1,
+         "b": [
+            2,
+            3,
+            4
+         ]
+      },
+      "parseYaml": {
+         "a": 1,
+         "b": [
+            2,
+            3,
+            4
+         ]
+      },
+      "set": [
+         1,
+         2,
+         3
+      ],
+      "sort": [
+         1,
+         1,
+         2,
+         3
+      ],
+      "startsWith": [
+         true,
+         false
+      ],
+      "stringChars": [
+         "👀",
+         "🐢",
+         "💤",
+         "🛷"
+      ]
+   },
+   "unOps": {
+      "neg": [
+         -1,
+         -2
+      ],
+      "not": [
+         true,
+         false
+      ]
+   }
+}
