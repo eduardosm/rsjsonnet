@@ -843,6 +843,10 @@ impl<'a> Evaluator<'a> {
                                     rhs: rhs.clone(),
                                     index: 0,
                                 });
+                                self.push_trace_item(TraceItem::ArrayItem {
+                                    span: None,
+                                    index: 0,
+                                });
                                 self.state_stack.push(State::EqualsValue);
                                 self.state_stack.push(State::DoThunk(rhs[0].view()));
                                 self.state_stack.push(State::DoThunk(lhs[0].view()));
@@ -882,6 +886,10 @@ impl<'a> Evaluator<'a> {
                                         rhs: rhs.clone(),
                                         rem_fields: fields,
                                     });
+                                    self.push_trace_item(TraceItem::ObjectField {
+                                        span: None,
+                                        name: first_field,
+                                    });
                                     self.state_stack.push(State::EqualsValue);
                                     self.state_stack.push(State::DoThunk(rhs_field));
                                     self.state_stack.push(State::DoThunk(lhs_field));
@@ -915,6 +923,7 @@ impl<'a> Evaluator<'a> {
                                 rhs: rhs.clone(),
                                 index,
                             });
+                            self.push_trace_item(TraceItem::ArrayItem { span: None, index });
                             self.state_stack.push(State::EqualsValue);
                             self.state_stack.push(State::DoThunk(rhs[index].view()));
                             self.state_stack.push(State::DoThunk(lhs[index].view()));
@@ -943,6 +952,10 @@ impl<'a> Evaluator<'a> {
                                 lhs,
                                 rhs,
                                 rem_fields,
+                            });
+                            self.push_trace_item(TraceItem::ObjectField {
+                                span: None,
+                                name: next_field,
                             });
                             self.state_stack.push(State::EqualsValue);
                             self.state_stack.push(State::DoThunk(rhs_field));
@@ -988,6 +1001,10 @@ impl<'a> Evaluator<'a> {
                                         rhs: rhs.clone(),
                                         index: 0,
                                     });
+                                    self.push_trace_item(TraceItem::ArrayItem {
+                                        span: None,
+                                        index: 0,
+                                    });
                                     self.state_stack.push(State::CompareValue);
                                     self.state_stack.push(State::DoThunk(rhs[0].view()));
                                     self.state_stack.push(State::DoThunk(lhs[0].view()));
@@ -1030,6 +1047,7 @@ impl<'a> Evaluator<'a> {
                                     rhs: rhs.clone(),
                                     index,
                                 });
+                                self.push_trace_item(TraceItem::ArrayItem { span: None, index });
                                 self.state_stack.push(State::CompareValue);
                                 self.state_stack.push(State::DoThunk(rhs[index].view()));
                                 self.state_stack.push(State::DoThunk(lhs[index].view()));
