@@ -2,7 +2,7 @@ use std::fmt::Write as _;
 use std::rc::Rc;
 
 use super::super::ValueData;
-use super::{EvalError, EvalErrorKind, Evaluator, State};
+use super::{EvalError, EvalErrorKind, Evaluator, State, TraceItem};
 
 pub(super) struct ManifestJsonFormat {
     indent: Box<str>,
@@ -103,11 +103,16 @@ impl Evaluator<'_> {
                             self.state_stack.push(State::AppendToString(tmp));
                         }
 
+                        self.push_trace_item(TraceItem::ArrayItem {
+                            span: None,
+                            index: i,
+                        });
                         self.state_stack.push(State::ManifestJson {
                             format: format.clone(),
                             depth: depth + 1,
                         });
                         self.state_stack.push(State::DoThunk(item.view()));
+                        self.delay_trace_item();
                         if !format.indent.is_empty() {
                             self.state_stack
                                 .push(State::AppendToString(format.indent.repeat(depth + 1)));
@@ -146,7 +151,7 @@ impl Evaluator<'_> {
                     tmp.push('}');
                     self.state_stack.push(State::AppendToString(tmp));
 
-                    for (i, field_name) in visible_fields.iter().rev().enumerate() {
+                    for (i, &field_name) in visible_fields.iter().rev().enumerate() {
                         if i != 0 {
                             let mut tmp = String::new();
                             tmp.push_str(&format.item_sep);
@@ -154,6 +159,10 @@ impl Evaluator<'_> {
                             self.state_stack.push(State::AppendToString(tmp));
                         }
 
+                        self.push_trace_item(TraceItem::ObjectField {
+                            span: None,
+                            name: field_name.clone(),
+                        });
                         self.state_stack.push(State::ManifestJson {
                             format: format.clone(),
                             depth: depth + 1,
@@ -163,6 +172,7 @@ impl Evaluator<'_> {
                             .find_object_field_thunk(&object, 0, field_name)
                             .unwrap();
                         self.state_stack.push(State::DoThunk(field_thunk));
+                        self.delay_trace_item();
                         self.state_stack
                             .push(State::AppendToString((*format.key_val_sep).into()));
                         let mut name_manifested = String::new();
