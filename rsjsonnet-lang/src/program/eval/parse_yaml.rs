@@ -12,6 +12,8 @@ pub(crate) enum ParseError {
     EmptyStream,
     Anchor,
     Tag,
+    KeyIsObject(libyaml_safer::Mark),
+    KeyIsArray(libyaml_safer::Mark),
     NumberOverflow,
     RepeatedFieldName(InternedStr),
 }
@@ -31,6 +33,8 @@ impl std::fmt::Display for ParseError {
             Self::EmptyStream => write!(f, "empty stream"),
             Self::Anchor => write!(f, "anchors are not allowed"),
             Self::Tag => write!(f, "tags are not allowed"),
+            Self::KeyIsObject(ref mark) => write!(f, "{mark}: object key is an object"),
+            Self::KeyIsArray(ref mark) => write!(f, "{mark}: object key is an array"),
             Self::NumberOverflow => write!(f, "number overflow"),
             Self::RepeatedFieldName(ref name) => {
                 write!(f, "repeated field name {:?}", name.value())
@@ -181,6 +185,12 @@ pub(super) fn parse_yaml_document(
                 }
                 event = parser.parse()?;
                 match event.data {
+                    libyaml_safer::EventData::SequenceStart { .. } => {
+                        return Err(ParseError::KeyIsArray(event.start_mark));
+                    }
+                    libyaml_safer::EventData::MappingStart { .. } => {
+                        return Err(ParseError::KeyIsObject(event.start_mark));
+                    }
                     libyaml_safer::EventData::MappingEnd => {
                         ValueData::Object(program.gc_alloc(ObjectData::new_simple(HashMap::new())))
                     }
@@ -228,6 +238,12 @@ pub(super) fn parse_yaml_document(
                         }
 
                         match event.data {
+                            libyaml_safer::EventData::SequenceStart { .. } => {
+                                return Err(ParseError::KeyIsArray(event.start_mark));
+                            }
+                            libyaml_safer::EventData::MappingStart { .. } => {
+                                return Err(ParseError::KeyIsObject(event.start_mark));
+                            }
                             libyaml_safer::EventData::MappingEnd => {
                                 value = ValueData::Object(
                                     program.gc_alloc(ObjectData::new_simple(fields)),
