@@ -1,0 +1,8 @@
+error: failed to parse YAML: line 0 column 7: object key is an object
+note: while evaluating call to `parseYaml`
+ --> key1_is_object.jsonnet:1:1
+  |
+1 | std.parseYaml("{a: 1, {}: 2}")
+  | ------------------------------
+note: during top-level value evaluation
+
