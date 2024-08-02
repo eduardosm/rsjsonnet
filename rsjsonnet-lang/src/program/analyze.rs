@@ -40,6 +40,7 @@ impl<'a> Analyzer<'a> {
         }
 
         enum StackItem<'a> {
+            ArrayItem(SpanId, Vec<Rc<ir::Expr>>, &'a [ast::Expr]),
             BinaryLhs(SpanId, ast::BinaryOp, &'a ast::Expr),
             BinaryRhs(SpanId, ast::BinaryOp, Rc<ir::Expr>),
             UnaryRhs(SpanId, ast::UnaryOp),
@@ -52,6 +53,16 @@ impl<'a> Analyzer<'a> {
             match state {
                 State::Analyzed(expr_ir) => match stack.pop() {
                     None => return Ok(expr_ir),
+                    Some(StackItem::ArrayItem(span, mut items_ir, rem_items_ast)) => {
+                        items_ir.push(expr_ir);
+
+                        if let Some((next_item_ast, rem_items_ast)) = rem_items_ast.split_first() {
+                            stack.push(StackItem::ArrayItem(span, items_ir, rem_items_ast));
+                            state = State::Expr(next_item_ast);
+                        } else {
+                            state = State::Analyzed(Rc::new(ir::Expr::Array(items_ir)));
+                        }
+                    }
                     Some(StackItem::BinaryLhs(span, op, rhs_ast)) => {
                         stack.push(StackItem::BinaryRhs(span, op, expr_ir));
                         state = State::Expr(rhs_ast);
@@ -125,11 +136,16 @@ impl<'a> Analyzer<'a> {
                         state = State::Analyzed(self.analyze_objinside(inside, env)?);
                     }
                     ast::ExprKind::Array(ref items_ast) => {
-                        let mut items = Vec::with_capacity(items_ast.len());
-                        for item_ast in items_ast.iter() {
-                            items.push(self.analyze_expr(item_ast, env, false)?);
+                        if let Some((first_item_ast, rem_items_ast)) = items_ast.split_first() {
+                            stack.push(StackItem::ArrayItem(
+                                expr_ast.span,
+                                Vec::new(),
+                                rem_items_ast,
+                            ));
+                            state = State::Expr(first_item_ast);
+                        } else {
+                            state = State::Analyzed(Rc::new(ir::Expr::Array(Vec::new())));
                         }
-                        state = State::Analyzed(Rc::new(ir::Expr::Array(items)));
                     }
                     ast::ExprKind::ArrayComp(ref body_ast, ref comp_spec_ast) => {
                         let (comp_spec, env) = self.analyze_comp_spec(comp_spec_ast, env)?;

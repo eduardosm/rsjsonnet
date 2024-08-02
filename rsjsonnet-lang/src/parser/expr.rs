@@ -24,12 +24,17 @@ impl Parser<'_> {
             Binary(BinOpKind),
             BinaryRhs(BinOpKind, ast::Expr),
             Unary,
+            Primary,
         }
 
         enum StackItem {
             BinaryLhs(BinOpKind),
             BinaryRhs(BinOpKind, Box<ast::Expr>, ast::BinaryOp),
             Unary(ast::UnaryOp, SpanId),
+            Suffix,
+            ArrayItem0(SpanId),
+            ArrayItemN(SpanId, Vec<ast::Expr>),
+            Paren(SpanId),
         }
 
         impl BinOpKind {
@@ -50,8 +55,10 @@ impl Parser<'_> {
             }
         }
 
+        const INIT_STATE: State = State::Binary(BinOpKind::LogicOr);
+
         let mut stack = Vec::new();
-        let mut state = State::Binary(BinOpKind::LogicOr);
+        let mut state = INIT_STATE;
 
         loop {
             match state {
@@ -77,6 +84,55 @@ impl Parser<'_> {
                         state = State::Parsed(ast::Expr {
                             kind: ast::ExprKind::Unary(op, rhs),
                             span,
+                        });
+                    }
+                    Some(StackItem::Suffix) => {
+                        state = State::Parsed(self.parse_suffix_expr(expr)?);
+                    }
+                    Some(StackItem::ArrayItem0(start_span)) => {
+                        let item0 = expr;
+                        let has_comma0 = self.eat_simple(STokenKind::Comma, true).is_some();
+                        if let Some(comp_spec) = self.maybe_parse_comp_spec()? {
+                            let end_span = self.expect_simple(STokenKind::RightBracket, true)?;
+                            state = State::Parsed(ast::Expr {
+                                kind: ast::ExprKind::ArrayComp(Box::new(item0), comp_spec),
+                                span: self.span_mgr.make_surrounding_span(start_span, end_span),
+                            });
+                        } else if let Some(end_span) =
+                            self.eat_simple(STokenKind::RightBracket, true)
+                        {
+                            state = State::Parsed(ast::Expr {
+                                kind: ast::ExprKind::Array(Box::new([item0])),
+                                span: self.span_mgr.make_surrounding_span(start_span, end_span),
+                            });
+                        } else if has_comma0 {
+                            stack.push(StackItem::ArrayItemN(start_span, vec![item0]));
+                            state = INIT_STATE;
+                        } else {
+                            return Err(self.report_expected());
+                        }
+                    }
+                    Some(StackItem::ArrayItemN(start_span, mut items)) => {
+                        items.push(expr);
+
+                        let has_comma = self.eat_simple(STokenKind::Comma, true).is_some();
+                        if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
+                            state = State::Parsed(ast::Expr {
+                                kind: ast::ExprKind::Array(items.into_boxed_slice()),
+                                span: self.span_mgr.make_surrounding_span(start_span, end_span),
+                            });
+                        } else if has_comma {
+                            stack.push(StackItem::ArrayItemN(start_span, items));
+                            state = INIT_STATE;
+                        } else {
+                            return Err(self.report_expected());
+                        }
+                    }
+                    Some(StackItem::Paren(start_span)) => {
+                        let end_span = self.expect_simple(STokenKind::RightParen, true)?;
+                        state = State::Parsed(ast::Expr {
+                            kind: ast::ExprKind::Paren(Box::new(expr)),
+                            span: self.span_mgr.make_surrounding_span(start_span, end_span),
                         });
                     }
                 },
@@ -192,15 +248,158 @@ impl Parser<'_> {
                     } else if let Some(op_span) = self.eat_simple(STokenKind::Exclam, false) {
                         stack.push(StackItem::Unary(ast::UnaryOp::LogicNot, op_span));
                     } else {
-                        state = State::Parsed(self.parse_suffix_expr()?);
+                        stack.push(StackItem::Suffix);
+                        state = State::Primary;
+                    }
+                }
+                State::Primary => {
+                    if let Some(expr) = self.parse_maybe_simple_expr() {
+                        state = State::Parsed(expr);
+                    } else if let Some(start_span) = self.eat_simple(STokenKind::LeftBrace, false) {
+                        let (obj_inside, end_span) = self.parse_obj_inside()?;
+                        state = State::Parsed(ast::Expr {
+                            kind: ast::ExprKind::Object(obj_inside),
+                            span: self.span_mgr.make_surrounding_span(start_span, end_span),
+                        });
+                    } else if let Some(start_span) = self.eat_simple(STokenKind::LeftBracket, false)
+                    {
+                        if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
+                            state = State::Parsed(ast::Expr {
+                                kind: ast::ExprKind::Array(Box::new([])),
+                                span: self.span_mgr.make_surrounding_span(start_span, end_span),
+                            });
+                            continue;
+                        }
+
+                        stack.push(StackItem::ArrayItem0(start_span));
+                        state = INIT_STATE;
+                    } else if let Some(super_span) = self.eat_simple(STokenKind::Super, false) {
+                        if self.eat_simple(STokenKind::Dot, true).is_some() {
+                            let field_name = self.expect_ident(true)?;
+                            let span = self
+                                .span_mgr
+                                .make_surrounding_span(super_span, field_name.span);
+                            state = State::Parsed(ast::Expr {
+                                kind: ast::ExprKind::SuperField(super_span, field_name),
+                                span,
+                            });
+                        } else if self.eat_simple(STokenKind::LeftBracket, true).is_some() {
+                            let index_expr = Box::new(self.parse_expr()?);
+                            let end_span = self.expect_simple(STokenKind::RightBracket, true)?;
+
+                            state = State::Parsed(ast::Expr {
+                                kind: ast::ExprKind::SuperIndex(super_span, index_expr),
+                                span: self.span_mgr.make_surrounding_span(super_span, end_span),
+                            });
+                        } else {
+                            return Err(self.report_expected());
+                        }
+                    } else if let Some(start_span) = self.eat_simple(STokenKind::Local, false) {
+                        let mut binds = Vec::new();
+                        binds.push(self.parse_bind()?);
+                        while self.eat_simple(STokenKind::Comma, true).is_some() {
+                            binds.push(self.parse_bind()?);
+                        }
+                        let binds = binds.into_boxed_slice();
+
+                        self.expect_simple(STokenKind::Semicolon, true)?;
+                        let inner_expr = Box::new(self.parse_expr()?);
+
+                        let span = self
+                            .span_mgr
+                            .make_surrounding_span(start_span, inner_expr.span);
+                        state = State::Parsed(ast::Expr {
+                            kind: ast::ExprKind::Local(binds, inner_expr),
+                            span,
+                        });
+                    } else if let Some(if_span) = self.eat_simple(STokenKind::If, false) {
+                        let cond = Box::new(self.parse_expr()?);
+                        self.expect_simple(STokenKind::Then, true)?;
+                        let then_body = Box::new(self.parse_expr()?);
+                        let else_body = if self.eat_simple(STokenKind::Else, true).is_some() {
+                            Some(Box::new(self.parse_expr()?))
+                        } else {
+                            None
+                        };
+
+                        let span = self.span_mgr.make_surrounding_span(
+                            if_span,
+                            else_body.as_ref().map_or(then_body.span, |e| e.span),
+                        );
+                        state = State::Parsed(ast::Expr {
+                            kind: ast::ExprKind::If(cond, then_body, else_body),
+                            span,
+                        });
+                    } else if let Some(start_span) = self.eat_simple(STokenKind::Function, false) {
+                        self.expect_simple(STokenKind::LeftParen, true)?;
+                        let (params, _) = self.parse_params()?;
+                        let params = params.into_boxed_slice();
+                        let body = Box::new(self.parse_expr()?);
+                        let span = self.span_mgr.make_surrounding_span(start_span, body.span);
+                        state = State::Parsed(ast::Expr {
+                            kind: ast::ExprKind::Func(params, body),
+                            span,
+                        });
+                    } else if let Some((start_span, assert)) = self.maybe_parse_assert(false)? {
+                        self.expect_simple(STokenKind::Semicolon, true)?;
+                        let inner_expr = Box::new(self.parse_expr()?);
+                        let span = self
+                            .span_mgr
+                            .make_surrounding_span(start_span, inner_expr.span);
+                        state = State::Parsed(ast::Expr {
+                            kind: ast::ExprKind::Assert(Box::new(assert), inner_expr),
+                            span,
+                        });
+                    } else if let Some(start_span) = self.eat_simple(STokenKind::Import, false) {
+                        let path_expr = Box::new(self.parse_expr()?);
+                        let span = self
+                            .span_mgr
+                            .make_surrounding_span(start_span, path_expr.span);
+                        state = State::Parsed(ast::Expr {
+                            kind: ast::ExprKind::Import(path_expr),
+                            span,
+                        });
+                    } else if let Some(start_span) = self.eat_simple(STokenKind::Importstr, false) {
+                        let path_expr = Box::new(self.parse_expr()?);
+                        let span = self
+                            .span_mgr
+                            .make_surrounding_span(start_span, path_expr.span);
+                        state = State::Parsed(ast::Expr {
+                            kind: ast::ExprKind::ImportStr(path_expr),
+                            span,
+                        });
+                    } else if let Some(start_span) = self.eat_simple(STokenKind::Importbin, false) {
+                        let path_expr = Box::new(self.parse_expr()?);
+                        let span = self
+                            .span_mgr
+                            .make_surrounding_span(start_span, path_expr.span);
+                        state = State::Parsed(ast::Expr {
+                            kind: ast::ExprKind::ImportBin(path_expr),
+                            span,
+                        });
+                    } else if let Some(start_span) = self.eat_simple(STokenKind::Error, false) {
+                        let msg_expr = Box::new(self.parse_expr()?);
+                        let span = self
+                            .span_mgr
+                            .make_surrounding_span(start_span, msg_expr.span);
+                        state = State::Parsed(ast::Expr {
+                            kind: ast::ExprKind::Error(msg_expr),
+                            span,
+                        });
+                    } else if let Some(start_span) = self.eat_simple(STokenKind::LeftParen, false) {
+                        stack.push(StackItem::Paren(start_span));
+                        state = INIT_STATE;
+                    } else {
+                        self.expected_things.push(ExpectedThing::Expr);
+                        return Err(self.report_expected());
                     }
                 }
             }
         }
     }
 
-    fn parse_suffix_expr(&mut self) -> Result<ast::Expr, ParseError> {
-        let mut lhs = self.parse_primary_expr()?;
+    fn parse_suffix_expr(&mut self, primary: ast::Expr) -> Result<ast::Expr, ParseError> {
+        let mut lhs = primary;
         loop {
             if self.eat_simple(STokenKind::Dot, true).is_some() {
                 let field_name = self.expect_ident(true)?;
@@ -337,227 +536,55 @@ impl Parser<'_> {
         })
     }
 
-    fn parse_primary_expr(&mut self) -> Result<ast::Expr, ParseError> {
+    fn parse_maybe_simple_expr(&mut self) -> Option<ast::Expr> {
         if let Some(span) = self.eat_simple(STokenKind::Null, false) {
-            Ok(ast::Expr {
+            Some(ast::Expr {
                 kind: ast::ExprKind::Null,
                 span,
             })
         } else if let Some(span) = self.eat_simple(STokenKind::False, false) {
-            Ok(ast::Expr {
+            Some(ast::Expr {
                 kind: ast::ExprKind::Bool(false),
                 span,
             })
         } else if let Some(span) = self.eat_simple(STokenKind::True, false) {
-            Ok(ast::Expr {
+            Some(ast::Expr {
                 kind: ast::ExprKind::Bool(true),
                 span,
             })
         } else if let Some(span) = self.eat_simple(STokenKind::Self_, false) {
-            Ok(ast::Expr {
+            Some(ast::Expr {
                 kind: ast::ExprKind::SelfObj,
                 span,
             })
         } else if let Some(span) = self.eat_simple(STokenKind::Dollar, false) {
-            Ok(ast::Expr {
+            Some(ast::Expr {
                 kind: ast::ExprKind::Dollar,
                 span,
             })
         } else if let Some((s, span)) = self.eat_string(false) {
-            Ok(ast::Expr {
+            Some(ast::Expr {
                 kind: ast::ExprKind::String(s),
                 span,
             })
         } else if let Some((s, span)) = self.eat_text_block(false) {
-            Ok(ast::Expr {
+            Some(ast::Expr {
                 kind: ast::ExprKind::TextBlock(s),
                 span,
             })
         } else if let Some((n, span)) = self.eat_number(false) {
-            Ok(ast::Expr {
+            Some(ast::Expr {
                 kind: ast::ExprKind::Number(n),
                 span,
             })
-        } else if let Some(start_span) = self.eat_simple(STokenKind::LeftBrace, false) {
-            let (obj_inside, end_span) = self.parse_obj_inside()?;
-            Ok(ast::Expr {
-                kind: ast::ExprKind::Object(obj_inside),
-                span: self.span_mgr.make_surrounding_span(start_span, end_span),
-            })
-        } else if let Some(start_span) = self.eat_simple(STokenKind::LeftBracket, false) {
-            if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
-                return Ok(ast::Expr {
-                    kind: ast::ExprKind::Array(Box::new([])),
-                    span: self.span_mgr.make_surrounding_span(start_span, end_span),
-                });
-            }
-
-            let item0 = self.parse_expr()?;
-            let has_comma0 = self.eat_simple(STokenKind::Comma, true).is_some();
-            if let Some(comp_spec) = self.maybe_parse_comp_spec()? {
-                let end_span = self.expect_simple(STokenKind::RightBracket, true)?;
-                return Ok(ast::Expr {
-                    kind: ast::ExprKind::ArrayComp(Box::new(item0), comp_spec),
-                    span: self.span_mgr.make_surrounding_span(start_span, end_span),
-                });
-            } else if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
-                return Ok(ast::Expr {
-                    kind: ast::ExprKind::Array(Box::new([item0])),
-                    span: self.span_mgr.make_surrounding_span(start_span, end_span),
-                });
-            } else if has_comma0 {
-                let mut items = Vec::new();
-                items.push(item0);
-                let end_span = loop {
-                    items.push(self.parse_expr()?);
-                    if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
-                        break end_span;
-                    } else if self.eat_simple(STokenKind::Comma, true).is_some() {
-                        if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
-                            break end_span;
-                        }
-                    } else {
-                        return Err(self.report_expected());
-                    }
-                };
-                let items = items.into_boxed_slice();
-
-                Ok(ast::Expr {
-                    kind: ast::ExprKind::Array(items),
-                    span: self.span_mgr.make_surrounding_span(start_span, end_span),
-                })
-            } else {
-                return Err(self.report_expected());
-            }
-        } else if let Some(super_span) = self.eat_simple(STokenKind::Super, false) {
-            if self.eat_simple(STokenKind::Dot, true).is_some() {
-                let field_name = self.expect_ident(true)?;
-                let span = self
-                    .span_mgr
-                    .make_surrounding_span(super_span, field_name.span);
-                Ok(ast::Expr {
-                    kind: ast::ExprKind::SuperField(super_span, field_name),
-                    span,
-                })
-            } else if self.eat_simple(STokenKind::LeftBracket, true).is_some() {
-                let index_expr = Box::new(self.parse_expr()?);
-                let end_span = self.expect_simple(STokenKind::RightBracket, true)?;
-
-                Ok(ast::Expr {
-                    kind: ast::ExprKind::SuperIndex(super_span, index_expr),
-                    span: self.span_mgr.make_surrounding_span(super_span, end_span),
-                })
-            } else {
-                return Err(self.report_expected());
-            }
         } else if let Some(ident) = self.eat_ident(false) {
             let span = ident.span;
-            Ok(ast::Expr {
+            Some(ast::Expr {
                 kind: ast::ExprKind::Ident(ident),
                 span,
             })
-        } else if let Some(start_span) = self.eat_simple(STokenKind::Local, false) {
-            let mut binds = Vec::new();
-            binds.push(self.parse_bind()?);
-            while self.eat_simple(STokenKind::Comma, true).is_some() {
-                binds.push(self.parse_bind()?);
-            }
-            let binds = binds.into_boxed_slice();
-
-            self.expect_simple(STokenKind::Semicolon, true)?;
-            let inner_expr = Box::new(self.parse_expr()?);
-
-            let span = self
-                .span_mgr
-                .make_surrounding_span(start_span, inner_expr.span);
-            Ok(ast::Expr {
-                kind: ast::ExprKind::Local(binds, inner_expr),
-                span,
-            })
-        } else if let Some(if_span) = self.eat_simple(STokenKind::If, false) {
-            let cond = Box::new(self.parse_expr()?);
-            self.expect_simple(STokenKind::Then, true)?;
-            let then_body = Box::new(self.parse_expr()?);
-            let else_body = if self.eat_simple(STokenKind::Else, true).is_some() {
-                Some(Box::new(self.parse_expr()?))
-            } else {
-                None
-            };
-
-            let span = self.span_mgr.make_surrounding_span(
-                if_span,
-                else_body.as_ref().map_or(then_body.span, |e| e.span),
-            );
-            Ok(ast::Expr {
-                kind: ast::ExprKind::If(cond, then_body, else_body),
-                span,
-            })
-        } else if let Some(start_span) = self.eat_simple(STokenKind::Function, false) {
-            self.expect_simple(STokenKind::LeftParen, true)?;
-            let (params, _) = self.parse_params()?;
-            let params = params.into_boxed_slice();
-            let body = Box::new(self.parse_expr()?);
-            let span = self.span_mgr.make_surrounding_span(start_span, body.span);
-            Ok(ast::Expr {
-                kind: ast::ExprKind::Func(params, body),
-                span,
-            })
-        } else if let Some((start_span, assert)) = self.maybe_parse_assert(false)? {
-            self.expect_simple(STokenKind::Semicolon, true)?;
-            let inner_expr = Box::new(self.parse_expr()?);
-            let span = self
-                .span_mgr
-                .make_surrounding_span(start_span, inner_expr.span);
-            Ok(ast::Expr {
-                kind: ast::ExprKind::Assert(Box::new(assert), inner_expr),
-                span,
-            })
-        } else if let Some(start_span) = self.eat_simple(STokenKind::Import, false) {
-            let path_expr = Box::new(self.parse_expr()?);
-            let span = self
-                .span_mgr
-                .make_surrounding_span(start_span, path_expr.span);
-            Ok(ast::Expr {
-                kind: ast::ExprKind::Import(path_expr),
-                span,
-            })
-        } else if let Some(start_span) = self.eat_simple(STokenKind::Importstr, false) {
-            let path_expr = Box::new(self.parse_expr()?);
-            let span = self
-                .span_mgr
-                .make_surrounding_span(start_span, path_expr.span);
-            Ok(ast::Expr {
-                kind: ast::ExprKind::ImportStr(path_expr),
-                span,
-            })
-        } else if let Some(start_span) = self.eat_simple(STokenKind::Importbin, false) {
-            let path_expr = Box::new(self.parse_expr()?);
-            let span = self
-                .span_mgr
-                .make_surrounding_span(start_span, path_expr.span);
-            Ok(ast::Expr {
-                kind: ast::ExprKind::ImportBin(path_expr),
-                span,
-            })
-        } else if let Some(start_span) = self.eat_simple(STokenKind::Error, false) {
-            let msg_expr = Box::new(self.parse_expr()?);
-            let span = self
-                .span_mgr
-                .make_surrounding_span(start_span, msg_expr.span);
-            Ok(ast::Expr {
-                kind: ast::ExprKind::Error(msg_expr),
-                span,
-            })
-        } else if let Some(start_span) = self.eat_simple(STokenKind::LeftParen, false) {
-            let inner_expr = Box::new(self.parse_expr()?);
-            let end_span = self.expect_simple(STokenKind::RightParen, true)?;
-            Ok(ast::Expr {
-                kind: ast::ExprKind::Paren(inner_expr),
-                span: self.span_mgr.make_surrounding_span(start_span, end_span),
-            })
         } else {
-            self.expected_things.push(ExpectedThing::Expr);
-            return Err(self.report_expected());
+            None
         }
     }
 
