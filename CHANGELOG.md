@@ -8,6 +8,7 @@
 - Detect stack overflow while converting arrays and objects to string.
 - Avoid panic when encountering an array or object as object key in
   `std.parseYaml`.
+- Avoid panic when encountering a YAML alias in `std.parseYaml`.
 
 ## 0.1.2 (2024-07-20)
 
