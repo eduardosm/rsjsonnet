@@ -11,6 +11,7 @@ pub(crate) enum ParseError {
     Stream,
     EmptyStream,
     Anchor,
+    Alias,
     Tag,
     KeyIsObject(libyaml_safer::Mark),
     KeyIsArray(libyaml_safer::Mark),
@@ -32,6 +33,7 @@ impl std::fmt::Display for ParseError {
             Self::Stream => write!(f, "YAML stream not allowed"),
             Self::EmptyStream => write!(f, "empty stream"),
             Self::Anchor => write!(f, "anchors are not allowed"),
+            Self::Alias => write!(f, "aliases are not allowed"),
             Self::Tag => write!(f, "tags are not allowed"),
             Self::KeyIsObject(ref mark) => write!(f, "{mark}: object key is an object"),
             Self::KeyIsArray(ref mark) => write!(f, "{mark}: object key is an array"),
@@ -127,6 +129,9 @@ pub(super) fn parse_yaml_document(
     let mut event = parser.parse()?;
     loop {
         let mut value = match event.data {
+            libyaml_safer::EventData::Alias { .. } => {
+                return Err(ParseError::Alias);
+            }
             libyaml_safer::EventData::Scalar {
                 anchor,
                 tag,
@@ -185,6 +190,9 @@ pub(super) fn parse_yaml_document(
                 }
                 event = parser.parse()?;
                 match event.data {
+                    libyaml_safer::EventData::Alias { .. } => {
+                        return Err(ParseError::Alias);
+                    }
                     libyaml_safer::EventData::SequenceStart { .. } => {
                         return Err(ParseError::KeyIsArray(event.start_mark));
                     }
@@ -238,6 +246,9 @@ pub(super) fn parse_yaml_document(
                         }
 
                         match event.data {
+                            libyaml_safer::EventData::Alias { .. } => {
+                                return Err(ParseError::Alias);
+                            }
                             libyaml_safer::EventData::SequenceStart { .. } => {
                                 return Err(ParseError::KeyIsArray(event.start_mark));
                             }
