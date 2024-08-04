@@ -1,6 +1,15 @@
 std.assertEqual(std.parseYaml("null"), null) &&
+std.assertEqual(std.parseYaml("Null"), null) &&
+std.assertEqual(std.parseYaml("NULL"), null) &&
+std.assertEqual(std.parseYaml("~"), null) &&
+
 std.assertEqual(std.parseYaml("true"), true) &&
+std.assertEqual(std.parseYaml("True"), true) &&
+std.assertEqual(std.parseYaml("TRUE"), true) &&
+
 std.assertEqual(std.parseYaml("false"), false) &&
+std.assertEqual(std.parseYaml("False"), false) &&
+std.assertEqual(std.parseYaml("FALSE"), false) &&
 
 std.assertEqual(std.parseYaml("0"), 0) &&
 std.assertEqual(std.parseYaml("-0"), 0) &&
