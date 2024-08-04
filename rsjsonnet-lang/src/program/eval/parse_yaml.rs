@@ -293,7 +293,6 @@ fn try_parse_number(s: &str) -> Option<f64> {
     enum State {
         Start,
         Sign,
-        Zero,
         IntPart,
         Dot,
         LeadingDot,
@@ -309,22 +308,14 @@ fn try_parse_number(s: &str) -> Option<f64> {
         match state {
             State::Start => match iter.next() {
                 Some('-' | '+') => state = State::Sign,
-                Some('0') => state = State::Zero,
-                Some('1'..='9') => state = State::IntPart,
+                Some('0'..='9') => state = State::IntPart,
                 Some('.') => state = State::LeadingDot,
                 _ => return None,
             },
             State::Sign => match iter.next() {
-                Some('0') => state = State::Zero,
-                Some('1'..='9') => state = State::IntPart,
+                Some('0'..='9') => state = State::IntPart,
                 Some('.') => state = State::LeadingDot,
                 _ => return None,
-            },
-            State::Zero => match iter.next() {
-                None => break,
-                Some('.') => state = State::Dot,
-                Some('e' | 'E') => state = State::E,
-                Some(_) => return None,
             },
             State::IntPart => match iter.next() {
                 None => break,

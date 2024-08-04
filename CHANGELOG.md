@@ -15,6 +15,7 @@
 - Allow leading or trailing dot (e.g., `.5` or `1.`) in floating point numbers
   in `std.parseYaml`.
 - Allow explicit `+` in floating point numbers in `std.parseYaml`.
+- Allow leading zeros in floating point numbers in `std.parseYaml`.
 
 ## 0.1.2 (2024-07-20)
 
