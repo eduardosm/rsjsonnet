@@ -70,7 +70,7 @@ fn main_inner() -> Result<(), RunError> {
         }
     } else {
         input = Input::File(Path::new(&args.input));
-    };
+    }
 
     let mut session = Session::new();
 

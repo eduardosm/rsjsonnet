@@ -1048,7 +1048,7 @@ fn render_float_def(
             trimmed = trimmed.strip_suffix('.').unwrap_or(trimmed);
         }
         digits_str.truncate(trimmed.len());
-    };
+    }
 
     decorate_digits(&digits_str, is_neg, zero_pad, 0, plus, blank)
 }
@@ -1074,7 +1074,7 @@ fn render_float_exp(
         if !ensure_pt {
             mant_str = mant_str.strip_suffix('.').unwrap_or(mant_str);
         }
-    };
+    }
     let exp_str = &digits_str[(e_pos + 1)..];
     let exp_int = exp_str.parse::<i32>().unwrap();
     let dot = if prec == 0 && ensure_pt { "." } else { "" };
