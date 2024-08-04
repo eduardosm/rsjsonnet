@@ -1,14 +1,9 @@
 # Changelog
 
-## 0.1.3 (unreleased)
+## 0.2.0 (unreleased)
 
-### Fixed
+### Breaking
 
-- Detect stack overflow while comparing arrays and objects.
-- Detect stack overflow while converting arrays and objects to string.
-- Avoid panic when encountering an array or object as object key in
-  `std.parseYaml`.
-- Avoid panic when encountering a YAML alias in `std.parseYaml`.
 - Parse `Null`, `NULL` and `~` as `null` in `std.parseYaml`.
 - Parse `True` and `TRUE` as `true` in `std.parseYaml`.
 - Parse `False` and `FALSE` as `false` in `std.parseYaml`.
@@ -18,7 +13,13 @@
 - Allow leading zeros in floating point numbers in `std.parseYaml`.
 - Parse octal and hexadecimal intergers as numbers in `std.parseYaml`.
 
-Note: YAML changes are considered fixes because they where overlooked features.
+### Fixed
+
+- Detect stack overflow while comparing arrays and objects.
+- Detect stack overflow while converting arrays and objects to string.
+- Avoid panic when encountering an array or object as object key in
+  `std.parseYaml`.
+- Avoid panic when encountering a YAML alias in `std.parseYaml`.
 
 ## 0.1.2 (2024-07-20)
 
