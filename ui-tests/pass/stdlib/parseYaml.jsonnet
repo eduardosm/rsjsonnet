@@ -81,6 +81,13 @@ std.assertEqual(std.parseYaml("8.5e+2"), 850) &&
 std.assertEqual(std.parseYaml("25e-2"), 0.25) &&
 std.assertEqual(std.parseYaml("0.5e+10"), 5000000000) &&
 
+std.assertEqual(std.parseYaml("0o1"), 1) &&
+std.assertEqual(std.parseYaml("0o7"), 7) &&
+
+std.assertEqual(std.parseYaml("0x1"), 1) &&
+std.assertEqual(std.parseYaml("0x9"), 9) &&
+std.assertEqual(std.parseYaml("0xF"), 15) &&
+
 std.assertEqual(std.parseYaml("."), ".") &&
 std.assertEqual(std.parseYaml("-."), "-.") &&
 std.assertEqual(std.parseYaml("+."), "+.") &&
@@ -100,6 +107,28 @@ std.assertEqual(std.parseYaml("+1e+"), "+1e+") &&
 std.assertEqual(std.parseYaml("1e-"), "1e-") &&
 std.assertEqual(std.parseYaml("-1e-"), "-1e-") &&
 std.assertEqual(std.parseYaml("+1e-"), "+1e-") &&
+
+std.assertEqual(std.parseYaml("0o"), "0o") &&
+std.assertEqual(std.parseYaml("+0o"), "+0o") &&
+std.assertEqual(std.parseYaml("-0o"), "-0o") &&
+
+std.assertEqual(std.parseYaml("0o8"), "0o8") &&
+std.assertEqual(std.parseYaml("+0o8"), "+0o8") &&
+std.assertEqual(std.parseYaml("-0o8"), "-0o8") &&
+
+std.assertEqual(std.parseYaml("+0o1"), "+0o1") &&
+std.assertEqual(std.parseYaml("-0o1"), "-0o1") &&
+
+std.assertEqual(std.parseYaml("0x"), "0x") &&
+std.assertEqual(std.parseYaml("+0x"), "+0x") &&
+std.assertEqual(std.parseYaml("-0x"), "-0x") &&
+
+std.assertEqual(std.parseYaml("0xG"), "0xG") &&
+std.assertEqual(std.parseYaml("+0xG"), "+0xG") &&
+std.assertEqual(std.parseYaml("-0xG"), "-0xG") &&
+
+std.assertEqual(std.parseYaml("+0x1"), "+0x1") &&
+std.assertEqual(std.parseYaml("-0x1"), "-0x1") &&
 
 std.assertEqual(std.parseYaml('"string"'), "string") &&
 std.assertEqual(std.parseYaml("'string'"), "string") &&

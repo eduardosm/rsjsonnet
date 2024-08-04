@@ -16,6 +16,9 @@
   in `std.parseYaml`.
 - Allow explicit `+` in floating point numbers in `std.parseYaml`.
 - Allow leading zeros in floating point numbers in `std.parseYaml`.
+- Parse octal and hexadecimal intergers as numbers in `std.parseYaml`.
+
+Note: YAML changes are considered fixes because they where overlooked features.
 
 ## 0.1.2 (2024-07-20)
 
