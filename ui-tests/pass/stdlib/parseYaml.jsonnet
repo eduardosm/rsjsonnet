@@ -108,6 +108,57 @@ std.assertEqual(
       ---
       a: 3
       b: 4
+    |||
+  ),
+  [
+    [1, 2],
+    { a: 3, b: 4 },
+  ],
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      - 1
+      - 2
+      ---
+      a: 3
+      b: 4
+      ...
+    |||
+  ),
+  [
+    [1, 2],
+    { a: 3, b: 4 },
+  ],
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      ---
+      - 1
+      - 2
+      ---
+      a: 3
+      b: 4
+    |||
+  ),
+  [
+    [1, 2],
+    { a: 3, b: 4 },
+  ],
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      ---
+      - 1
+      - 2
+      ---
+      a: 3
+      b: 4
       ...
     |||
   ),
