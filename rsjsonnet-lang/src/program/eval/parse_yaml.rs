@@ -292,7 +292,7 @@ fn scalar_to_value(
 fn try_parse_number(s: &str) -> Option<f64> {
     enum State {
         Start,
-        Minus,
+        Sign,
         Zero,
         IntPart,
         Dot,
@@ -308,13 +308,13 @@ fn try_parse_number(s: &str) -> Option<f64> {
     loop {
         match state {
             State::Start => match iter.next() {
-                Some('-') => state = State::Minus,
+                Some('-' | '+') => state = State::Sign,
                 Some('0') => state = State::Zero,
                 Some('1'..='9') => state = State::IntPart,
                 Some('.') => state = State::LeadingDot,
                 _ => return None,
             },
-            State::Minus => match iter.next() {
+            State::Sign => match iter.next() {
                 Some('0') => state = State::Zero,
                 Some('1'..='9') => state = State::IntPart,
                 Some('.') => state = State::LeadingDot,
