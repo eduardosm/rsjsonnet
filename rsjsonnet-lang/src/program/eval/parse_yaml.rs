@@ -274,7 +274,10 @@ fn scalar_to_value(
             "true" | "True" | "TRUE" => Ok(ValueData::Bool(true)),
             "false" | "False" | "FALSE" => Ok(ValueData::Bool(false)),
             _ => {
-                if let Some(number) = try_parse_number(value) {
+                let number = try_parse_number(value)
+                    .or_else(|| try_parse_octal_number(value))
+                    .or_else(|| try_parse_hex_number(value));
+                if let Some(number) = number {
                     if !number.is_finite() {
                         return Err(ParseError::NumberOverflow);
                     }
@@ -360,5 +363,63 @@ fn try_parse_number(s: &str) -> Option<f64> {
     assert!(!s.is_empty() && iter.as_str().is_empty());
 
     let number = s.parse().unwrap();
+    Some(number)
+}
+
+fn try_parse_octal_number(s: &str) -> Option<f64> {
+    let digits = s.strip_prefix("0o")?;
+    if digits.is_empty() {
+        return None;
+    }
+
+    let mut int = 0u128;
+    let mut chars = digits.chars().peekable();
+    while let Some(chr) = chars.peek() {
+        let digit = chr.to_digit(8)?;
+        let new_int = int.checked_mul(8).and_then(|v| v.checked_add(digit.into()));
+        if let Some(new_int) = new_int {
+            int = new_int;
+            chars.next();
+        } else {
+            break;
+        }
+    }
+
+    let mut number = int as f64;
+    for chr in chars {
+        let digit = chr.to_digit(8)?;
+        number = number.mul_add(8.0, f64::from(digit));
+    }
+
+    Some(number)
+}
+
+fn try_parse_hex_number(s: &str) -> Option<f64> {
+    let digits = s.strip_prefix("0x")?;
+    if digits.is_empty() {
+        return None;
+    }
+
+    let mut int = 0u128;
+    let mut chars = digits.chars().peekable();
+    while let Some(chr) = chars.peek() {
+        let digit = chr.to_digit(16)?;
+        let new_int = int
+            .checked_mul(16)
+            .and_then(|v| v.checked_add(digit.into()));
+        if let Some(new_int) = new_int {
+            int = new_int;
+            chars.next();
+        } else {
+            break;
+        }
+    }
+
+    let mut number = int as f64;
+    for chr in chars {
+        let digit = chr.to_digit(16)?;
+        number = number.mul_add(16.0, f64::from(digit));
+    }
+
     Some(number)
 }
