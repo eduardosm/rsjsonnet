@@ -81,6 +81,26 @@ std.assertEqual(std.parseYaml("8.5e+2"), 850) &&
 std.assertEqual(std.parseYaml("25e-2"), 0.25) &&
 std.assertEqual(std.parseYaml("0.5e+10"), 5000000000) &&
 
+std.assertEqual(std.parseYaml("."), ".") &&
+std.assertEqual(std.parseYaml("-."), "-.") &&
+std.assertEqual(std.parseYaml("+."), "+.") &&
+std.assertEqual(std.parseYaml(".e"), ".e") &&
+std.assertEqual(std.parseYaml("-.e"), "-.e") &&
+std.assertEqual(std.parseYaml("+.e"), "+.e") &&
+std.assertEqual(std.parseYaml(".e1"), ".e1") &&
+std.assertEqual(std.parseYaml("-.e1"), "-.e1") &&
+std.assertEqual(std.parseYaml("+.e1"), "+.e1") &&
+
+std.assertEqual(std.parseYaml("1e"), "1e") &&
+std.assertEqual(std.parseYaml("-1e"), "-1e") &&
+std.assertEqual(std.parseYaml("+1e"), "+1e") &&
+std.assertEqual(std.parseYaml("1e+"), "1e+") &&
+std.assertEqual(std.parseYaml("-1e+"), "-1e+") &&
+std.assertEqual(std.parseYaml("+1e+"), "+1e+") &&
+std.assertEqual(std.parseYaml("1e-"), "1e-") &&
+std.assertEqual(std.parseYaml("-1e-"), "-1e-") &&
+std.assertEqual(std.parseYaml("+1e-"), "+1e-") &&
+
 std.assertEqual(std.parseYaml('"string"'), "string") &&
 std.assertEqual(std.parseYaml("'string'"), "string") &&
 std.assertEqual(std.parseJson('"\\uABCD"'), "\uABCD") &&
