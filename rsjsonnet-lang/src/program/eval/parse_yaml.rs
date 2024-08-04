@@ -147,21 +147,7 @@ pub(super) fn parse_yaml_document(
                 }
 
                 if style == libyaml_safer::ScalarStyle::Plain {
-                    match value.as_str() {
-                        "null" => ValueData::Null,
-                        "true" => ValueData::Bool(true),
-                        "false" => ValueData::Bool(false),
-                        _ => {
-                            if let Some(number) = try_parse_number(&value) {
-                                if !number.is_finite() {
-                                    return Err(ParseError::NumberOverflow);
-                                }
-                                ValueData::Number(number)
-                            } else {
-                                ValueData::String(value.into())
-                            }
-                        }
-                    }
+                    scalar_to_value(style, &value)?
                 } else {
                     ValueData::String(value.into())
                 }
@@ -279,6 +265,31 @@ pub(super) fn parse_yaml_document(
                 return Ok(value);
             }
         }
+    }
+}
+
+fn scalar_to_value(
+    style: libyaml_safer::ScalarStyle,
+    value: &str,
+) -> Result<ValueData, ParseError> {
+    if style == libyaml_safer::ScalarStyle::Plain {
+        match value {
+            "null" | "Null" | "NULL" | "~" => Ok(ValueData::Null),
+            "true" | "True" | "TRUE" => Ok(ValueData::Bool(true)),
+            "false" | "False" | "FALSE" => Ok(ValueData::Bool(false)),
+            _ => {
+                if let Some(number) = try_parse_number(value) {
+                    if !number.is_finite() {
+                        return Err(ParseError::NumberOverflow);
+                    }
+                    Ok(ValueData::Number(number))
+                } else {
+                    Ok(ValueData::String(value.into()))
+                }
+            }
+        }
+    } else {
+        Ok(ValueData::String(value.into()))
     }
 }
 

@@ -9,6 +9,9 @@
 - Avoid panic when encountering an array or object as object key in
   `std.parseYaml`.
 - Avoid panic when encountering a YAML alias in `std.parseYaml`.
+- Parse `Null`, `NULL` and `~` as `null` in `std.parseYaml`.
+- Parse `True` and `TRUE` as `true` in `std.parseYaml`.
+- Parse `False` and `FALSE` as `false` in `std.parseYaml`.
 
 ## 0.1.2 (2024-07-20)
 
