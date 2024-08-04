@@ -14,9 +14,15 @@ std.assertEqual(std.parseYaml("FALSE"), false) &&
 std.assertEqual(std.parseYaml("0"), 0) &&
 std.assertEqual(std.parseYaml("+0"), 0) &&
 std.assertEqual(std.parseYaml("-0"), 0) &&
+std.assertEqual(std.parseYaml("00"), 0) &&
+std.assertEqual(std.parseYaml("+00"), 0) &&
+std.assertEqual(std.parseYaml("-00"), 0) &&
 std.assertEqual(std.parseYaml("8"), 8) &&
 std.assertEqual(std.parseYaml("+8"), 8) &&
 std.assertEqual(std.parseYaml("-8"), -8) &&
+std.assertEqual(std.parseYaml("08"), 8) &&
+std.assertEqual(std.parseYaml("+08"), 8) &&
+std.assertEqual(std.parseYaml("-08"), -8) &&
 std.assertEqual(std.parseYaml("32"), 32) &&
 std.assertEqual(std.parseYaml("+32"), 32) &&
 std.assertEqual(std.parseYaml("-32"), -32) &&
@@ -24,6 +30,9 @@ std.assertEqual(std.parseYaml("-32"), -32) &&
 std.assertEqual(std.parseYaml("0.5"), 0.5) &&
 std.assertEqual(std.parseYaml("+0.5"), 0.5) &&
 std.assertEqual(std.parseYaml("-0.5"), -0.5) &&
+std.assertEqual(std.parseYaml("00.5"), 0.5) &&
+std.assertEqual(std.parseYaml("+00.5"), 0.5) &&
+std.assertEqual(std.parseYaml("-00.5"), -0.5) &&
 std.assertEqual(std.parseYaml("8.5"), 8.5) &&
 std.assertEqual(std.parseYaml("+8.5"), 8.5) &&
 std.assertEqual(std.parseYaml("-8.5"), -8.5) &&
