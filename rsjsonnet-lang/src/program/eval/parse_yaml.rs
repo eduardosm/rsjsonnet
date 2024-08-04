@@ -296,6 +296,7 @@ fn try_parse_number(s: &str) -> Option<f64> {
         Zero,
         IntPart,
         Dot,
+        LeadingDot,
         FracPart,
         E,
         ESign,
@@ -310,11 +311,13 @@ fn try_parse_number(s: &str) -> Option<f64> {
                 Some('-') => state = State::Minus,
                 Some('0') => state = State::Zero,
                 Some('1'..='9') => state = State::IntPart,
+                Some('.') => state = State::LeadingDot,
                 _ => return None,
             },
             State::Minus => match iter.next() {
                 Some('0') => state = State::Zero,
                 Some('1'..='9') => state = State::IntPart,
+                Some('.') => state = State::LeadingDot,
                 _ => return None,
             },
             State::Zero => match iter.next() {
@@ -331,6 +334,12 @@ fn try_parse_number(s: &str) -> Option<f64> {
                 Some(_) => return None,
             },
             State::Dot => match iter.next() {
+                None => break,
+                Some('0'..='9') => state = State::FracPart,
+                Some('e' | 'E') => state = State::E,
+                _ => return None,
+            },
+            State::LeadingDot => match iter.next() {
                 Some('0'..='9') => state = State::FracPart,
                 _ => return None,
             },
