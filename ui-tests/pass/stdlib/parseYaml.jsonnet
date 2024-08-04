@@ -32,6 +32,11 @@ std.assertEqual(std.parseYaml("-8.25"), -8.25) &&
 std.assertEqual(std.parseYaml("32.25"), 32.25) &&
 std.assertEqual(std.parseYaml("-32.25"), -32.25) &&
 
+std.assertEqual(std.parseYaml(".25"), 0.25) &&
+std.assertEqual(std.parseYaml("-.25"), -0.25) &&
+std.assertEqual(std.parseYaml("8."), 8) &&
+std.assertEqual(std.parseYaml("-8."), -8) &&
+
 std.assertEqual(std.parseYaml("0e2"), 0) &&
 std.assertEqual(std.parseYaml("-0e2"), 0) &&
 std.assertEqual(std.parseYaml("8e2"), 800) &&
@@ -41,6 +46,11 @@ std.assertEqual(std.parseYaml("-32e2"), -3200) &&
 
 std.assertEqual(std.parseYaml("8.5e2"), 850) &&
 std.assertEqual(std.parseYaml("8.25e2"), 825) &&
+
+std.assertEqual(std.parseYaml(".25e2"), 25) &&
+std.assertEqual(std.parseYaml("-.25e2"), -25) &&
+std.assertEqual(std.parseYaml("8.e2"), 800) &&
+std.assertEqual(std.parseYaml("-8.e2"), -800) &&
 
 std.assertEqual(std.parseYaml("8.5e+2"), 850) &&
 std.assertEqual(std.parseYaml("25e-2"), 0.25) &&

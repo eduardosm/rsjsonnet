@@ -12,6 +12,8 @@
 - Parse `Null`, `NULL` and `~` as `null` in `std.parseYaml`.
 - Parse `True` and `TRUE` as `true` in `std.parseYaml`.
 - Parse `False` and `FALSE` as `false` in `std.parseYaml`.
+- Allow leading or trailing dot (e.g., `.5` or `1.`) in floating point numbers
+  in `std.parseYaml`.
 
 ## 0.1.2 (2024-07-20)
 
