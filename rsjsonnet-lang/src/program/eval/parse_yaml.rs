@@ -146,11 +146,7 @@ pub(super) fn parse_yaml_document(
                     return Err(ParseError::Tag);
                 }
 
-                if style == libyaml_safer::ScalarStyle::Plain {
-                    scalar_to_value(style, &value)?
-                } else {
-                    ValueData::String(value.into())
-                }
+                scalar_to_value(style, &value)?
             }
             libyaml_safer::EventData::SequenceStart { anchor, tag, .. } => {
                 if anchor.is_some() {
