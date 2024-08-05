@@ -4,14 +4,15 @@
 
 ### Breaking
 
-- Parse `Null`, `NULL` and `~` as `null` in `std.parseYaml`.
-- Parse `True` and `TRUE` as `true` in `std.parseYaml`.
-- Parse `False` and `FALSE` as `false` in `std.parseYaml`.
-- Allow leading or trailing dot (e.g., `.5` or `1.`) in floating point numbers
-  in `std.parseYaml`.
-- Allow explicit `+` in floating point numbers in `std.parseYaml`.
-- Allow leading zeros in floating point numbers in `std.parseYaml`.
-- Parse octal and hexadecimal intergers as numbers in `std.parseYaml`.
+- Change how some plain YAML scalars are parsed in `std.parseYaml`:
+  - `Null`, `NULL` and `~` are now parsed as `null`.
+  - `True` and `TRUE` are now parsed as `true` .
+  - `False` and `FALSE` are now parsed as `false`.
+  - Leading or trailing dot (e.g., `.5` or `1.`) is now allowed in floating
+    point numbers.
+  - Explicit `+` is now allowed in floating point numbers.
+  - Leading zeros are now allowed in floating point numbers.
+  - Octal and hexadecimal intergers are now parsed as numbers.
 
 ### Fixed
 
