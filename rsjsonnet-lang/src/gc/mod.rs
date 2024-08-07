@@ -47,7 +47,7 @@ impl<T: GcTrace> From<&GcView<T>> for Gc<T> {
     #[inline]
     fn from(view: &GcView<T>) -> Self {
         Self {
-            inner: Rc::downgrade(&view.inner_),
+            inner: Rc::downgrade(&view.inner),
         }
     }
 }
@@ -56,7 +56,7 @@ impl<T: GcTrace> From<&mut GcView<T>> for Gc<T> {
     #[inline]
     fn from(view: &mut GcView<T>) -> Self {
         Self {
-            inner: Rc::downgrade(&view.inner_),
+            inner: Rc::downgrade(&view.inner),
         }
     }
 }
@@ -66,7 +66,7 @@ impl<T: GcTrace> Gc<T> {
     #[track_caller]
     pub(super) fn view(&self) -> GcView<T> {
         GcView {
-            inner_: self
+            inner: self
                 .inner
                 .upgrade()
                 .expect("attempted to access destroyed object"),
@@ -75,14 +75,14 @@ impl<T: GcTrace> Gc<T> {
 }
 
 pub(crate) struct GcView<T: GcTrace> {
-    inner_: Rc<GcBox<T>>,
+    inner: Rc<GcBox<T>>,
 }
 
 impl<T: GcTrace> Clone for GcView<T> {
     #[inline]
     fn clone(&self) -> Self {
         Self {
-            inner_: self.inner_.clone(),
+            inner: self.inner.clone(),
         }
     }
 }
@@ -92,7 +92,7 @@ impl<T: GcTrace> std::ops::Deref for GcView<T> {
 
     #[inline]
     fn deref(&self) -> &T {
-        &self.inner_.value
+        &self.inner.value
     }
 }
 
@@ -140,7 +140,7 @@ impl GcContext {
             value,
         });
         inner.objs.push(obj.clone());
-        GcView { inner_: obj }
+        GcView { inner: obj }
     }
 
     #[inline]
