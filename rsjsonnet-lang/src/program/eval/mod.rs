@@ -1618,17 +1618,22 @@ impl<'a> Evaluator<'a> {
                     let pat = self.expect_std_func_arg_string(pat, "findSubstr", 0)?;
                     let str = self.expect_std_func_arg_string(str, "findSubstr", 1)?;
 
-                    let array = if pat.is_empty() {
-                        Gc::from(&self.program.empty_array)
-                    } else {
-                        let mut i = 0;
+                    let array = if let Some(first_pat_chr) = pat.chars().next() {
+                        let first_pat_chr_len = first_pat_chr.len_utf8();
+                        let mut rem_str = &*str;
+                        let mut chr_index = 0;
                         self.program.make_value_array(std::iter::from_fn(|| {
-                            str[i..].find(&*pat).map(|j| {
-                                let value = (i + j) as f64;
-                                i += j + 1;
-                                ValueData::Number(value)
+                            rem_str.find(&*pat).map(|i| {
+                                let (before, after) = rem_str.split_at(i);
+                                let match_pos = chr_index + before.chars().count();
+                                rem_str = &after[first_pat_chr_len..];
+                                chr_index = match_pos + 1;
+                                ValueData::Number(match_pos as f64)
                             })
                         }))
+                    } else {
+                        // An empty pattern does not produce any matches.
+                        Gc::from(&self.program.empty_array)
                     };
 
                     self.value_stack.push(ValueData::Array(array));

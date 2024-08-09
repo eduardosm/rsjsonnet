@@ -21,6 +21,9 @@
 - Avoid panic when encountering an array or object as object key in
   `std.parseYaml`.
 - Avoid panic when encountering a YAML alias in `std.parseYaml`.
+- Return character indices instead of UTF-8 byte indices in `std.findSubstr`.
+- Avoid panic when the first character of the pattern passed to `std.findSubstr`
+  is not ASCII.
 
 ## 0.1.2 (2024-07-20)
 
