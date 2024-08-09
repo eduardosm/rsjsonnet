@@ -1,0 +1,10 @@
+error: failed to parse YAML: anchor contains itself
+note: while evaluating call to `parseYaml`
+ --> anchor_itself_array.jsonnet:1:1
+  |
+1 | / std.parseYaml(|||
+  : | 
+3 | | |||)
+  | |____- 
+note: during top-level value evaluation
+

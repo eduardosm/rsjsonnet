@@ -4,7 +4,9 @@
 
 ### Breaking
 
-- Change how some plain YAML scalars are parsed in `std.parseYaml`:
+- Some semantics of `std.parseYaml` have changed:
+  - Empty YAML documents are now parsed as `null` instead of an empty string.
+  - Anchors and aliases are now supported.
   - `Null`, `NULL` and `~` are now parsed as `null`.
   - `True` and `TRUE` are now parsed as `true` .
   - `False` and `FALSE` are now parsed as `false`.
@@ -21,6 +23,7 @@
 - Avoid panic when encountering an array or object as object key in
   `std.parseYaml`.
 - Avoid panic when encountering a YAML alias in `std.parseYaml`.
+- Avoid some panics in `std.parseYaml` with some inputs found with fuzzing.
 - Return character indices instead of UTF-8 byte indices in `std.findSubstr`.
 - Avoid panic when the first character of the pattern passed to `std.findSubstr`
   is not ASCII.

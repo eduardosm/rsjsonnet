@@ -2004,7 +2004,7 @@ impl<'a> Evaluator<'a> {
                 State::StdParseYaml => {
                     let arg = self.value_stack.pop().unwrap();
                     let s = self.expect_std_func_arg_string(arg, "parseYaml", 0)?;
-                    match parse_yaml::parse_yaml(self.program, &s, true) {
+                    match parse_yaml::parse_yaml(self.program, &s) {
                         Ok(value) => {
                             self.value_stack.push(value);
                         }

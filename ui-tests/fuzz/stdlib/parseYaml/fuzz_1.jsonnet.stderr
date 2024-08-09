@@ -1,0 +1,8 @@
+error: failed to parse YAML: invalid trailing content after double-quoted scalar at byte 5 line 1 column 6
+note: while evaluating call to `parseYaml`
+ --> fuzz_1.jsonnet:1:1
+  |
+1 | std.parseYaml("a: ''|\n 0")
+  | ---------------------------
+note: during top-level value evaluation
+

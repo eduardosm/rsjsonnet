@@ -1,42 +1,52 @@
 use std::cell::OnceCell;
 use std::collections::HashMap;
 
-use super::{ObjectData, ObjectField, Program, ThunkData, ValueData};
+use super::{ArrayData, ObjectData, ObjectField, Program, ThunkData, ValueData};
 use crate::ast;
 use crate::gc::Gc;
 use crate::interner::InternedStr;
 
 pub(crate) enum ParseError {
-    LibYaml(libyaml_safer::Error),
-    Stream,
+    Parser(saphyr_parser::ScanError),
     EmptyStream,
-    Anchor,
-    Alias,
     Tag,
-    KeyIsObject(libyaml_safer::Mark),
-    KeyIsArray(libyaml_safer::Mark),
+    AnchorContainsItself,
+    AnchorFromOtherDoc,
+    KeyIsObject(saphyr_parser::Marker),
+    KeyIsArray(saphyr_parser::Marker),
     NumberOverflow,
     RepeatedFieldName(InternedStr),
 }
 
-impl From<libyaml_safer::Error> for ParseError {
+impl From<saphyr_parser::ScanError> for ParseError {
     #[inline]
-    fn from(e: libyaml_safer::Error) -> Self {
-        Self::LibYaml(e)
+    fn from(e: saphyr_parser::ScanError) -> Self {
+        Self::Parser(e)
     }
 }
 
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
-            Self::LibYaml(ref e) => write!(f, "{e}"),
-            Self::Stream => write!(f, "YAML stream not allowed"),
+            Self::Parser(ref e) => write!(f, "{e}"),
             Self::EmptyStream => write!(f, "empty stream"),
-            Self::Anchor => write!(f, "anchors are not allowed"),
-            Self::Alias => write!(f, "aliases are not allowed"),
             Self::Tag => write!(f, "tags are not allowed"),
-            Self::KeyIsObject(ref mark) => write!(f, "{mark}: object key is an object"),
-            Self::KeyIsArray(ref mark) => write!(f, "{mark}: object key is an array"),
+            Self::AnchorContainsItself => write!(f, "anchor contains itself"),
+            Self::AnchorFromOtherDoc => {
+                write!(f, "alias refers to an anchor from a previous document")
+            }
+            Self::KeyIsObject(ref marker) => write!(
+                f,
+                "object key is an object at line {} column {}",
+                marker.line(),
+                marker.col(),
+            ),
+            Self::KeyIsArray(ref marker) => write!(
+                f,
+                "object key is an array at line {} column {}",
+                marker.line(),
+                marker.col(),
+            ),
             Self::NumberOverflow => write!(f, "number overflow"),
             Self::RepeatedFieldName(ref name) => {
                 write!(f, "repeated field name {:?}", name.value())
@@ -45,17 +55,11 @@ impl std::fmt::Display for ParseError {
     }
 }
 
-pub(super) fn parse_yaml(
-    program: &mut Program,
-    s: &str,
-    allow_stream: bool,
-) -> Result<ValueData, ParseError> {
-    let mut parser = libyaml_safer::Parser::new();
-    let mut bytes = s.as_bytes();
-    parser.set_input_string(&mut bytes);
+pub(super) fn parse_yaml(program: &mut Program, s: &str) -> Result<ValueData, ParseError> {
+    let mut parser = saphyr_parser::Parser::new_from_str(s);
 
-    let first_event = parser.parse()?;
-    if let libyaml_safer::EventData::StreamStart { .. } = first_event.data {
+    let (first_event, _) = parser.next_event().unwrap()?;
+    if let saphyr_parser::Event::StreamStart = first_event {
         drop(first_event);
     } else {
         unreachable!();
@@ -69,43 +73,28 @@ pub(super) fn parse_yaml(
 
     let mut stream_kind = StreamKind::Empty;
     loop {
-        let event = parser.parse()?;
-        match event.data {
-            libyaml_safer::EventData::StreamEnd => match stream_kind {
-                StreamKind::Empty => return Err(ParseError::EmptyStream),
-                StreamKind::Single(value) => return Ok(value),
-                StreamKind::Stream(items) => {
-                    if items.is_empty() {
-                        return Ok(ValueData::Array(Gc::from(&program.empty_array)));
-                    } else {
-                        return Ok(ValueData::Array(program.gc_alloc(items.into_boxed_slice())));
-                    }
-                }
-            },
-            libyaml_safer::EventData::DocumentStart { implicit, .. } => {
-                if !implicit {
-                    if !allow_stream {
-                        return Err(ParseError::Stream);
-                    }
-                    match stream_kind {
-                        StreamKind::Empty => {
-                            stream_kind = StreamKind::Stream(Vec::new());
-                        }
-                        StreamKind::Single(single_value) => {
-                            stream_kind = StreamKind::Stream(vec![
-                                program.gc_alloc(ThunkData::new_done(single_value))
-                            ]);
-                        }
-                        StreamKind::Stream(_) => {}
-                    }
-                }
-
+        let (event, _) = parser.next_event().unwrap()?;
+        match event {
+            saphyr_parser::Event::StreamEnd => break,
+            saphyr_parser::Event::DocumentStart => {
                 let value = parse_yaml_document(program, &mut parser)?;
                 match stream_kind {
                     StreamKind::Empty => {
-                        stream_kind = StreamKind::Single(value);
+                        let explicit = false; // TODO
+                        if explicit {
+                            stream_kind = StreamKind::Stream(vec![
+                                program.gc_alloc(ThunkData::new_done(value))
+                            ]);
+                        } else {
+                            stream_kind = StreamKind::Single(value);
+                        }
                     }
-                    StreamKind::Single(_) => unreachable!(),
+                    StreamKind::Single(item0) => {
+                        stream_kind = StreamKind::Stream(vec![
+                            program.gc_alloc(ThunkData::new_done(item0)),
+                            program.gc_alloc(ThunkData::new_done(value)),
+                        ]);
+                    }
                     StreamKind::Stream(ref mut items) => {
                         items.push(program.gc_alloc(ThunkData::new_done(value)));
                     }
@@ -114,80 +103,175 @@ pub(super) fn parse_yaml(
             _ => unreachable!(),
         }
     }
+
+    match stream_kind {
+        StreamKind::Empty => Err(ParseError::EmptyStream),
+        StreamKind::Single(value) => {
+            // FIXME: This is a hack to check if the single YAML document had an explicit
+            // start (`---`). Remove this once a new version of saphyr-parser is released,
+            // which would include https://github.com/saphyr-rs/saphyr-parser/pull/5
+            let mut explicit_document = false;
+            let mut scanner = saphyr_parser::scanner::Scanner::new(s.chars());
+            while let Some(token) = scanner.next_token().unwrap() {
+                match token.1 {
+                    saphyr_parser::scanner::TokenType::StreamStart(_) => {}
+                    saphyr_parser::scanner::TokenType::VersionDirective(..)
+                    | saphyr_parser::scanner::TokenType::TagDirective(..) => {}
+                    saphyr_parser::scanner::TokenType::DocumentStart => {
+                        // There is an explicit document start
+                        explicit_document = true;
+                        break;
+                    }
+                    _ => break,
+                }
+            }
+
+            if explicit_document {
+                Ok(ValueData::Array(program.gc_alloc(Box::new([
+                    program.gc_alloc(ThunkData::new_done(value)),
+                ]))))
+            } else {
+                Ok(value)
+            }
+        }
+        StreamKind::Stream(items) => {
+            if items.is_empty() {
+                Ok(ValueData::Array(Gc::from(&program.empty_array)))
+            } else {
+                Ok(ValueData::Array(program.gc_alloc(items.into_boxed_slice())))
+            }
+        }
+    }
 }
 
-pub(super) fn parse_yaml_document(
+enum AnchorValue {
+    Pending,
+    Scalar {
+        style: saphyr_parser::TScalarStyle,
+        value: String,
+    },
+    Array(Gc<ArrayData>),
+    Object(Gc<ObjectData>),
+}
+
+fn parse_yaml_document(
     program: &mut Program,
-    parser: &mut libyaml_safer::Parser<'_>,
+    parser: &mut saphyr_parser::Parser<std::str::Chars<'_>>,
 ) -> Result<ValueData, ParseError> {
     enum StackItem {
-        Array(Vec<Gc<ThunkData>>),
-        Object(HashMap<InternedStr, ObjectField>, InternedStr),
+        Array {
+            anchor_id: usize,
+            items: Vec<Gc<ThunkData>>,
+        },
+        Object {
+            anchor_id: usize,
+            fields: HashMap<InternedStr, ObjectField>,
+            current_key: InternedStr,
+        },
     }
 
+    let mut anchors = HashMap::new();
     let mut stack = Vec::new();
-    let mut event = parser.parse()?;
+    let mut event = parser.next_event().unwrap()?;
     loop {
-        let mut value = match event.data {
-            libyaml_safer::EventData::Alias { .. } => {
-                return Err(ParseError::Alias);
-            }
-            libyaml_safer::EventData::Scalar {
-                anchor,
-                tag,
-                value,
-                style,
-                ..
-            } => {
-                if anchor.is_some() {
-                    return Err(ParseError::Anchor);
+        let mut value = match event.0 {
+            saphyr_parser::Event::Alias(anchor_id) => {
+                let Some(value) = anchors.get(&anchor_id) else {
+                    return Err(ParseError::AnchorFromOtherDoc);
+                };
+                match value {
+                    AnchorValue::Pending => {
+                        return Err(ParseError::AnchorContainsItself);
+                    }
+                    AnchorValue::Scalar { style, value } => scalar_to_value(*style, value)?,
+                    AnchorValue::Array(array) => ValueData::Array(array.clone()),
+                    AnchorValue::Object(object) => ValueData::Object(object.clone()),
                 }
+            }
+            saphyr_parser::Event::Scalar(value, style, anchor_id, tag) => {
                 if tag.is_some() {
                     return Err(ParseError::Tag);
                 }
 
-                scalar_to_value(style, &value)?
+                let program_value = scalar_to_value(style, &value)?;
+                anchors.insert(anchor_id, AnchorValue::Scalar { style, value });
+
+                program_value
             }
-            libyaml_safer::EventData::SequenceStart { anchor, tag, .. } => {
-                if anchor.is_some() {
-                    return Err(ParseError::Anchor);
-                }
+            saphyr_parser::Event::SequenceStart(anchor_id, tag) => {
                 if tag.is_some() {
                     return Err(ParseError::Tag);
                 }
-                event = parser.parse()?;
-                if matches!(event.data, libyaml_safer::EventData::SequenceEnd) {
+                event = parser.next_event().unwrap()?;
+                if matches!(event.0, saphyr_parser::Event::SequenceEnd) {
+                    anchors.insert(
+                        anchor_id,
+                        AnchorValue::Array(Gc::from(&program.empty_array)),
+                    );
                     ValueData::Array(Gc::from(&program.empty_array))
                 } else {
-                    stack.push(StackItem::Array(Vec::new()));
+                    stack.push(StackItem::Array {
+                        anchor_id,
+                        items: Vec::new(),
+                    });
+                    anchors.insert(anchor_id, AnchorValue::Pending);
                     continue;
                 }
             }
-            libyaml_safer::EventData::MappingStart { anchor, tag, .. } => {
-                if anchor.is_some() {
-                    return Err(ParseError::Anchor);
-                }
+            saphyr_parser::Event::MappingStart(anchor_id, tag) => {
                 if tag.is_some() {
                     return Err(ParseError::Tag);
                 }
-                event = parser.parse()?;
-                match event.data {
-                    libyaml_safer::EventData::Alias { .. } => {
-                        return Err(ParseError::Alias);
+                event = parser.next_event().unwrap()?;
+                match event.0 {
+                    saphyr_parser::Event::Alias(key_anchor_id) => {
+                        anchors.insert(anchor_id, AnchorValue::Pending);
+                        let Some(value) = anchors.get(&key_anchor_id) else {
+                            return Err(ParseError::AnchorFromOtherDoc);
+                        };
+                        match value {
+                            AnchorValue::Pending => {
+                                return Err(ParseError::AnchorContainsItself);
+                            }
+                            AnchorValue::Scalar { value, .. } => {
+                                let key = program.str_interner.intern(value);
+                                stack.push(StackItem::Object {
+                                    anchor_id,
+                                    fields: HashMap::new(),
+                                    current_key: key,
+                                });
+                                event = parser.next_event().unwrap()?;
+                                continue;
+                            }
+                            AnchorValue::Array(_) => {
+                                return Err(ParseError::KeyIsArray(event.1));
+                            }
+                            AnchorValue::Object(_) => {
+                                return Err(ParseError::KeyIsObject(event.1));
+                            }
+                        }
                     }
-                    libyaml_safer::EventData::SequenceStart { .. } => {
-                        return Err(ParseError::KeyIsArray(event.start_mark));
+                    saphyr_parser::Event::SequenceStart { .. } => {
+                        return Err(ParseError::KeyIsArray(event.1));
                     }
-                    libyaml_safer::EventData::MappingStart { .. } => {
-                        return Err(ParseError::KeyIsObject(event.start_mark));
+                    saphyr_parser::Event::MappingStart { .. } => {
+                        return Err(ParseError::KeyIsObject(event.1));
                     }
-                    libyaml_safer::EventData::MappingEnd => {
-                        ValueData::Object(program.gc_alloc(ObjectData::new_simple(HashMap::new())))
+                    saphyr_parser::Event::MappingEnd => {
+                        let object = program.gc_alloc(ObjectData::new_simple(HashMap::new()));
+                        anchors.insert(anchor_id, AnchorValue::Object(object.clone()));
+                        ValueData::Object(object)
                     }
-                    libyaml_safer::EventData::Scalar { value, .. } => {
+                    saphyr_parser::Event::Scalar(value, style, key_anchor_id, _) => {
                         let key = program.str_interner.intern(&value);
-                        stack.push(StackItem::Object(HashMap::new(), key));
-                        event = parser.parse()?;
+                        anchors.insert(key_anchor_id, AnchorValue::Scalar { style, value });
+                        stack.push(StackItem::Object {
+                            anchor_id,
+                            fields: HashMap::new(),
+                            current_key: key,
+                        });
+                        anchors.insert(anchor_id, AnchorValue::Pending);
+                        event = parser.next_event().unwrap()?;
                         continue;
                     }
                     _ => unreachable!(),
@@ -196,21 +280,31 @@ pub(super) fn parse_yaml_document(
             _ => unreachable!(),
         };
 
-        event = parser.parse()?;
+        event = parser.next_event().unwrap()?;
         loop {
             if let Some(stack_item) = stack.pop() {
                 match stack_item {
-                    StackItem::Array(mut items) => {
+                    StackItem::Array {
+                        anchor_id,
+                        mut items,
+                    } => {
                         items.push(program.gc_alloc(ThunkData::new_done(value)));
-                        if matches!(event.data, libyaml_safer::EventData::SequenceEnd) {
-                            value = ValueData::Array(program.gc_alloc(items.into_boxed_slice()));
-                            event = parser.parse()?;
+                        if matches!(event.0, saphyr_parser::Event::SequenceEnd) {
+                            let array = program.gc_alloc(items.into_boxed_slice());
+                            anchors.insert(anchor_id, AnchorValue::Array(array.clone()));
+                            value = ValueData::Array(array);
+
+                            event = parser.next_event().unwrap()?;
                         } else {
-                            stack.push(StackItem::Array(items));
+                            stack.push(StackItem::Array { anchor_id, items });
                             break;
                         }
                     }
-                    StackItem::Object(mut fields, current_key) => {
+                    StackItem::Object {
+                        anchor_id,
+                        mut fields,
+                        current_key,
+                    } => {
                         match fields.entry(current_key) {
                             std::collections::hash_map::Entry::Vacant(entry) => {
                                 entry.insert(ObjectField {
@@ -227,26 +321,55 @@ pub(super) fn parse_yaml_document(
                             }
                         }
 
-                        match event.data {
-                            libyaml_safer::EventData::Alias { .. } => {
-                                return Err(ParseError::Alias);
+                        match event.0 {
+                            saphyr_parser::Event::Alias(key_anchor_id) => {
+                                let Some(value) = anchors.get(&key_anchor_id) else {
+                                    return Err(ParseError::AnchorFromOtherDoc);
+                                };
+                                match value {
+                                    AnchorValue::Pending => {
+                                        return Err(ParseError::AnchorContainsItself);
+                                    }
+                                    AnchorValue::Scalar { value, .. } => {
+                                        let key = program.str_interner.intern(value);
+                                        stack.push(StackItem::Object {
+                                            anchor_id,
+                                            fields,
+                                            current_key: key,
+                                        });
+                                        event = parser.next_event().unwrap()?;
+                                        break;
+                                    }
+                                    AnchorValue::Array(_) => {
+                                        return Err(ParseError::KeyIsArray(event.1));
+                                    }
+                                    AnchorValue::Object(_) => {
+                                        return Err(ParseError::KeyIsObject(event.1));
+                                    }
+                                }
                             }
-                            libyaml_safer::EventData::SequenceStart { .. } => {
-                                return Err(ParseError::KeyIsArray(event.start_mark));
+                            saphyr_parser::Event::SequenceStart(..) => {
+                                return Err(ParseError::KeyIsArray(event.1));
                             }
-                            libyaml_safer::EventData::MappingStart { .. } => {
-                                return Err(ParseError::KeyIsObject(event.start_mark));
+                            saphyr_parser::Event::MappingStart(..) => {
+                                return Err(ParseError::KeyIsObject(event.1));
                             }
-                            libyaml_safer::EventData::MappingEnd => {
-                                value = ValueData::Object(
-                                    program.gc_alloc(ObjectData::new_simple(fields)),
-                                );
-                                event = parser.parse()?;
+                            saphyr_parser::Event::MappingEnd => {
+                                let object = program.gc_alloc(ObjectData::new_simple(fields));
+                                anchors.insert(anchor_id, AnchorValue::Object(object.clone()));
+                                value = ValueData::Object(object);
+
+                                event = parser.next_event().unwrap()?;
                             }
-                            libyaml_safer::EventData::Scalar { value, .. } => {
+                            saphyr_parser::Event::Scalar(value, style, key_anchor_id, _) => {
                                 let key = program.str_interner.intern(&value);
-                                stack.push(StackItem::Object(fields, key));
-                                event = parser.parse()?;
+                                anchors.insert(key_anchor_id, AnchorValue::Scalar { style, value });
+                                stack.push(StackItem::Object {
+                                    anchor_id,
+                                    fields,
+                                    current_key: key,
+                                });
+                                event = parser.next_event().unwrap()?;
                                 break;
                             }
                             _ => unreachable!(),
@@ -254,10 +377,7 @@ pub(super) fn parse_yaml_document(
                     }
                 }
             } else {
-                assert!(matches!(
-                    event.data,
-                    libyaml_safer::EventData::DocumentEnd { .. }
-                ));
+                assert!(matches!(event.0, saphyr_parser::Event::DocumentEnd));
                 return Ok(value);
             }
         }
@@ -265,10 +385,10 @@ pub(super) fn parse_yaml_document(
 }
 
 fn scalar_to_value(
-    style: libyaml_safer::ScalarStyle,
+    style: saphyr_parser::TScalarStyle,
     value: &str,
 ) -> Result<ValueData, ParseError> {
-    if style == libyaml_safer::ScalarStyle::Plain {
+    if style == saphyr_parser::TScalarStyle::Plain {
         match value {
             "null" | "Null" | "NULL" | "~" => Ok(ValueData::Null),
             "true" | "True" | "TRUE" => Ok(ValueData::Bool(true)),

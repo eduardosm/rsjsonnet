@@ -1,0 +1,8 @@
+error: failed to parse YAML: tags are not allowed
+note: while evaluating call to `parseYaml`
+ --> fuzz_2.jsonnet:1:1
+  |
+1 | std.parseYaml("[!,")
+  | --------------------
+note: during top-level value evaluation
+

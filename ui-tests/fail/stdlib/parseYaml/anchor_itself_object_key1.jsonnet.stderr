@@ -1,10 +1,10 @@
-error: failed to parse YAML: anchors are not allowed
+error: failed to parse YAML: anchor contains itself
 note: while evaluating call to `parseYaml`
- --> anchor.jsonnet:1:1
+ --> anchor_itself_object_key1.jsonnet:1:1
   |
 1 | / std.parseYaml(|||
   : | 
-6 | | |||)
+3 | | |||)
   | |____- 
 note: during top-level value evaluation
 
