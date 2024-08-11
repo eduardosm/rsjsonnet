@@ -135,6 +135,41 @@ std.assertEqual(std.parseYaml("'string'"), "string") &&
 std.assertEqual(std.parseJson('"\\uABCD"'), "\uABCD") &&
 std.assertEqual(std.parseJson('"\\uD800\\uDD56"'), "\uD800\uDD56") &&
 
+std.assertEqual(
+  std.parseYaml(
+    |||
+      - ""
+      - "null"
+      - "Null"
+      - "NULL"
+      - "~"
+    |||
+  ),
+  ["", "null", "Null", "NULL", "~"],
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      - "true"
+      - "True"
+      - "TRUE"
+    |||
+  ),
+  ["true", "True", "TRUE"],
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      - "false"
+      - "False"
+      - "FALSE"
+    |||
+  ),
+  ["false", "False", "FALSE"],
+) &&
+
 std.assertEqual(std.parseYaml('[]'), []) &&
 std.assertEqual(std.parseYaml('[1]'), [1]) &&
 std.assertEqual(std.parseYaml('[1, 2]'), [1, 2]) &&
@@ -188,12 +223,50 @@ std.assertEqual(
   std.parseYaml(
     |||
       ---
+    |||
+  ),
+  [
+    null,
+  ],
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      ---
+      ---
+    |||
+  ),
+  [
+    null,
+    null,
+  ],
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      ---
       - 1
       - 2
     |||
   ),
   [
     [1, 2],
+  ],
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      - 1
+      - 2
+      ---
+    |||
+  ),
+  [
+    [1, 2],
+    null,
   ],
 ) &&
 

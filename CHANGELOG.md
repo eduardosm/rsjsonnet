@@ -5,6 +5,7 @@
 ### Breaking
 
 - Some semantics of `std.parseYaml` have changed:
+  - Empty YAML documents are now parsed as `null` instead of an empty string.
   - Anchors and aliases are now supported.
   - `Null`, `NULL` and `~` are now parsed as `null`.
   - `True` and `TRUE` are now parsed as `true` .

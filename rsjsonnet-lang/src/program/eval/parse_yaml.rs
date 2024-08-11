@@ -388,7 +388,7 @@ fn scalar_to_value(
 ) -> Result<ValueData, ParseError> {
     if style == libyaml_safer::ScalarStyle::Plain {
         match value {
-            "null" | "Null" | "NULL" | "~" => Ok(ValueData::Null),
+            "null" | "Null" | "NULL" | "~" | "" => Ok(ValueData::Null),
             "true" | "True" | "TRUE" => Ok(ValueData::Bool(true)),
             "false" | "False" | "FALSE" => Ok(ValueData::Bool(false)),
             _ => {
