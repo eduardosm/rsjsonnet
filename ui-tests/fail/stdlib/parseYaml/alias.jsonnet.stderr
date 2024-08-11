@@ -1,8 +1,0 @@
-error: failed to parse YAML: aliases are not allowed
-note: while evaluating call to `parseYaml`
- --> alias.jsonnet:1:1
-  |
-1 | std.parseYaml("a: *alias")
-  | --------------------------
-note: during top-level value evaluation
-

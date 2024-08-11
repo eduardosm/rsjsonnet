@@ -1,0 +1,10 @@
+error: failed to parse YAML: alias refers to an unknown anchor
+note: while evaluating call to `parseYaml`
+ --> cross_document_anchor.jsonnet:1:1
+  |
+1 | / std.parseYaml(|||
+  : | 
+5 | | |||)
+  | |____- 
+note: during top-level value evaluation
+

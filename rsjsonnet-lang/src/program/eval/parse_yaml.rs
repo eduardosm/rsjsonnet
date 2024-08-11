@@ -1,18 +1,17 @@
 use std::cell::OnceCell;
 use std::collections::HashMap;
 
-use super::{ObjectData, ObjectField, Program, ThunkData, ValueData};
+use super::{ArrayData, ObjectData, ObjectField, Program, ThunkData, ValueData};
 use crate::ast;
 use crate::gc::Gc;
 use crate::interner::InternedStr;
 
 pub(crate) enum ParseError {
-    LibYaml(libyaml_safer::Error),
-    Stream,
+    Parser(libyaml_safer::Error),
     EmptyStream,
-    Anchor,
-    Alias,
     Tag,
+    AnchorContainsItself,
+    UnknownAnchor,
     KeyIsObject(libyaml_safer::Mark),
     KeyIsArray(libyaml_safer::Mark),
     NumberOverflow,
@@ -22,19 +21,20 @@ pub(crate) enum ParseError {
 impl From<libyaml_safer::Error> for ParseError {
     #[inline]
     fn from(e: libyaml_safer::Error) -> Self {
-        Self::LibYaml(e)
+        Self::Parser(e)
     }
 }
 
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
-            Self::LibYaml(ref e) => write!(f, "{e}"),
-            Self::Stream => write!(f, "YAML stream not allowed"),
+            Self::Parser(ref e) => write!(f, "{e}"),
             Self::EmptyStream => write!(f, "empty stream"),
-            Self::Anchor => write!(f, "anchors are not allowed"),
-            Self::Alias => write!(f, "aliases are not allowed"),
             Self::Tag => write!(f, "tags are not allowed"),
+            Self::AnchorContainsItself => write!(f, "anchor contains itself"),
+            Self::UnknownAnchor => {
+                write!(f, "alias refers to an unknown anchor")
+            }
             Self::KeyIsObject(ref mark) => write!(f, "{mark}: object key is an object"),
             Self::KeyIsArray(ref mark) => write!(f, "{mark}: object key is an array"),
             Self::NumberOverflow => write!(f, "number overflow"),
@@ -45,11 +45,7 @@ impl std::fmt::Display for ParseError {
     }
 }
 
-pub(super) fn parse_yaml(
-    program: &mut Program,
-    s: &str,
-    allow_stream: bool,
-) -> Result<ValueData, ParseError> {
+pub(super) fn parse_yaml(program: &mut Program, s: &str) -> Result<ValueData, ParseError> {
     let mut parser = libyaml_safer::Parser::new();
     let mut bytes = s.as_bytes();
     parser.set_input_string(&mut bytes);
@@ -71,41 +67,25 @@ pub(super) fn parse_yaml(
     loop {
         let event = parser.parse()?;
         match event.data {
-            libyaml_safer::EventData::StreamEnd => match stream_kind {
-                StreamKind::Empty => return Err(ParseError::EmptyStream),
-                StreamKind::Single(value) => return Ok(value),
-                StreamKind::Stream(items) => {
-                    if items.is_empty() {
-                        return Ok(ValueData::Array(Gc::from(&program.empty_array)));
-                    } else {
-                        return Ok(ValueData::Array(program.gc_alloc(items.into_boxed_slice())));
-                    }
-                }
-            },
+            libyaml_safer::EventData::StreamEnd => break,
             libyaml_safer::EventData::DocumentStart { implicit, .. } => {
-                if !implicit {
-                    if !allow_stream {
-                        return Err(ParseError::Stream);
-                    }
-                    match stream_kind {
-                        StreamKind::Empty => {
-                            stream_kind = StreamKind::Stream(Vec::new());
-                        }
-                        StreamKind::Single(single_value) => {
-                            stream_kind = StreamKind::Stream(vec![
-                                program.gc_alloc(ThunkData::new_done(single_value))
-                            ]);
-                        }
-                        StreamKind::Stream(_) => {}
-                    }
-                }
-
                 let value = parse_yaml_document(program, &mut parser)?;
                 match stream_kind {
                     StreamKind::Empty => {
-                        stream_kind = StreamKind::Single(value);
+                        if !implicit {
+                            stream_kind = StreamKind::Stream(vec![
+                                program.gc_alloc(ThunkData::new_done(value))
+                            ]);
+                        } else {
+                            stream_kind = StreamKind::Single(value);
+                        }
                     }
-                    StreamKind::Single(_) => unreachable!(),
+                    StreamKind::Single(item0) => {
+                        stream_kind = StreamKind::Stream(vec![
+                            program.gc_alloc(ThunkData::new_done(item0)),
+                            program.gc_alloc(ThunkData::new_done(value)),
+                        ]);
+                    }
                     StreamKind::Stream(ref mut items) => {
                         items.push(program.gc_alloc(ThunkData::new_done(value)));
                     }
@@ -114,23 +94,63 @@ pub(super) fn parse_yaml(
             _ => unreachable!(),
         }
     }
+
+    match stream_kind {
+        StreamKind::Empty => Err(ParseError::EmptyStream),
+        StreamKind::Single(value) => Ok(value),
+        StreamKind::Stream(items) => {
+            if items.is_empty() {
+                Ok(ValueData::Array(Gc::from(&program.empty_array)))
+            } else {
+                Ok(ValueData::Array(program.gc_alloc(items.into_boxed_slice())))
+            }
+        }
+    }
 }
 
-pub(super) fn parse_yaml_document(
+enum AnchorValue {
+    Pending,
+    Scalar {
+        style: libyaml_safer::ScalarStyle,
+        value: String,
+    },
+    Array(Gc<ArrayData>),
+    Object(Gc<ObjectData>),
+}
+
+fn parse_yaml_document(
     program: &mut Program,
     parser: &mut libyaml_safer::Parser<'_>,
 ) -> Result<ValueData, ParseError> {
     enum StackItem {
-        Array(Vec<Gc<ThunkData>>),
-        Object(HashMap<InternedStr, ObjectField>, InternedStr),
+        Array {
+            anchor: Option<String>,
+            items: Vec<Gc<ThunkData>>,
+        },
+        Object {
+            anchor: Option<String>,
+            fields: HashMap<InternedStr, ObjectField>,
+            current_key: InternedStr,
+        },
     }
 
+    let mut anchors = HashMap::new();
     let mut stack = Vec::new();
     let mut event = parser.parse()?;
     loop {
         let mut value = match event.data {
-            libyaml_safer::EventData::Alias { .. } => {
-                return Err(ParseError::Alias);
+            libyaml_safer::EventData::Alias { anchor } => {
+                let Some(value) = anchors.get(&anchor) else {
+                    return Err(ParseError::UnknownAnchor);
+                };
+                match value {
+                    AnchorValue::Pending => {
+                        return Err(ParseError::AnchorContainsItself);
+                    }
+                    AnchorValue::Scalar { style, value } => scalar_to_value(*style, value)?,
+                    AnchorValue::Array(array) => ValueData::Array(array.clone()),
+                    AnchorValue::Object(object) => ValueData::Object(object.clone()),
+                }
             }
             libyaml_safer::EventData::Scalar {
                 anchor,
@@ -139,41 +159,72 @@ pub(super) fn parse_yaml_document(
                 style,
                 ..
             } => {
-                if anchor.is_some() {
-                    return Err(ParseError::Anchor);
-                }
                 if tag.is_some() {
                     return Err(ParseError::Tag);
                 }
 
-                scalar_to_value(style, &value)?
+                let program_value = scalar_to_value(style, &value)?;
+                if let Some(anchor) = anchor {
+                    anchors.insert(anchor, AnchorValue::Scalar { style, value });
+                }
+
+                program_value
             }
             libyaml_safer::EventData::SequenceStart { anchor, tag, .. } => {
-                if anchor.is_some() {
-                    return Err(ParseError::Anchor);
-                }
                 if tag.is_some() {
                     return Err(ParseError::Tag);
                 }
                 event = parser.parse()?;
                 if matches!(event.data, libyaml_safer::EventData::SequenceEnd) {
+                    if let Some(anchor) = anchor {
+                        anchors.insert(anchor, AnchorValue::Array(Gc::from(&program.empty_array)));
+                    }
                     ValueData::Array(Gc::from(&program.empty_array))
                 } else {
-                    stack.push(StackItem::Array(Vec::new()));
+                    stack.push(StackItem::Array {
+                        anchor: anchor.clone(),
+                        items: Vec::new(),
+                    });
+                    if let Some(anchor) = anchor {
+                        anchors.insert(anchor, AnchorValue::Pending);
+                    }
                     continue;
                 }
             }
             libyaml_safer::EventData::MappingStart { anchor, tag, .. } => {
-                if anchor.is_some() {
-                    return Err(ParseError::Anchor);
-                }
                 if tag.is_some() {
                     return Err(ParseError::Tag);
                 }
                 event = parser.parse()?;
                 match event.data {
-                    libyaml_safer::EventData::Alias { .. } => {
-                        return Err(ParseError::Alias);
+                    libyaml_safer::EventData::Alias { anchor: key_anchor } => {
+                        if let Some(ref anchor) = anchor {
+                            anchors.insert(anchor.clone(), AnchorValue::Pending);
+                        }
+                        let Some(value) = anchors.get(&key_anchor) else {
+                            return Err(ParseError::UnknownAnchor);
+                        };
+                        match value {
+                            AnchorValue::Pending => {
+                                return Err(ParseError::AnchorContainsItself);
+                            }
+                            AnchorValue::Scalar { value, .. } => {
+                                let key = program.str_interner.intern(value);
+                                stack.push(StackItem::Object {
+                                    anchor,
+                                    fields: HashMap::new(),
+                                    current_key: key,
+                                });
+                                event = parser.parse()?;
+                                continue;
+                            }
+                            AnchorValue::Array(_) => {
+                                return Err(ParseError::KeyIsArray(event.start_mark));
+                            }
+                            AnchorValue::Object(_) => {
+                                return Err(ParseError::KeyIsObject(event.start_mark));
+                            }
+                        }
                     }
                     libyaml_safer::EventData::SequenceStart { .. } => {
                         return Err(ParseError::KeyIsArray(event.start_mark));
@@ -182,11 +233,30 @@ pub(super) fn parse_yaml_document(
                         return Err(ParseError::KeyIsObject(event.start_mark));
                     }
                     libyaml_safer::EventData::MappingEnd => {
-                        ValueData::Object(program.gc_alloc(ObjectData::new_simple(HashMap::new())))
+                        let object = program.gc_alloc(ObjectData::new_simple(HashMap::new()));
+                        if let Some(anchor) = anchor {
+                            anchors.insert(anchor, AnchorValue::Object(object.clone()));
+                        }
+                        ValueData::Object(object)
                     }
-                    libyaml_safer::EventData::Scalar { value, .. } => {
+                    libyaml_safer::EventData::Scalar {
+                        anchor: key_anchor,
+                        value,
+                        style,
+                        ..
+                    } => {
                         let key = program.str_interner.intern(&value);
-                        stack.push(StackItem::Object(HashMap::new(), key));
+                        if let Some(key_anchor) = key_anchor {
+                            anchors.insert(key_anchor, AnchorValue::Scalar { style, value });
+                        }
+                        stack.push(StackItem::Object {
+                            anchor: anchor.clone(),
+                            fields: HashMap::new(),
+                            current_key: key,
+                        });
+                        if let Some(anchor) = anchor {
+                            anchors.insert(anchor, AnchorValue::Pending);
+                        }
                         event = parser.parse()?;
                         continue;
                     }
@@ -200,17 +270,26 @@ pub(super) fn parse_yaml_document(
         loop {
             if let Some(stack_item) = stack.pop() {
                 match stack_item {
-                    StackItem::Array(mut items) => {
+                    StackItem::Array { anchor, mut items } => {
                         items.push(program.gc_alloc(ThunkData::new_done(value)));
                         if matches!(event.data, libyaml_safer::EventData::SequenceEnd) {
-                            value = ValueData::Array(program.gc_alloc(items.into_boxed_slice()));
+                            let array = program.gc_alloc(items.into_boxed_slice());
+                            if let Some(anchor) = anchor {
+                                anchors.insert(anchor, AnchorValue::Array(array.clone()));
+                            }
+                            value = ValueData::Array(array);
+
                             event = parser.parse()?;
                         } else {
-                            stack.push(StackItem::Array(items));
+                            stack.push(StackItem::Array { anchor, items });
                             break;
                         }
                     }
-                    StackItem::Object(mut fields, current_key) => {
+                    StackItem::Object {
+                        anchor,
+                        mut fields,
+                        current_key,
+                    } => {
                         match fields.entry(current_key) {
                             std::collections::hash_map::Entry::Vacant(entry) => {
                                 entry.insert(ObjectField {
@@ -228,8 +307,31 @@ pub(super) fn parse_yaml_document(
                         }
 
                         match event.data {
-                            libyaml_safer::EventData::Alias { .. } => {
-                                return Err(ParseError::Alias);
+                            libyaml_safer::EventData::Alias { anchor: key_anchor } => {
+                                let Some(value) = anchors.get(&key_anchor) else {
+                                    return Err(ParseError::UnknownAnchor);
+                                };
+                                match value {
+                                    AnchorValue::Pending => {
+                                        return Err(ParseError::AnchorContainsItself);
+                                    }
+                                    AnchorValue::Scalar { value, .. } => {
+                                        let key = program.str_interner.intern(value);
+                                        stack.push(StackItem::Object {
+                                            anchor,
+                                            fields,
+                                            current_key: key,
+                                        });
+                                        event = parser.parse()?;
+                                        break;
+                                    }
+                                    AnchorValue::Array(_) => {
+                                        return Err(ParseError::KeyIsArray(event.start_mark));
+                                    }
+                                    AnchorValue::Object(_) => {
+                                        return Err(ParseError::KeyIsObject(event.start_mark));
+                                    }
+                                }
                             }
                             libyaml_safer::EventData::SequenceStart { .. } => {
                                 return Err(ParseError::KeyIsArray(event.start_mark));
@@ -238,14 +340,30 @@ pub(super) fn parse_yaml_document(
                                 return Err(ParseError::KeyIsObject(event.start_mark));
                             }
                             libyaml_safer::EventData::MappingEnd => {
-                                value = ValueData::Object(
-                                    program.gc_alloc(ObjectData::new_simple(fields)),
-                                );
+                                let object = program.gc_alloc(ObjectData::new_simple(fields));
+                                if let Some(anchor) = anchor {
+                                    anchors.insert(anchor, AnchorValue::Object(object.clone()));
+                                }
+                                value = ValueData::Object(object);
+
                                 event = parser.parse()?;
                             }
-                            libyaml_safer::EventData::Scalar { value, .. } => {
+                            libyaml_safer::EventData::Scalar {
+                                anchor: key_anchor,
+                                value,
+                                style,
+                                ..
+                            } => {
                                 let key = program.str_interner.intern(&value);
-                                stack.push(StackItem::Object(fields, key));
+                                if let Some(key_anchor) = key_anchor {
+                                    anchors
+                                        .insert(key_anchor, AnchorValue::Scalar { style, value });
+                                }
+                                stack.push(StackItem::Object {
+                                    anchor,
+                                    fields,
+                                    current_key: key,
+                                });
                                 event = parser.parse()?;
                                 break;
                             }

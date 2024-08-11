@@ -187,6 +187,19 @@ std.assertEqual(
 std.assertEqual(
   std.parseYaml(
     |||
+      ---
+      - 1
+      - 2
+    |||
+  ),
+  [
+    [1, 2],
+  ],
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
       - 1
       - 2
       ---
@@ -250,6 +263,70 @@ std.assertEqual(
     [1, 2],
     { a: 3, b: 4 },
   ],
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      a: &x 1
+      b: *x
+    |||
+  ),
+  { a: 1, b: 1 },
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      a: &x [1, 2]
+      b: *x
+    |||
+  ),
+  { a: [1, 2], b: [1, 2] },
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      a: &x { c: 1, d: 2 }
+      b: *x
+    |||
+  ),
+  { a: { c: 1, d: 2 }, b: { c: 1, d: 2 } },
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      &x a: 1
+      b: *x
+    |||
+  ),
+  { a: 1, b: "a" },
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      a: &x 1
+      *x : 2
+    |||
+  ),
+  { a: 1, "1": 2 },
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      a: &x 1
+      b: &y 2
+      c: &z
+        *x : *y
+        *y : *x
+      d: *z
+    |||
+  ),
+  { a: 1, b: 2, c: { "1": 2, "2": 1 }, d: { "1": 2, "2": 1 } },
 ) &&
 
 true
