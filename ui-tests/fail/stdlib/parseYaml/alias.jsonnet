@@ -1,1 +1,0 @@
-std.parseYaml("a: *alias")

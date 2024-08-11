@@ -4,7 +4,8 @@
 
 ### Breaking
 
-- Change how some plain YAML scalars are parsed in `std.parseYaml`:
+- Some semantics of `std.parseYaml` have changed:
+  - Anchors and aliases are now supported.
   - `Null`, `NULL` and `~` are now parsed as `null`.
   - `True` and `TRUE` are now parsed as `true` .
   - `False` and `FALSE` are now parsed as `false`.
