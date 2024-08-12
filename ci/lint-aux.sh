@@ -87,3 +87,7 @@ end_group
 begin_group "Check markdown documents with markdownlint"
 find . -type f -name "*.md" -not -path "./.git/*" -print0 | xargs -0 markdownlint
 end_group
+
+begin_group "Check markdown documents with markdown-link-check"
+find . -type f -name "*.md" -not -path "./.git/*" -print0 | xargs -0 markdown-link-check -c markdown-link-check.json
+end_group
