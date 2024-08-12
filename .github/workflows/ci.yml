@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install lint utilities
-        run: sudo npm install -g markdownlint-cli markdown-link-check
+        run: sudo npm install -g markdownlint-cli@0.41.0 markdown-link-check@3.12.2
       - name: Install Rust
         run: ./ci/install-rust.sh stable --profile minimal
       - run: ./ci/lint-aux.sh
