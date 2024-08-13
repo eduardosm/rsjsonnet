@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 (unreleased)
+
+### Fixed
+
+- Reject tags in object keys in `std.parseYaml`.
+
 ## 0.2.0 (2024-08-12)
 
 ### Breaking

@@ -241,10 +241,15 @@ fn parse_yaml_document(
                     }
                     libyaml_safer::EventData::Scalar {
                         anchor: key_anchor,
+                        tag,
                         value,
                         style,
                         ..
                     } => {
+                        if tag.is_some() {
+                            return Err(ParseError::Tag);
+                        }
+
                         let key = program.str_interner.intern(&value);
                         if let Some(key_anchor) = key_anchor {
                             anchors.insert(key_anchor, AnchorValue::Scalar { style, value });
@@ -350,10 +355,15 @@ fn parse_yaml_document(
                             }
                             libyaml_safer::EventData::Scalar {
                                 anchor: key_anchor,
+                                tag,
                                 value,
                                 style,
                                 ..
                             } => {
+                                if tag.is_some() {
+                                    return Err(ParseError::Tag);
+                                }
+
                                 let key = program.str_interner.intern(&value);
                                 if let Some(key_anchor) = key_anchor {
                                     anchors
