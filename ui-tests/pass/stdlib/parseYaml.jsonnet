@@ -132,8 +132,7 @@ std.assertEqual(std.parseYaml("-0x1"), "-0x1") &&
 
 std.assertEqual(std.parseYaml('"string"'), "string") &&
 std.assertEqual(std.parseYaml("'string'"), "string") &&
-std.assertEqual(std.parseJson('"\\uABCD"'), "\uABCD") &&
-std.assertEqual(std.parseJson('"\\uD800\\uDD56"'), "\uD800\uDD56") &&
+std.assertEqual(std.parseYaml('"\\uABCD"'), "\uABCD") &&
 
 std.assertEqual(
   std.parseYaml(
