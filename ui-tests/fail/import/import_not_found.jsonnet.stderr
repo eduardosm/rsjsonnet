@@ -1,8 +1,8 @@
-error: import "missing.libjsonnet" not found in search path
-error: failed to import "missing.libjsonnet"
+error: import "missing.libsonnet" not found in search path
+error: failed to import "missing.libsonnet"
  --> import_not_found.jsonnet:1:1
   |
-1 | import "missing.libjsonnet"
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1 | import "missing.libsonnet"
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: during top-level value evaluation
 
