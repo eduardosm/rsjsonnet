@@ -1,4 +1,4 @@
-error: failed to parse YAML: alias refers to an unknown anchor
+error: failed to parse YAML: alias refers to an anchor from a previous document
 note: while evaluating call to `parseYaml`
  --> cross_document_anchor_in_key0.jsonnet:1:1
   |

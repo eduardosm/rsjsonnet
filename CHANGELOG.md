@@ -5,6 +5,7 @@
 ### Fixed
 
 - Reject tags in object keys in `std.parseYaml`.
+- Avoid some panics in `std.parseYaml` with some inputs found with fuzzing.
 
 ## 0.2.0 (2024-08-12)
 

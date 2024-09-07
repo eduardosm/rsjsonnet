@@ -1,4 +1,4 @@
-error: failed to parse YAML: Parser error: line 1 column 0: did not find expected node content while parsing a flow node (line 1 column 0)
+error: failed to parse YAML: while parsing a node, did not find expected node content at byte 7 line 2 column 1
 note: while evaluating call to `parseYaml`
  --> syntax.jsonnet:1:1
   |
