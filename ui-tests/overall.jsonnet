@@ -1,7 +1,7 @@
 # This is meant to be a test to check if a Jsonnet interpreter works
 # overall, without testing every corner case of every feature.
 
-local importedFunc = import "pass/import/lib/func.libjsonnet";
+local importedFunc = import "pass/import/lib/func.libsonnet";
 
 local a = 1, b = 2;
 

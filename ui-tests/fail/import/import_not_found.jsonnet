@@ -1,1 +1,1 @@
-import "missing.libjsonnet"
+import "missing.libsonnet"
