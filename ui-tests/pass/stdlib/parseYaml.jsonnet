@@ -153,6 +153,16 @@ std.assertEqual(std.parseYaml('"string"'), "string") &&
 std.assertEqual(std.parseYaml("'string'"), "string") &&
 std.assertEqual(std.parseYaml('"\\uABCD"'), "\uABCD") &&
 
+std.assertEqual(std.parseYaml(">\n x"), "x\n") &&
+std.assertEqual(std.parseYaml(">\n x\n"), "x\n") &&
+std.assertEqual(std.parseYaml(">-\n x"), "x") &&
+std.assertEqual(std.parseYaml(">-\n x\n"), "x") &&
+
+std.assertEqual(std.parseYaml("|\n x"), "x\n") &&
+std.assertEqual(std.parseYaml("|\n x\n"), "x\n") &&
+std.assertEqual(std.parseYaml("|-\n x"), "x") &&
+std.assertEqual(std.parseYaml("|-\n x\n"), "x") &&
+
 std.assertEqual(
   std.parseYaml(
     |||
