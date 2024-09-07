@@ -153,14 +153,9 @@ impl<'a> Lexer<'a> {
         loop {
             if self.eat_slice(b"*/") {
                 break;
-            } else {
-                match self.eat_any_byte() {
-                    None => {
-                        let span = self.make_span(self.start_pos, self.end_pos);
-                        return Err(LexError::UnfinishedMultilineComment { span });
-                    }
-                    Some(_) => {}
-                }
+            } else if self.eat_any_byte().is_none() {
+                let span = self.make_span(self.start_pos, self.end_pos);
+                return Err(LexError::UnfinishedMultilineComment { span });
             }
         }
         Ok(self.commit_token(TokenKind::Comment))
