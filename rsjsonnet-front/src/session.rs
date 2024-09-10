@@ -268,14 +268,11 @@ impl SessionInner {
             }
         };
 
-        let repr_path = path.to_string_lossy();
+        let repr_path = path.display().to_string();
 
         let (span_ctx, source_id) = program.span_manager_mut().insert_source_context(data.len());
-        self.src_mgr.insert_file(
-            source_id,
-            repr_path.as_ref().into(),
-            data.into_boxed_slice(),
-        );
+        self.src_mgr
+            .insert_file(source_id, repr_path.clone(), data.into_boxed_slice());
         self.source_paths.insert(source_id, path.to_path_buf());
         let data = self.src_mgr.get_file_data(source_id);
 

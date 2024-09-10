@@ -124,7 +124,7 @@ pub(crate) fn run(
     } else if cmd_output.stdout != expected_stdout || cmd_output.stderr != expected_stderr {
         let mut err = String::new();
         if cmd_output.stdout != expected_stdout {
-            let stdout_path_repr = test_subpath.to_string_lossy() + ".stdout";
+            let stdout_path_repr = format!("{}.stdout", test_subpath.display());
             let stdout_diff = unified_diff::diff(
                 &expected_stdout,
                 &stdout_path_repr,
@@ -140,7 +140,7 @@ pub(crate) fn run(
             .unwrap();
         }
         if cmd_output.stderr != expected_stderr {
-            let stderr_path_repr = test_subpath.to_string_lossy() + ".stderr";
+            let stderr_path_repr = format!("{}.stderr", test_subpath.display());
             let stderr_diff = unified_diff::diff(
                 &expected_stderr,
                 &stderr_path_repr,

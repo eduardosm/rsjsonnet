@@ -40,7 +40,7 @@ fn main() -> ExitCode {
     let mut tests = Vec::new();
     for (test_subpath, test_params) in tests_paths {
         let root_path = root_path.clone();
-        let test_name = test_subpath.to_string_lossy().into_owned();
+        let test_name = test_subpath.display().to_string();
         let cmd_bin_path = cmd_bin_path.clone();
         tests.push(libtest_mimic::Trial::test(test_name, move || {
             test::run(

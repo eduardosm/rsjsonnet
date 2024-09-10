@@ -9,6 +9,7 @@
 
 use std::borrow::Cow;
 use std::collections::HashSet;
+use std::fmt::Write as _;
 use std::io::{Read as _, Write as _};
 use std::path::Path;
 use std::process::ExitCode;
@@ -240,8 +241,7 @@ fn main_inner() -> Result<(), RunError> {
                     return Err(RunError::Generic);
                 }
             }
-            path_list.push_str(&path.to_string_lossy());
-            path_list.push('\n');
+            writeln!(path_list, "{}", path.display()).unwrap();
         }
         path_list
     } else {
