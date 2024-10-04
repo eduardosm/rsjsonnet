@@ -433,6 +433,7 @@ dependencies = [
  "hashbrown",
  "libyaml-safer",
  "md-5",
+ "toml",
 ]
 
 [[package]]

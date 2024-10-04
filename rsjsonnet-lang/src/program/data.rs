@@ -567,6 +567,7 @@ pub(super) enum BuiltInFunc {
     ParseHex,
     ParseJson,
     ParseYaml,
+    ParseToml,
     EncodeUtf8,
     DecodeUtf8,
     // Manifestation

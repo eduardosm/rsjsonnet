@@ -13,4 +13,5 @@ publish.workspace = true
 [dependencies]
 hashbrown = "0.14.5"
 libyaml-safer = "0.1.1"
+toml = { version = "0.8.19", default-features = false, features = ["parse"] }
 md-5 = { version = "0.10.6", default-features = false }
