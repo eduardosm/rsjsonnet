@@ -20,6 +20,7 @@ mod format;
 mod manifest;
 mod parse_json;
 mod parse_yaml;
+mod parse_toml;
 mod state;
 
 use manifest::{escape_string_json, ManifestJsonFormat};
@@ -2012,6 +2013,21 @@ impl<'a> Evaluator<'a> {
                             return Err(self.report_error(EvalErrorKind::Other {
                                 span: None,
                                 message: format!("failed to parse YAML: {e}"),
+                            }));
+                        }
+                    }
+                }
+                State::StdParseToml => {
+                    let arg = self.value_stack.pop().unwrap();
+                    let s = self.expect_std_func_arg_string(arg, "parseToml", 0)?;
+                    match parse_toml::parse_toml(self.program, &s) {
+                        Ok(value) => {
+                            self.value_stack.push(value);
+                        }
+                        Err(e) => {
+                            return Err(self.report_error(EvalErrorKind::Other {
+                                span: None,
+                                message: format!("failed to parse TOML: {e}"),
                             }));
                         }
                     }
