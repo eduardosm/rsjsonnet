@@ -196,7 +196,7 @@ struct Lexer<'a> {
     rem: &'a str,
 }
 
-impl<'a> Lexer<'a> {
+impl Lexer<'_> {
     #[inline]
     fn get_error(&self, kind: ParseErrorKind) -> ParseError {
         ParseError {
@@ -437,7 +437,7 @@ impl<'a> Lexer<'a> {
                 break;
             }
             let chr_col = self.column;
-            let chr = self.eat_any_char().ok_or_else(|| ParseError {
+            let chr = self.eat_any_char().ok_or(ParseError {
                 line: self.line,
                 column: start_col,
                 kind: ParseErrorKind::UnfinishedString,
