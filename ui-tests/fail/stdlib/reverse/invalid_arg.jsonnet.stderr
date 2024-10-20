@@ -1,18 +1,18 @@
 error: first argument of `std.length` is expected to be string, array, object or function, got null
 note: while evaluating call to `length`
-   --> <stdlib>:626:15
+   --> <stdlib>:614:15
     |
-626 |     local l = std.length(arr);
+614 |     local l = std.length(arr);
     |               ---------------
 note: while evaluating variable `l`
-   --> <stdlib>:627:19
+   --> <stdlib>:615:19
     |
-627 |     std.makeArray(l, function(i) arr[l - i - 1]),
+615 |     std.makeArray(l, function(i) arr[l - i - 1]),
     |                   -
 note: while evaluating call to `makeArray`
-   --> <stdlib>:627:5
+   --> <stdlib>:615:5
     |
-627 |     std.makeArray(l, function(i) arr[l - i - 1]),
+615 |     std.makeArray(l, function(i) arr[l - i - 1]),
     |     --------------------------------------------
 note: while evaluating call to function
  --> invalid_arg.jsonnet:1:1

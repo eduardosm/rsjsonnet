@@ -1,25 +1,5 @@
 error: functions cannot be manifested
-note: while evaluating call to `toString`
-   --> <stdlib>:279:17
-    |
-279 |     local str = std.toString(str_);
-    |                 ------------------
-note: while evaluating variable `str`
-   --> <stdlib>:280:74
-    |
-280 |     std.join('', [std.get(xml_escapes, ch, ch) for ch in std.stringChars(str)]),
-    |                                                                          ---
-note: while evaluating call to `stringChars`
-   --> <stdlib>:280:58
-    |
-280 |     std.join('', [std.get(xml_escapes, ch, ch) for ch in std.stringChars(str)]),
-    |                                                          --------------------
-note: while evaluating call to `join`
-   --> <stdlib>:280:5
-    |
-280 |     std.join('', [std.get(xml_escapes, ch, ch) for ch in std.stringChars(str)]),
-    |     ---------------------------------------------------------------------------
-note: while evaluating call to function
+note: while evaluating call to `escapeStringXML`
  --> manifest_fun.jsonnet:1:1
   |
 1 | std.escapeStringXML(function() null)
