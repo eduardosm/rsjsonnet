@@ -263,6 +263,7 @@ pub(super) enum State {
         prec: u32,
     },
     StdEscapeStringJson,
+    StdEscapeStringBash,
     StdParseInt,
     StdParseOctal,
     StdParseHex,

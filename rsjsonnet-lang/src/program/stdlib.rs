@@ -136,6 +136,7 @@ impl Program {
         add_simple("stringChars", BuiltInFunc::StringChars, &["str"]);
         add_simple("format", BuiltInFunc::Format, &["str", "vals"]);
         add_simple("escapeStringJson", BuiltInFunc::EscapeStringJson, &["str"]);
+        add_simple("escapeStringBash", BuiltInFunc::EscapeStringBash, &["str"]);
         add_simple("parseInt", BuiltInFunc::ParseInt, &["str"]);
         add_simple("parseOctal", BuiltInFunc::ParseOctal, &["str"]);
         add_simple("parseHex", BuiltInFunc::ParseHex, &["str"]);
