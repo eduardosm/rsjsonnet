@@ -1,4 +1,4 @@
-error: argument 0 of function `all` is expected to be array, got null
+error: first argument of `std.all` is expected to be array, got null
 note: while evaluating call to `all`
  --> invalid_arg.jsonnet:1:1
   |

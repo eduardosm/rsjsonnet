@@ -408,7 +408,7 @@ pub(crate) fn render_error_kind(
             }
             .render(span_mgr, src_mgr, &mut out);
         }
-        EvalErrorKind::InvalidBuiltInFuncArgType {
+        EvalErrorKind::InvalidStdFuncArgType {
             ref func_name,
             arg_index,
             ref expected_types,
@@ -425,10 +425,18 @@ pub(crate) fn render_error_kind(
                 }
                 expected_str.push_str(type_to_string(*expected_type));
             }
+            let arg_ref = match arg_index {
+                0 => "first argument".into(),
+                1 => "second argument".into(),
+                2 => "third argument".into(),
+                3 => "fourth argument".into(),
+                4 => "fifth argument".into(),
+                _ => format!("argument {}", arg_index + 1),
+            };
             Message {
                 kind: MessageKind::Error,
                 message: format!(
-                    "argument {arg_index} of function `{func_name}` is expected to be {expected_str}, got {}",
+                    "{arg_ref} of `std.{func_name}` is expected to be {expected_str}, got {}",
                     type_to_string(got_type),
                 ),
                 labels: vec![],

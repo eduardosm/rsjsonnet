@@ -1,4 +1,4 @@
-error: argument 1 of function `range` is expected to be number, got null
+error: second argument of `std.range` is expected to be number, got null
 note: while evaluating call to `range`
  --> invalid_arg_2.jsonnet:1:1
   |

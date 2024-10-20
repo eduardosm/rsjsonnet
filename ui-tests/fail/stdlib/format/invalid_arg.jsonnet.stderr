@@ -1,4 +1,4 @@
-error: argument 0 of function `format` is expected to be string, got null
+error: first argument of `std.format` is expected to be string, got null
 note: while evaluating call to `format`
  --> invalid_arg.jsonnet:1:1
   |

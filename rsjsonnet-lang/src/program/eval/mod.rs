@@ -1262,19 +1262,17 @@ impl<'a> Evaluator<'a> {
                             FuncData::Native { ref params, .. } => params.order.len(),
                         },
                         _ => {
-                            return Err(self.report_error(
-                                EvalErrorKind::InvalidBuiltInFuncArgType {
-                                    func_name: "length".into(),
-                                    arg_index: 0,
-                                    expected_types: vec![
-                                        EvalErrorValueType::String,
-                                        EvalErrorValueType::Array,
-                                        EvalErrorValueType::Object,
-                                        EvalErrorValueType::Function,
-                                    ],
-                                    got_type: EvalErrorValueType::from_value(&arg),
-                                },
-                            ));
+                            return Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
+                                func_name: "length".into(),
+                                arg_index: 0,
+                                expected_types: vec![
+                                    EvalErrorValueType::String,
+                                    EvalErrorValueType::Array,
+                                    EvalErrorValueType::Object,
+                                    EvalErrorValueType::Function,
+                                ],
+                                got_type: EvalErrorValueType::from_value(&arg),
+                            }));
                         }
                     };
                     self.value_stack.push(ValueData::Number(length as f64));
@@ -1369,7 +1367,7 @@ impl<'a> Evaluator<'a> {
                     let rhs = &self.value_stack[self.value_stack.len() - 1];
                     let lhs = &self.value_stack[self.value_stack.len() - 2];
                     if !matches!(lhs, ValueData::Array(_)) {
-                        return Err(self.report_error(EvalErrorKind::InvalidBuiltInFuncArgType {
+                        return Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
                             func_name: "__compare_array".into(),
                             arg_index: 0,
                             expected_types: vec![EvalErrorValueType::Array],
@@ -1377,7 +1375,7 @@ impl<'a> Evaluator<'a> {
                         }));
                     }
                     if !matches!(rhs, ValueData::Array(_)) {
-                        return Err(self.report_error(EvalErrorKind::InvalidBuiltInFuncArgType {
+                        return Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
                             func_name: "__compare_array".into(),
                             arg_index: 1,
                             expected_types: vec![EvalErrorValueType::Array],
@@ -2311,17 +2309,15 @@ impl<'a> Evaluator<'a> {
                             self.value_stack.push(ValueData::Array(result));
                         }
                         _ => {
-                            return Err(self.report_error(
-                                EvalErrorKind::InvalidBuiltInFuncArgType {
-                                    func_name: "slice".into(),
-                                    arg_index: 0,
-                                    expected_types: vec![
-                                        EvalErrorValueType::String,
-                                        EvalErrorValueType::Array,
-                                    ],
-                                    got_type: EvalErrorValueType::from_value(&indexable),
-                                },
-                            ));
+                            return Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
+                                func_name: "slice".into(),
+                                arg_index: 0,
+                                expected_types: vec![
+                                    EvalErrorValueType::String,
+                                    EvalErrorValueType::Array,
+                                ],
+                                got_type: EvalErrorValueType::from_value(&indexable),
+                            }));
                         }
                     }
                 }
@@ -2354,17 +2350,15 @@ impl<'a> Evaluator<'a> {
                             }
                         }
                         _ => {
-                            return Err(self.report_error(
-                                EvalErrorKind::InvalidBuiltInFuncArgType {
-                                    func_name: "join".into(),
-                                    arg_index: 0,
-                                    expected_types: vec![
-                                        EvalErrorValueType::String,
-                                        EvalErrorValueType::Array,
-                                    ],
-                                    got_type: EvalErrorValueType::from_value(&sep),
-                                },
-                            ));
+                            return Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
+                                func_name: "join".into(),
+                                arg_index: 0,
+                                expected_types: vec![
+                                    EvalErrorValueType::String,
+                                    EvalErrorValueType::Array,
+                                ],
+                                got_type: EvalErrorValueType::from_value(&sep),
+                            }));
                         }
                     }
                 }
@@ -3366,7 +3360,7 @@ impl<'a> Evaluator<'a> {
     ) -> Result<bool, EvalError> {
         match value {
             ValueData::Bool(b) => Ok(b),
-            value => Err(self.report_error(EvalErrorKind::InvalidBuiltInFuncArgType {
+            value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
                 func_name: func_name.into(),
                 arg_index,
                 expected_types: vec![EvalErrorValueType::Bool],
@@ -3384,7 +3378,7 @@ impl<'a> Evaluator<'a> {
     ) -> Result<f64, EvalError> {
         match value {
             ValueData::Number(n) => Ok(n),
-            value => Err(self.report_error(EvalErrorKind::InvalidBuiltInFuncArgType {
+            value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
                 func_name: func_name.into(),
                 arg_index,
                 expected_types: vec![EvalErrorValueType::Number],
@@ -3403,7 +3397,7 @@ impl<'a> Evaluator<'a> {
         match value {
             ValueData::Null => Ok(None),
             ValueData::Number(n) => Ok(Some(n)),
-            value => Err(self.report_error(EvalErrorKind::InvalidBuiltInFuncArgType {
+            value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
                 func_name: func_name.into(),
                 arg_index,
                 expected_types: vec![EvalErrorValueType::Null, EvalErrorValueType::Number],
@@ -3421,7 +3415,7 @@ impl<'a> Evaluator<'a> {
     ) -> Result<Rc<str>, EvalError> {
         match value {
             ValueData::String(s) => Ok(s),
-            value => Err(self.report_error(EvalErrorKind::InvalidBuiltInFuncArgType {
+            value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
                 func_name: func_name.into(),
                 arg_index,
                 expected_types: vec![EvalErrorValueType::String],
@@ -3439,7 +3433,7 @@ impl<'a> Evaluator<'a> {
     ) -> Result<GcView<ArrayData>, EvalError> {
         match value {
             ValueData::Array(arr) => Ok(arr.view()),
-            value => Err(self.report_error(EvalErrorKind::InvalidBuiltInFuncArgType {
+            value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
                 func_name: func_name.into(),
                 arg_index,
                 expected_types: vec![EvalErrorValueType::Array],
@@ -3457,7 +3451,7 @@ impl<'a> Evaluator<'a> {
     ) -> Result<GcView<ObjectData>, EvalError> {
         match value {
             ValueData::Object(obj) => Ok(obj.view()),
-            value => Err(self.report_error(EvalErrorKind::InvalidBuiltInFuncArgType {
+            value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
                 func_name: func_name.into(),
                 arg_index,
                 expected_types: vec![EvalErrorValueType::Object],
@@ -3475,7 +3469,7 @@ impl<'a> Evaluator<'a> {
     ) -> Result<GcView<FuncData>, EvalError> {
         match value {
             ValueData::Function(func) => Ok(func.view()),
-            value => Err(self.report_error(EvalErrorKind::InvalidBuiltInFuncArgType {
+            value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
                 func_name: func_name.into(),
                 arg_index,
                 expected_types: vec![EvalErrorValueType::Function],

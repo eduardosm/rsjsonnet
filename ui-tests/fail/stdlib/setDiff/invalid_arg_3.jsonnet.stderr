@@ -1,4 +1,4 @@
-error: argument 2 of function `setDiff` is expected to be function, got null
+error: third argument of `std.setDiff` is expected to be function, got null
 note: while evaluating call to `setDiff`
  --> invalid_arg_3.jsonnet:1:1
   |

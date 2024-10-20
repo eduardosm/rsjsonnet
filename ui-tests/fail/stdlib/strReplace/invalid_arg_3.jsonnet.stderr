@@ -1,4 +1,4 @@
-error: argument 2 of function `strReplace` is expected to be string, got null
+error: third argument of `std.strReplace` is expected to be string, got null
 note: while evaluating call to `strReplace`
  --> invalid_arg_3.jsonnet:1:1
   |

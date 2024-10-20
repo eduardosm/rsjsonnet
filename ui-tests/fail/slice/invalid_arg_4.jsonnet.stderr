@@ -1,4 +1,4 @@
-error: argument 3 of function `slice` is expected to be null or number, got boolean
+error: fourth argument of `std.slice` is expected to be null or number, got boolean
 note: while evaluating call to `slice`
  --> invalid_arg_4.jsonnet:1:1
   |

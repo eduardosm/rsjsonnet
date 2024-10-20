@@ -1,4 +1,4 @@
-error: argument 1 of function `objectHasEx` is expected to be string, got null
+error: second argument of `std.objectHasEx` is expected to be string, got null
 note: while evaluating call to `objectHasEx`
  --> invalid_arg_2.jsonnet:1:1
   |

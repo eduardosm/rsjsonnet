@@ -1,4 +1,4 @@
-error: argument 0 of function `length` is expected to be string, array, object or function, got null
+error: first argument of `std.length` is expected to be string, array, object or function, got null
 note: while evaluating call to `length`
  --> invalid_arg_1.jsonnet:1:1
   |

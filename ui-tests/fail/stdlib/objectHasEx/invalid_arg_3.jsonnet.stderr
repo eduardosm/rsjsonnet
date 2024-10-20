@@ -1,4 +1,4 @@
-error: argument 2 of function `objectHasEx` is expected to be boolean, got null
+error: third argument of `std.objectHasEx` is expected to be boolean, got null
 note: while evaluating call to `objectHasEx`
  --> invalid_arg_3.jsonnet:1:1
   |

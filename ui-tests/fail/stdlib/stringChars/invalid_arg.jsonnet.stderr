@@ -1,4 +1,4 @@
-error: argument 0 of function `stringChars` is expected to be string, got null
+error: first argument of `std.stringChars` is expected to be string, got null
 note: while evaluating call to `stringChars`
  --> invalid_arg.jsonnet:1:1
   |

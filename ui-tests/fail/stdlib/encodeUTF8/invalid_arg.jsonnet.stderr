@@ -1,4 +1,4 @@
-error: argument 0 of function `encodeUTF8` is expected to be string, got null
+error: first argument of `std.encodeUTF8` is expected to be string, got null
 note: while evaluating call to `encodeUTF8`
  --> invalid_arg.jsonnet:1:1
   |
