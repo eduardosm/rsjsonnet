@@ -1888,6 +1888,11 @@ impl<'a> Evaluator<'a> {
                     escaped.push('\'');
                     self.value_stack.push(ValueData::String(escaped.into()));
                 }
+                State::StdEscapeStringDollars => {
+                    let s = self.string_stack.pop().unwrap();
+                    let escaped = s.replace('$', "$$");
+                    self.value_stack.push(ValueData::String(escaped.into()));
+                }
                 State::StdParseInt => {
                     let arg = self.value_stack.pop().unwrap();
                     let s = self.expect_std_func_arg_string(arg, "parseInt", 0)?;

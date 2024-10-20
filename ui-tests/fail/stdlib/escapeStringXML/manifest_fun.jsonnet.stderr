@@ -1,23 +1,23 @@
 error: functions cannot be manifested
 note: while evaluating call to `toString`
-   --> <stdlib>:288:17
+   --> <stdlib>:279:17
     |
-288 |     local str = std.toString(str_);
+279 |     local str = std.toString(str_);
     |                 ------------------
 note: while evaluating variable `str`
-   --> <stdlib>:289:74
+   --> <stdlib>:280:74
     |
-289 |     std.join('', [std.get(xml_escapes, ch, ch) for ch in std.stringChars(str)]),
+280 |     std.join('', [std.get(xml_escapes, ch, ch) for ch in std.stringChars(str)]),
     |                                                                          ---
 note: while evaluating call to `stringChars`
-   --> <stdlib>:289:58
+   --> <stdlib>:280:58
     |
-289 |     std.join('', [std.get(xml_escapes, ch, ch) for ch in std.stringChars(str)]),
+280 |     std.join('', [std.get(xml_escapes, ch, ch) for ch in std.stringChars(str)]),
     |                                                          --------------------
 note: while evaluating call to `join`
-   --> <stdlib>:289:5
+   --> <stdlib>:280:5
     |
-289 |     std.join('', [std.get(xml_escapes, ch, ch) for ch in std.stringChars(str)]),
+280 |     std.join('', [std.get(xml_escapes, ch, ch) for ch in std.stringChars(str)]),
     |     ---------------------------------------------------------------------------
 note: while evaluating call to function
  --> manifest_fun.jsonnet:1:1

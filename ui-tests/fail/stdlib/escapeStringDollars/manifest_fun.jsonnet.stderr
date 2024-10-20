@@ -1,25 +1,5 @@
 error: functions cannot be manifested
-note: while evaluating call to `toString`
-   --> <stdlib>:271:17
-    |
-271 |     local str = std.toString(str_);
-    |                 ------------------
-note: while evaluating variable `str`
-   --> <stdlib>:277:60
-    |
-277 |     std.foldl(function(a, b) a + trans(b), std.stringChars(str), ''),
-    |                                                            ---
-note: while evaluating call to `stringChars`
-   --> <stdlib>:277:44
-    |
-277 |     std.foldl(function(a, b) a + trans(b), std.stringChars(str), ''),
-    |                                            --------------------
-note: while evaluating call to `foldl`
-   --> <stdlib>:277:5
-    |
-277 |     std.foldl(function(a, b) a + trans(b), std.stringChars(str), ''),
-    |     ----------------------------------------------------------------
-note: while evaluating call to function
+note: while evaluating call to `escapeStringDollars`
  --> manifest_fun.jsonnet:1:1
   |
 1 | std.escapeStringDollars(function() null)
