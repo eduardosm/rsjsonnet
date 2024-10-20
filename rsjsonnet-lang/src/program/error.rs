@@ -150,7 +150,7 @@ pub enum EvalErrorKind {
     ShiftByNegative {
         span: Option<SpanId>,
     },
-    InvalidBuiltInFuncArgType {
+    InvalidStdFuncArgType {
         func_name: String,
         arg_index: usize,
         expected_types: Vec<EvalErrorValueType>,

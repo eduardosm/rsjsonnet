@@ -1,4 +1,4 @@
-error: argument 0 of function `join` is expected to be string or array, got null
+error: first argument of `std.join` is expected to be string or array, got null
 note: while evaluating call to `join`
  --> invalid_arg_1.jsonnet:1:1
   |

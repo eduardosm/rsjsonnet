@@ -1,4 +1,4 @@
-error: argument 0 of function `extVar` is expected to be string, got null
+error: first argument of `std.extVar` is expected to be string, got null
 note: while evaluating call to `extVar`
  --> invalid_arg.jsonnet:1:1
   |

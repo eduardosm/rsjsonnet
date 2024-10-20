@@ -1,4 +1,4 @@
-error: argument 0 of function `filter` is expected to be function, got null
+error: first argument of `std.filter` is expected to be function, got null
 note: while evaluating call to `filter`
  --> invalid_arg_1.jsonnet:1:1
   |

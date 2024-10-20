@@ -2,9 +2,18 @@
 
 ## 0.3.0 (unreleased)
 
+### Breaking
+
+- `EvalErrorKind::InvalidBuiltInFuncArgType` has been renamed to
+  `EvalErrorKind::InvalidStdFuncArgType`.
+
 ### Fixed
 
 - Reject tags in object keys in `std.parseYaml`.
+
+### Changed
+
+- Improved error message when passing a value of invalid type to a built-in function.
 
 ## 0.2.0 (2024-08-12)
 

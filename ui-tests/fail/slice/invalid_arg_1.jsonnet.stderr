@@ -1,4 +1,4 @@
-error: argument 0 of function `slice` is expected to be string or array, got null
+error: first argument of `std.slice` is expected to be string or array, got null
 note: while evaluating call to `slice`
  --> invalid_arg_1.jsonnet:1:1
   |

@@ -1,4 +1,4 @@
-error: argument 0 of function `foldr` is expected to be function, got null
+error: first argument of `std.foldr` is expected to be function, got null
 note: while evaluating call to `foldr`
  --> invalid_arg_1.jsonnet:1:1
   |

@@ -1,4 +1,4 @@
-error: argument 0 of function `startsWith` is expected to be string, got null
+error: first argument of `std.startsWith` is expected to be string, got null
 note: while evaluating call to `startsWith`
  --> invalid_arg_1.jsonnet:1:1
   |

@@ -1,4 +1,4 @@
-error: argument 0 of function `char` is expected to be number, got null
+error: first argument of `std.char` is expected to be number, got null
 note: while evaluating call to `char`
  --> invalid_arg.jsonnet:1:1
   |

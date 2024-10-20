@@ -1,4 +1,4 @@
-error: argument 1 of function `setUnion` is expected to be array, got null
+error: second argument of `std.setUnion` is expected to be array, got null
 note: while evaluating call to `setUnion`
  --> invalid_arg_2.jsonnet:1:1
   |

@@ -1,4 +1,4 @@
-error: argument 1 of function `splitLimitR` is expected to be string, got null
+error: second argument of `std.splitLimitR` is expected to be string, got null
 note: while evaluating call to `splitLimitR`
  --> invalid_arg_2.jsonnet:1:1
   |

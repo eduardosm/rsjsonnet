@@ -1,4 +1,4 @@
-error: argument 1 of function `foldl` is expected to be array, got null
+error: second argument of `std.foldl` is expected to be array, got null
 note: while evaluating call to `foldl`
  --> invalid_arg_2.jsonnet:1:1
   |

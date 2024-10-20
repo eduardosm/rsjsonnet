@@ -1,4 +1,4 @@
-error: argument 0 of function `makeArray` is expected to be number, got null
+error: first argument of `std.makeArray` is expected to be number, got null
 note: while evaluating call to `makeArray`
  --> invalid_arg_1.jsonnet:1:1
   |

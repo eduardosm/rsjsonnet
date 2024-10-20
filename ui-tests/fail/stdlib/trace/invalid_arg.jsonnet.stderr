@@ -1,4 +1,4 @@
-error: argument 0 of function `trace` is expected to be string, got null
+error: first argument of `std.trace` is expected to be string, got null
 note: while evaluating call to `trace`
  --> invalid_arg.jsonnet:1:1
   |

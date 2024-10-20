@@ -1,4 +1,4 @@
-error: argument 0 of function `setInter` is expected to be array, got null
+error: first argument of `std.setInter` is expected to be array, got null
 note: while evaluating call to `setInter`
  --> invalid_arg_1.jsonnet:1:1
   |

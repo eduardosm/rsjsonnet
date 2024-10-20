@@ -1,4 +1,4 @@
-error: argument 2 of function `setMember` is expected to be function, got null
+error: third argument of `std.setMember` is expected to be function, got null
 note: while evaluating call to `setMember`
  --> invalid_arg_2.jsonnet:1:1
   |
