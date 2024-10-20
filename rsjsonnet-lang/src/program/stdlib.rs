@@ -141,6 +141,7 @@ impl Program {
         add_simple("parseHex", BuiltInFunc::ParseHex, &["str"]);
         add_simple("parseJson", BuiltInFunc::ParseJson, &["str"]);
         add_simple("parseYaml", BuiltInFunc::ParseYaml, &["str"]);
+        add_simple("parseToml", BuiltInFunc::ParseToml, &["str"]);
         add_simple("encodeUTF8", BuiltInFunc::EncodeUtf8, &["str"]);
         add_simple("decodeUTF8", BuiltInFunc::DecodeUtf8, &["arr"]);
         add_simple("makeArray", BuiltInFunc::MakeArray, &["sz", "func"]);

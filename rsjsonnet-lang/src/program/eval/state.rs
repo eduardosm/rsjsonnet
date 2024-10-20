@@ -268,6 +268,7 @@ pub(super) enum State {
     StdParseHex,
     StdParseJson,
     StdParseYaml,
+    StdParseToml,
     StdEncodeUtf8,
     StdDecodeUtf8,
     StdDecodeUtf8CheckItem,

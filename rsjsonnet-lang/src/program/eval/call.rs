@@ -516,6 +516,10 @@ impl Evaluator<'_> {
                 self.state_stack.push(State::StdParseYaml);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
+            BuiltInFunc::ParseToml => {
+                self.state_stack.push(State::StdParseToml);
+                self.state_stack.push(State::DoThunk(args[0].view()));
+            }
             BuiltInFunc::EncodeUtf8 => {
                 self.state_stack.push(State::StdEncodeUtf8);
                 self.state_stack.push(State::DoThunk(args[0].view()));
