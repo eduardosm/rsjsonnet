@@ -1,0 +1,1 @@
+std.escapeStringBash(function() null)
