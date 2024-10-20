@@ -588,6 +588,7 @@ pub(super) enum BuiltInFunc {
     Range,
     Slice,
     Join,
+    Reverse,
     Sort,
     Uniq,
     All,

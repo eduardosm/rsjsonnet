@@ -1,20 +1,5 @@
-error: first argument of `std.length` is expected to be string, array, object or function, got null
-note: while evaluating call to `length`
-   --> <stdlib>:614:15
-    |
-614 |     local l = std.length(arr);
-    |               ---------------
-note: while evaluating variable `l`
-   --> <stdlib>:615:19
-    |
-615 |     std.makeArray(l, function(i) arr[l - i - 1]),
-    |                   -
-note: while evaluating call to `makeArray`
-   --> <stdlib>:615:5
-    |
-615 |     std.makeArray(l, function(i) arr[l - i - 1]),
-    |     --------------------------------------------
-note: while evaluating call to function
+error: first argument of `std.reverse` is expected to be string or array, got null
+note: while evaluating call to `reverse`
  --> invalid_arg.jsonnet:1:1
   |
 1 | std.reverse(null)

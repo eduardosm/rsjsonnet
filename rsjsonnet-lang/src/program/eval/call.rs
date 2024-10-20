@@ -595,6 +595,11 @@ impl Evaluator<'_> {
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
+            BuiltInFunc::Reverse => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::StdReverse);
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
             BuiltInFunc::Sort => {
                 let [arg0, arg1] = check_num_args(args);
                 self.state_stack.push(State::StdSort);

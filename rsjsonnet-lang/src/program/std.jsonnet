@@ -610,10 +610,6 @@ limitations under the License.
     local bytes = std.base64DecodeBytes(str);
     std.join('', std.map(std.char, bytes)),
 
-  reverse(arr)::
-    local l = std.length(arr);
-    std.makeArray(l, function(i) arr[l - i - 1]),
-
   mergePatch(target, patch)::
     if std.isObject(patch) then
       local target_object =

@@ -306,6 +306,7 @@ pub(super) enum State {
         sep: GcView<ArrayData>,
     },
     StdJoinArrayFinish,
+    StdReverse,
     StdSort,
     StdSortSetKey {
         keys: Rc<Vec<OnceCell<ValueData>>>,
