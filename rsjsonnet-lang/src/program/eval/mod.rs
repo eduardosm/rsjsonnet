@@ -2446,6 +2446,31 @@ impl<'a> Evaluator<'a> {
                         self.program.gc_alloc(array.into_boxed_slice()),
                     ));
                 }
+                State::StdReverse => {
+                    let value = self.value_stack.pop().unwrap();
+                    let reverse = match value {
+                        ValueData::String(s) => ValueData::Array(
+                            self.program
+                                .make_value_array(s.chars().rev().map(ValueData::from_char)),
+                        ),
+                        ValueData::Array(array) => ValueData::Array(
+                            self.program
+                                .gc_alloc(array.view().iter().rev().cloned().collect()),
+                        ),
+                        _ => {
+                            return Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
+                                func_name: "reverse".into(),
+                                arg_index: 0,
+                                expected_types: vec![
+                                    EvalErrorValueType::String,
+                                    EvalErrorValueType::Array,
+                                ],
+                                got_type: EvalErrorValueType::from_value(&value),
+                            }));
+                        }
+                    };
+                    self.value_stack.push(reverse);
+                }
                 State::StdSort => {
                     let keyf = self.value_stack.pop().unwrap();
                     let arr = self.value_stack.pop().unwrap();
