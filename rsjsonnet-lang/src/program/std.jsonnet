@@ -267,15 +267,6 @@ limitations under the License.
   escapeStringPython(str)::
     std.escapeStringJson(str),
 
-  escapeStringBash(str_)::
-    local str = std.toString(str_);
-    local trans(ch) =
-      if ch == "'" then
-        "'\"'\"'"
-      else
-        ch;
-    "'%s'" % std.join('', [trans(ch) for ch in std.stringChars(str)]),
-
   escapeStringDollars(str_)::
     local str = std.toString(str_);
     local trans(ch) =

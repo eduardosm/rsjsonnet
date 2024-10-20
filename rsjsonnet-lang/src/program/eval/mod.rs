@@ -1874,6 +1874,20 @@ impl<'a> Evaluator<'a> {
                     escape_string_json(&s, &mut escaped);
                     self.value_stack.push(ValueData::String(escaped.into()));
                 }
+                State::StdEscapeStringBash => {
+                    let s = self.string_stack.pop().unwrap();
+                    let mut escaped = String::new();
+                    escaped.push('\'');
+                    for chr in s.chars() {
+                        if chr == '\'' {
+                            escaped.push_str("'\"'\"'");
+                        } else {
+                            escaped.push(chr);
+                        }
+                    }
+                    escaped.push('\'');
+                    self.value_stack.push(ValueData::String(escaped.into()));
+                }
                 State::StdParseInt => {
                     let arg = self.value_stack.pop().unwrap();
                     let s = self.expect_std_func_arg_string(arg, "parseInt", 0)?;
