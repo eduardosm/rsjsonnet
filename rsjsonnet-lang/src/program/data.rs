@@ -562,6 +562,7 @@ pub(super) enum BuiltInFunc {
     Format,
     EscapeStringJson,
     EscapeStringBash,
+    EscapeStringDollars,
     // Parsing
     ParseInt,
     ParseOctal,

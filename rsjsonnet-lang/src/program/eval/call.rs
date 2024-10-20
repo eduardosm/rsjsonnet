@@ -497,6 +497,12 @@ impl Evaluator<'_> {
                 self.state_stack.push(State::CoerceToString);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
+            BuiltInFunc::EscapeStringDollars => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::StdEscapeStringDollars);
+                self.state_stack.push(State::CoerceToString);
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
             BuiltInFunc::ParseInt => {
                 let [arg] = check_num_args(args);
                 self.state_stack.push(State::StdParseInt);

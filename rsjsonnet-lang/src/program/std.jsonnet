@@ -267,15 +267,6 @@ limitations under the License.
   escapeStringPython(str)::
     std.escapeStringJson(str),
 
-  escapeStringDollars(str_)::
-    local str = std.toString(str_);
-    local trans(ch) =
-      if ch == '$' then
-        '$$'
-      else
-        ch;
-    std.foldl(function(a, b) a + trans(b), std.stringChars(str), ''),
-
   local xml_escapes = {
     '<': '&lt;',
     '>': '&gt;',
