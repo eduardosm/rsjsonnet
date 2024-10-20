@@ -1,0 +1,1 @@
+std.escapeStringXML(function() null)
