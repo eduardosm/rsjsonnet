@@ -641,9 +641,7 @@ impl<'a> Evaluator<'a> {
                                 ));
                             };
                             if let Some(chr) = s.chars().nth(index_usize) {
-                                let mut buf = [0; 4];
-                                let chr_str: &str = chr.encode_utf8(&mut buf);
-                                self.value_stack.push(ValueData::String(chr_str.into()));
+                                self.value_stack.push(ValueData::from_char(chr));
                             } else {
                                 return Err(self.report_error(
                                     EvalErrorKind::NumericIndexOutOfRange {
@@ -1576,10 +1574,7 @@ impl<'a> Evaluator<'a> {
                         }));
                     };
 
-                    let mut utf8_buf = [0; 4];
-                    let utf8 = chr.encode_utf8(&mut utf8_buf);
-
-                    self.value_stack.push(ValueData::String((*utf8).into()));
+                    self.value_stack.push(ValueData::from_char(chr));
                 }
                 State::StdSubstr => {
                     let len_value = self.value_stack.pop().unwrap();
@@ -1790,11 +1785,9 @@ impl<'a> Evaluator<'a> {
                 State::StdStringChars => {
                     let arg = self.value_stack.pop().unwrap();
                     let arg = self.expect_std_func_arg_string(arg, "stringChars", 0)?;
-                    let array = self.program.make_value_array(arg.chars().map(|c| {
-                        let mut utf8_buf = [0; 4];
-                        let utf8: &str = c.encode_utf8(&mut utf8_buf);
-                        ValueData::String(utf8.into())
-                    }));
+                    let array = self
+                        .program
+                        .make_value_array(arg.chars().map(ValueData::from_char));
                     self.value_stack.push(ValueData::Array(array));
                 }
                 State::StdFormat => {
