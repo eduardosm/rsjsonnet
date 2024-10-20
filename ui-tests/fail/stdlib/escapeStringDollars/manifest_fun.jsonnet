@@ -1,0 +1,1 @@
+std.escapeStringDollars(function() null)
