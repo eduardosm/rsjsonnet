@@ -316,6 +316,12 @@ impl GcTrace for ValueData {
 }
 
 impl ValueData {
+    pub(super) fn from_char(chr: char) -> Self {
+        let mut buf = [0; 4];
+        let chr_str: &str = chr.encode_utf8(&mut buf);
+        Self::String(chr_str.into())
+    }
+
     #[inline]
     pub(super) fn might_need_deep(&self) -> bool {
         match self {
