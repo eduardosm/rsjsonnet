@@ -1893,6 +1893,21 @@ impl<'a> Evaluator<'a> {
                     let escaped = s.replace('$', "$$");
                     self.value_stack.push(ValueData::String(escaped.into()));
                 }
+                State::StdEscapeStringXml => {
+                    let s = self.string_stack.pop().unwrap();
+                    let mut escaped = String::new();
+                    for chr in s.chars() {
+                        match chr {
+                            '<' => escaped.push_str("&lt;"),
+                            '>' => escaped.push_str("&gt;"),
+                            '&' => escaped.push_str("&amp;"),
+                            '"' => escaped.push_str("&quot;"),
+                            '\'' => escaped.push_str("&apos;"),
+                            _ => escaped.push(chr),
+                        }
+                    }
+                    self.value_stack.push(ValueData::String(escaped.into()));
+                }
                 State::StdParseInt => {
                     let arg = self.value_stack.pop().unwrap();
                     let s = self.expect_std_func_arg_string(arg, "parseInt", 0)?;

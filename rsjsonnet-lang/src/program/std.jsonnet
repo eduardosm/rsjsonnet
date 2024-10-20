@@ -267,18 +267,6 @@ limitations under the License.
   escapeStringPython(str)::
     std.escapeStringJson(str),
 
-  local xml_escapes = {
-    '<': '&lt;',
-    '>': '&gt;',
-    '&': '&amp;',
-    '"': '&quot;',
-    "'": '&apos;',
-  },
-
-  escapeStringXML(str_)::
-    local str = std.toString(str_);
-    std.join('', [std.get(xml_escapes, ch, ch) for ch in std.stringChars(str)]),
-
   manifestJson(value):: std.manifestJsonEx(value, '    '),
 
   manifestJsonMinified(value):: std.manifestJsonEx(value, '', '', ':'),

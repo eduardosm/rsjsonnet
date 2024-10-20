@@ -265,6 +265,7 @@ pub(super) enum State {
     StdEscapeStringJson,
     StdEscapeStringBash,
     StdEscapeStringDollars,
+    StdEscapeStringXml,
     StdParseInt,
     StdParseOctal,
     StdParseHex,

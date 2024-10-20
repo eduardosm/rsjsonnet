@@ -142,6 +142,7 @@ impl Program {
             BuiltInFunc::EscapeStringDollars,
             &["str"],
         );
+        add_simple("escapeStringXML", BuiltInFunc::EscapeStringXml, &["str"]);
         add_simple("parseInt", BuiltInFunc::ParseInt, &["str"]);
         add_simple("parseOctal", BuiltInFunc::ParseOctal, &["str"]);
         add_simple("parseHex", BuiltInFunc::ParseHex, &["str"]);
