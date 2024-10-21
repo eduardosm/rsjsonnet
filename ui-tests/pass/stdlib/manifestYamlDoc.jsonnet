@@ -53,91 +53,8 @@ std.assertEqual(
 ) &&
 
 std.assertEqual(
-  std.manifestYamlDoc([
-    "null",
-    "NULL",
-    "true",
-    "TRUE",
-    "false",
-    "FALSE",
-    "",
-    "~",
-    "1.5",
-    "0xABC",
-    "0xEFG",
-  ]) + "\n",
-  |||
-    - "null"
-    - "NULL"
-    - "true"
-    - "TRUE"
-    - "false"
-    - "FALSE"
-    - ""
-    - "~"
-    - "1.5"
-    - "0xABC"
-    - "0xEFG"
-  |||,
-) &&
-
-std.assertEqual(
-  std.manifestYamlDoc({ a: 1, b: 2, c: 3 }) + "\n",
-  |||
-    "a": 1
-    "b": 2
-    "c": 3
-  |||,
-) &&
-std.assertEqual(
-  std.manifestYamlDoc({ a: 1, b: 2, c: 3 }, quote_keys=true) + "\n",
-  |||
-    "a": 1
-    "b": 2
-    "c": 3
-  |||,
-) &&
-std.assertEqual(
-  std.manifestYamlDoc({ a: 1, b: 2, c: 3 }, quote_keys=false) + "\n",
-  |||
-    a: 1
-    b: 2
-    c: 3
-  |||,
-) &&
-
-std.assertEqual(
-  std.manifestYamlDoc({
-    "null": 1,
-    "NULL": 2,
-    "true": 3,
-    "TRUE": 4,
-    "false": 5,
-    "FALSE": 6,
-    "": 7,
-    "~": 8,
-  }, quote_keys=false) + "\n",
-  |||
-    "": 7
-    "FALSE": 6
-    "NULL": 2
-    "TRUE": 4
-    "false": 5
-    "null": 1
-    "true": 3
-    "~": 8
-  |||,
-) &&
-
-std.assertEqual(
   std.manifestYamlDoc({ a: 1, b: [2, 3], c: 4 }) + "\n",
-  |||
-    "a": 1
-    "b":
-    - 2
-    - 3
-    "c": 4
-  |||,
+  std.manifestYamlDoc({ a: 1, b: [2, 3], c: 4 }, indent_array_in_object=false) + "\n",
 ) &&
 std.assertEqual(
   std.manifestYamlDoc({ a: 1, b: [2, 3], c: 4 }, indent_array_in_object=true) + "\n",
@@ -172,6 +89,14 @@ std.assertEqual(
   |||,
 ) &&
 std.assertEqual(
+  std.manifestYamlDoc([[[[]]]]) + "\n",
+  |||
+    -
+      -
+        - []
+  |||,
+) &&
+std.assertEqual(
   std.manifestYamlDoc([{ a: 1, b: 2 }, { c: 3, d: 4 }]) + "\n",
   |||
     - "a": 1
@@ -180,6 +105,227 @@ std.assertEqual(
       "d": 4
   |||,
 ) &&
+std.assertEqual(
+  std.manifestYamlDoc({ a: { b: 1, c: 2 }, d: { e: 3, f: 4 } }) + "\n",
+  |||
+    "a":
+      "b": 1
+      "c": 2
+    "d":
+      "e": 3
+      "f": 4
+  |||,
+) &&
+std.assertEqual(
+  std.manifestYamlDoc({ a: { b: 1, c: 2 }, d: { e: 3, f: 4 } }, quote_keys=false) + "\n",
+  |||
+    a:
+      b: 1
+      c: 2
+    d:
+      e: 3
+      f: 4
+  |||,
+) &&
 
+local quoted_keys = [
+  "",
+  "~",
+  "1234",
+  "+1234",
+  "-1234",
+  "1_2_3_4",
+  "+1_2_3_4",
+  "-1_2_3_4",
+  "0",
+  "+0",
+  "-0",
+  "00",
+  "+00",
+  "-00",
+  "0b101010",
+  "+0b101010",
+  "-0b101010",
+  "0b10_10_10",
+  "+0b10_10_10",
+  "-0b10_10_10",
+  "0x123ABC",
+  "+0x123ABC",
+  "-0x123ABC",
+  "0x12_3A_BC",
+  "+0x12_3A_BC",
+  "-0x12_3A_BC",
+  "123:45:67.89",
+  "+123:45:67.89",
+  "-123:45:67.89",
+  "0.0",
+  "+0.0",
+  "-0.0",
+  "12.34",
+  "+12.34",
+  "-12.34",
+  "1_2.3_4",
+  "+1_2.3_4",
+  "-1_2.3_4",
+  "+1e2",
+  "1e+2",
+  "1.2e3",
+  "+1.2e3",
+  "-1.2e3",
+  "1.2e+3",
+  "1.2e-3",
+  "+1E2",
+  "1E+2",
+  "1.2E3",
+  "+1.2E3",
+  "-1.2E3",
+  "1.2E+3",
+  "1.2E-3",
+  ".1",
+  "+.1",
+  "-.1",
+  ".1e2",
+  "+.1e2",
+  "-.1e2",
+  ".1e+2",
+  ".1e-2",
+  ".1E2",
+  "+.1E2",
+  "-.1E2",
+  ".1E+2",
+  ".1E-2",
+  ".inf",
+  ".Inf",
+  ".INF",
+  "+.inf",
+  "+.Inf",
+  "+.INF",
+  "-.inf",
+  "-.Inf",
+  "-.INF",
+  ".nan",
+  ".NaN",
+  ".NAN",
+  "1234-45-78",
+  "1234-45-78 12:34:56",
+  "1234-45-78 12:34:56.78",
+  "1234-45-78t12:34:56",
+  "1234-45-78t12:34:56.78",
+  "1234-45-78T12:34:56",
+  "1234-45-78T12:34:56.78",
+  "1234-45-78T12:34:56Z",
+  "1234-45-78T12:34:56.78Z",
+  "1234-45-78T12:34:56+12:34",
+  "1234-45-78T12:34:56.78+12:34",
+  "1234-45-78T12:34:56-12:34",
+  "1234-45-78T12:34:56.78-12:34",
+  "1234-45-78T12:34:56 +12:34",
+  "1234-45-78T12:34:56.78 +12:34",
+  "1234-45-78T12:34:56 -12:34",
+  "1234-45-78T12:34:56.78 -12:34",
+  "__+1",
+  "__-1",
+  "null",
+  "Null",
+  "NULL",
+  "false",
+  "False",
+  "FALSE",
+  "true",
+  "True",
+  "TRUE",
+  "n",
+  "N",
+  "no",
+  "No",
+  "NO",
+  "y",
+  "Y",
+  "yes",
+  "Yes",
+  "YES",
+  "off",
+  "Off",
+  "OFF",
+  "on",
+  "On",
+  "ON",
+  "0-1-2",
+  ".",
+  "-",
+  "--",
+  "---",
+  "+",
+  " ",
+  "a b",
+];
+std.all([
+  local doc = { object: { [key]: "key is " + key } };
+  std.assertEqual(
+    std.manifestYamlDoc(doc),
+    std.manifestYamlDoc(doc, quote_keys=true),
+  ) &&
+  std.assertEqual(
+    std.manifestYamlDoc(doc, quote_keys=false) + "\n",
+    |||
+      object:
+        "%(key)s": "key is %(key)s"
+    ||| % { key: key }
+  ) &&
+  std.assertEqual(
+    std.manifestYamlDoc(doc, quote_keys=true) + "\n",
+    |||
+      "object":
+        "%(key)s": "key is %(key)s"
+    ||| % { key: key }
+  ) &&
+  true
+
+  for key in quoted_keys
+]) &&
+
+local plain_keys = [
+  "abc",
+  "a_b_c",
+  "a.b.c",
+  "a-b-c",
+  "a/b/c",
+  "0.1.2",
+  "0/1/2",
+  "..",
+  "...",
+  "1e2",
+  "1e-2",
+  "-1e2",
+  "1E2",
+  "1E-2",
+  "-1E2",
+  "0X123ABC",
+  "0B101010",
+];
+std.all([
+  local doc = { object: { [key]: "key is " + key } };
+  std.assertEqual(
+    std.manifestYamlDoc(doc),
+    std.manifestYamlDoc(doc, quote_keys=true),
+  ) &&
+  std.assertEqual(
+    std.manifestYamlDoc(doc, quote_keys=false) + "\n",
+    |||
+      object:
+        %(key)s: "key is %(key)s"
+    ||| % { key: key }
+  ) &&
+  std.assertEqual(
+    std.manifestYamlDoc(doc, quote_keys=true) + "\n",
+    |||
+      "object":
+        "%(key)s": "key is %(key)s"
+    ||| % { key: key }
+  ) &&
+  true
+
+  for key in plain_keys
+]) &&
 
 true
