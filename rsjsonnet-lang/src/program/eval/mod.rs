@@ -333,6 +333,21 @@ impl<'a> Evaluator<'a> {
                 State::ManifestJson { format, depth } => {
                     self.do_manifest_json(format, depth)?;
                 }
+                State::ManifestYamlDoc {
+                    indent_array_in_object,
+                    quote_keys,
+                    depth,
+                    parent_is_array,
+                    parent_is_object,
+                } => {
+                    self.do_manifest_yaml_doc(
+                        indent_array_in_object,
+                        quote_keys,
+                        depth,
+                        parent_is_array,
+                        parent_is_object,
+                    )?;
+                }
                 State::Expr { expr, env } => self.do_expr(expr, env)?,
                 State::Error { span } => {
                     let msg = self.string_stack.pop().unwrap();
@@ -2103,6 +2118,28 @@ impl<'a> Evaluator<'a> {
                             &key_val_sep,
                         ),
                         depth: 0,
+                    });
+                }
+                State::StdManifestYamlDoc => {
+                    let quote_keys = self.value_stack.pop().unwrap();
+                    let indent_array_in_object = self.value_stack.pop().unwrap();
+
+                    let indent_array_in_object = self.expect_std_func_arg_bool(
+                        indent_array_in_object,
+                        "manifestYamlDoc",
+                        1,
+                    )?;
+                    let quote_keys =
+                        self.expect_std_func_arg_bool(quote_keys, "manifestYamlDoc", 2)?;
+
+                    self.string_stack.push(String::new());
+                    self.state_stack.push(State::StringToValue);
+                    self.state_stack.push(State::ManifestYamlDoc {
+                        indent_array_in_object,
+                        quote_keys,
+                        depth: 0,
+                        parent_is_array: false,
+                        parent_is_object: false,
                     });
                 }
                 State::StdMakeArray => {

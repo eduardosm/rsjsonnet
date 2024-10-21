@@ -580,6 +580,7 @@ pub(super) enum BuiltInFunc {
     DecodeUtf8,
     // Manifestation
     ManifestJsonEx,
+    ManifestYamlDoc,
     // Arrays
     MakeArray,
     Filter,

@@ -39,6 +39,13 @@ pub(super) enum State {
         format: Rc<ManifestJsonFormat>,
         depth: usize,
     },
+    ManifestYamlDoc {
+        indent_array_in_object: bool,
+        quote_keys: bool,
+        depth: usize,
+        parent_is_array: bool,
+        parent_is_object: bool,
+    },
     Expr {
         expr: Rc<ir::Expr>,
         env: GcView<ThunkEnv>,
@@ -276,6 +283,7 @@ pub(super) enum State {
     StdDecodeUtf8CheckItem,
     StdDecodeUtf8Finish,
     StdManifestJsonEx,
+    StdManifestYamlDoc,
     StdMakeArray,
     StdFilter,
     StdFilterCheck {
