@@ -41,14 +41,33 @@ std.assertEqual(
 
 std.assertEqual(
   std.manifestYamlDoc([
+    "\n",
     "multi\nline 1",
     "multi\nline 2\n",
   ]) + "\n",
   |||
+    - |
+      
     - "multi\nline 1"
     - |
       multi
       line 2
+  |||,
+) &&
+
+std.assertEqual(
+  std.manifestYamlDoc([
+    ["multi\nline 1\n"],
+    { x: "multi\nline 2\n" },
+  ]) + "\n",
+  |||
+    -
+      - |
+        multi
+        line 1
+    - "x": |
+        multi
+        line 2
   |||,
 ) &&
 
@@ -292,6 +311,7 @@ local plain_keys = [
   "a/b/c",
   "0.1.2",
   "0/1/2",
+  "0-1-2-3",
   "..",
   "...",
   "1e2",
@@ -327,5 +347,23 @@ std.all([
 
   for key in plain_keys
 ]) &&
+
+local escaped_keys = {
+  "\t": "tab",
+  "\"": "quote",
+  "\\": "backslash",
+};
+std.assertEqual(
+  std.manifestYamlDoc(escaped_keys, quote_keys=true),
+  std.manifestYamlDoc(escaped_keys, quote_keys=false),
+) &&
+std.assertEqual(
+  std.manifestYamlDoc(escaped_keys, quote_keys=false) + "\n",
+  |||
+    "\t": "tab"
+    "\"": "quote"
+    "\\": "backslash"
+  |||,
+) &&
 
 true

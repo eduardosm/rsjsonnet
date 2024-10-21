@@ -1,14 +1,5 @@
-error: explicit error: Tried to manifest function at [ ]
-   --> <stdlib>:422:9
-    |
-422 |         error 'Tried to manifest function at ' + path
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: while evaluating call to function
-   --> <stdlib>:483:5
-    |
-483 |     aux(value, [], ''),
-    |     ------------------
-note: while evaluating call to function
+error: functions cannot be manifested
+note: while evaluating call to `manifestYamlDoc`
  --> manifest_function.jsonnet:1:1
   |
 1 | std.manifestYamlDoc(function() null)
