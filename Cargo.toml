@@ -18,3 +18,8 @@ publish = false
 [workspace.dependencies]
 rsjsonnet-front = { path = "rsjsonnet-front", version = "0.3.0-pre" }
 rsjsonnet-lang = { path = "rsjsonnet-lang", version = "0.3.0-pre" }
+
+[profile.release]
+strip = "debuginfo"
+panic = "abort"
+codegen-units = 1

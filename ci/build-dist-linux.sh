@@ -12,10 +12,6 @@ begin_group "Install Rust"
 . ci/cargo-env.sh
 end_group
 
-export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
-export CARGO_PROFILE_RELEASE_CODEGEN_PANIC=abort
-export CARGO_PROFILE_RELEASE_STRIP=debuginfo
-
 begin_group "Fetch Rust dependencies"
 cargo fetch --locked
 end_group
