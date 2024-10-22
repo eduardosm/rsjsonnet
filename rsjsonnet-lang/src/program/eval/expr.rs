@@ -17,7 +17,7 @@ impl Evaluator<'_> {
         &mut self,
         expr: Rc<ir::Expr>,
         env: GcView<ThunkEnv>,
-    ) -> Result<(), EvalError> {
+    ) -> Result<(), Box<EvalError>> {
         match *expr {
             ir::Expr::Null => {
                 self.value_stack.push(ValueData::Null);
@@ -567,7 +567,7 @@ impl Evaluator<'_> {
         object: &GcView<ObjectData>,
         field_name: &InternedStr,
         expr_span: SpanId,
-    ) -> Result<(), EvalError> {
+    ) -> Result<(), Box<EvalError>> {
         if let Some(field_thunk) = self.program.find_object_field_thunk(object, 0, field_name) {
             self.push_trace_item(TraceItem::ObjectField {
                 span: Some(expr_span),
@@ -590,7 +590,7 @@ impl Evaluator<'_> {
         super_span: SpanId,
         field_name: &InternedStr,
         expr_span: SpanId,
-    ) -> Result<(), EvalError> {
+    ) -> Result<(), Box<EvalError>> {
         let (object, core_i) = env.get_object();
         let object = object.view();
         if core_i == object.super_cores.len() {
@@ -620,7 +620,7 @@ impl Evaluator<'_> {
         &mut self,
         span: Option<SpanId>,
         op: ast::BinaryOp,
-    ) -> Result<(), EvalError> {
+    ) -> Result<(), Box<EvalError>> {
         let rhs = self.value_stack.pop().unwrap();
         let lhs = self.value_stack.pop().unwrap();
         match (op, lhs, rhs) {

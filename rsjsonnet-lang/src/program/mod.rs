@@ -456,13 +456,15 @@ impl Program {
             self,
             Some(callbacks),
             eval::EvalInput::Value(thunk.data.clone()),
-        )?;
+        )
+        .map_err(|e| *e)?;
         assert!(matches!(output, eval::EvalOutput::Nothing));
         Ok(Value::from_thunk(&thunk.data))
     }
 
     fn eval_value_internal(&mut self, thunk: &Thunk) -> Result<(), EvalError> {
-        let output = eval::Evaluator::eval(self, None, eval::EvalInput::Value(thunk.data.clone()))?;
+        let output = eval::Evaluator::eval(self, None, eval::EvalInput::Value(thunk.data.clone()))
+            .map_err(|e| *e)?;
         assert!(matches!(output, eval::EvalOutput::Nothing));
         Ok(())
     }
@@ -488,7 +490,8 @@ impl Program {
                         .collect(),
                 },
             ),
-        )?;
+        )
+        .map_err(|e| *e)?;
         let eval::EvalOutput::Value(value) = output else {
             unreachable!();
         };
@@ -499,7 +502,8 @@ impl Program {
     pub fn manifest_json(&mut self, value: &Value, multiline: bool) -> Result<String, EvalError> {
         let thunk = self.insert_thunk_with_value(value.inner.clone());
         let output =
-            eval::Evaluator::eval(self, None, eval::EvalInput::ManifestJson(thunk, multiline))?;
+            eval::Evaluator::eval(self, None, eval::EvalInput::ManifestJson(thunk, multiline))
+                .map_err(|e| *e)?;
         let eval::EvalOutput::String(s) = output else {
             unreachable!();
         };

@@ -33,7 +33,7 @@ impl Evaluator<'_> {
         call_env: GcView<ThunkEnv>,
         func_env: Option<Gc<ThunkEnv>>,
         call_span: SpanId,
-    ) -> Result<Box<[Gc<ThunkData>]>, EvalError> {
+    ) -> Result<Box<[Gc<ThunkData>]>, Box<EvalError>> {
         self.check_call_args_generic(
             params,
             positional_args,
@@ -53,7 +53,7 @@ impl Evaluator<'_> {
         positional_args: &[GcView<ThunkData>],
         named_args: &[(InternedStr, GcView<ThunkData>)],
         func_env: Option<Gc<ThunkEnv>>,
-    ) -> Result<Box<[Gc<ThunkData>]>, EvalError> {
+    ) -> Result<Box<[Gc<ThunkData>]>, Box<EvalError>> {
         self.check_call_args_generic(
             params,
             positional_args,
@@ -79,7 +79,7 @@ impl Evaluator<'_> {
         named_arg_thunk: impl Fn(&Self, &NamedArg) -> Gc<ThunkData>,
         func_env: Option<Gc<ThunkEnv>>,
         call_span: Option<SpanId>,
-    ) -> Result<Box<[Gc<ThunkData>]>, EvalError> {
+    ) -> Result<Box<[Gc<ThunkData>]>, Box<EvalError>> {
         if positional_args.len() > params.order.len() {
             return Err(self.report_error(EvalErrorKind::TooManyCallArgs {
                 span: call_span,
@@ -179,7 +179,7 @@ impl Evaluator<'_> {
         positional_args: &[GcView<ThunkData>],
         named_args: &[(InternedStr, GcView<ThunkData>)],
         call_span: Option<SpanId>,
-    ) -> Result<(), EvalError> {
+    ) -> Result<(), Box<EvalError>> {
         let (func_name, params, func_env) = self.get_func_info(func);
         let args_thunks =
             self.check_call_thunk_args(&params, positional_args, named_args, func_env)?;

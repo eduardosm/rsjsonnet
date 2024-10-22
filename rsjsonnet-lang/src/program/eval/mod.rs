@@ -90,11 +90,12 @@ struct CompSpec {
 }
 
 impl<'a> Evaluator<'a> {
+    // `EvalError` is boxed to reduce the size of `Result`s returned by internal functions.
     pub(super) fn eval(
         program: &'a mut Program,
         callbacks: Option<&'a mut dyn Callbacks>,
         input: EvalInput,
-    ) -> Result<EvalOutput, EvalError> {
+    ) -> Result<EvalOutput, Box<EvalError>> {
         let mut this = Self {
             program,
             callbacks,
@@ -157,7 +158,7 @@ impl<'a> Evaluator<'a> {
         Ok(this.output)
     }
 
-    fn run(&mut self) -> Result<(), EvalError> {
+    fn run(&mut self) -> Result<(), Box<EvalError>> {
         while let Some(state) = self.state_stack.pop() {
             match state {
                 State::TraceItem(_) => {
@@ -3364,7 +3365,7 @@ impl<'a> Evaluator<'a> {
         visibility: ast::Visibility,
         value: Rc<ir::Expr>,
         base_env: Option<Gc<ThunkEnv>>,
-    ) -> Result<(), EvalError> {
+    ) -> Result<(), Box<EvalError>> {
         let object = self.object_stack.last_mut().unwrap();
         match object.self_core.fields.entry(name.clone()) {
             HashMapEntry::Occupied(_) => Err(self.report_error(EvalErrorKind::RepeatedFieldName {
@@ -3428,7 +3429,11 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn check_number_value(&mut self, value: f64, span: Option<SpanId>) -> Result<(), EvalError> {
+    fn check_number_value(
+        &mut self,
+        value: f64,
+        span: Option<SpanId>,
+    ) -> Result<(), Box<EvalError>> {
         match value.classify() {
             std::num::FpCategory::Nan => Err(self.report_error(EvalErrorKind::NumberNan { span })),
             std::num::FpCategory::Infinite => {
@@ -3446,7 +3451,7 @@ impl<'a> Evaluator<'a> {
         value: ValueData,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<bool, EvalError> {
+    ) -> Result<bool, Box<EvalError>> {
         match value {
             ValueData::Bool(b) => Ok(b),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -3464,7 +3469,7 @@ impl<'a> Evaluator<'a> {
         value: ValueData,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<f64, EvalError> {
+    ) -> Result<f64, Box<EvalError>> {
         match value {
             ValueData::Number(n) => Ok(n),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -3482,7 +3487,7 @@ impl<'a> Evaluator<'a> {
         value: ValueData,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<Option<f64>, EvalError> {
+    ) -> Result<Option<f64>, Box<EvalError>> {
         match value {
             ValueData::Null => Ok(None),
             ValueData::Number(n) => Ok(Some(n)),
@@ -3501,7 +3506,7 @@ impl<'a> Evaluator<'a> {
         value: ValueData,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<Rc<str>, EvalError> {
+    ) -> Result<Rc<str>, Box<EvalError>> {
         match value {
             ValueData::String(s) => Ok(s),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -3519,7 +3524,7 @@ impl<'a> Evaluator<'a> {
         value: ValueData,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<GcView<ArrayData>, EvalError> {
+    ) -> Result<GcView<ArrayData>, Box<EvalError>> {
         match value {
             ValueData::Array(arr) => Ok(arr.view()),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -3537,7 +3542,7 @@ impl<'a> Evaluator<'a> {
         value: ValueData,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<GcView<ObjectData>, EvalError> {
+    ) -> Result<GcView<ObjectData>, Box<EvalError>> {
         match value {
             ValueData::Object(obj) => Ok(obj.view()),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -3555,7 +3560,7 @@ impl<'a> Evaluator<'a> {
         value: ValueData,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<GcView<FuncData>, EvalError> {
+    ) -> Result<GcView<FuncData>, Box<EvalError>> {
         match value {
             ValueData::Function(func) => Ok(func.view()),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -3569,11 +3574,11 @@ impl<'a> Evaluator<'a> {
 
     #[cold]
     #[must_use]
-    fn report_error(&self, error_kind: EvalErrorKind) -> EvalError {
-        EvalError {
+    fn report_error(&self, error_kind: EvalErrorKind) -> Box<EvalError> {
+        Box::new(EvalError {
             stack_trace: self.get_stack_trace(),
             kind: error_kind,
-        }
+        })
     }
 
     fn get_stack_trace(&self) -> Vec<EvalStackTraceItem> {
