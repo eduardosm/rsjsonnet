@@ -53,7 +53,7 @@ impl Evaluator<'_> {
         &mut self,
         format: Rc<ManifestJsonFormat>,
         depth: usize,
-    ) -> Result<(), EvalError> {
+    ) -> Result<(), Box<EvalError>> {
         let value = self.value_stack.pop().unwrap();
         let result = self.string_stack.last_mut().unwrap();
         match value {
@@ -202,7 +202,7 @@ impl Evaluator<'_> {
         depth: usize,
         parent_is_array: bool,
         parent_is_object: bool,
-    ) -> Result<(), EvalError> {
+    ) -> Result<(), Box<EvalError>> {
         let value = self.value_stack.pop().unwrap();
         let result = self.string_stack.last_mut().unwrap();
         let indent = "  ";
