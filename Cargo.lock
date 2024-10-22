@@ -409,6 +409,7 @@ dependencies = [
 name = "rsjsonnet-lang"
 version = "0.3.0-pre"
 dependencies = [
+ "foldhash",
  "hashbrown",
  "libyaml-safer",
  "md-5",

@@ -1,6 +1,5 @@
 use std::cell::{Cell, OnceCell};
 use std::collections::hash_map::Entry as HashMapEntry;
-use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::rc::Rc;
 
@@ -12,7 +11,7 @@ use super::{
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
 use crate::span::SpanId;
-use crate::{ast, float};
+use crate::{ast, float, FHashMap};
 
 mod call;
 mod expr;
@@ -86,7 +85,7 @@ enum TraceItem {
 }
 
 struct CompSpec {
-    vars: Vec<HashMap<InternedStr, GcView<ThunkData>>>,
+    vars: Vec<FHashMap<InternedStr, GcView<ThunkData>>>,
 }
 
 impl<'a> Evaluator<'a> {
@@ -453,7 +452,7 @@ impl<'a> Evaluator<'a> {
 
                     let mut comp_spec = CompSpec { vars: Vec::new() };
                     for item in array.iter() {
-                        let mut vars = HashMap::new();
+                        let mut vars = FHashMap::default();
                         vars.insert(var_name.clone(), item.view());
                         comp_spec.vars.push(vars);
                     }
@@ -591,7 +590,7 @@ impl<'a> Evaluator<'a> {
                             locals: ir_locals.clone(),
                             base_env: None,
                             env: OnceCell::new(),
-                            fields: HashMap::new(),
+                            fields: FHashMap::default(),
                             asserts: Vec::new(),
                         },
                         super_cores: Vec::new(),

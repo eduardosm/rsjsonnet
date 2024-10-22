@@ -1,10 +1,9 @@
 use std::cell::OnceCell;
-use std::collections::HashMap;
 
 use super::{ArrayData, ObjectData, ObjectField, Program, ThunkData, ValueData};
-use crate::ast;
 use crate::gc::Gc;
 use crate::interner::InternedStr;
+use crate::{ast, FHashMap};
 
 pub(crate) enum ParseError {
     Parser(libyaml_safer::Error),
@@ -129,12 +128,12 @@ fn parse_yaml_document(
         },
         Object {
             anchor: Option<String>,
-            fields: HashMap<InternedStr, ObjectField>,
+            fields: FHashMap<InternedStr, ObjectField>,
             current_key: InternedStr,
         },
     }
 
-    let mut anchors = HashMap::new();
+    let mut anchors = FHashMap::default();
     let mut stack = Vec::new();
     let mut event = parser.parse()?;
     loop {
@@ -212,7 +211,7 @@ fn parse_yaml_document(
                                 let key = program.str_interner.intern(value);
                                 stack.push(StackItem::Object {
                                     anchor,
-                                    fields: HashMap::new(),
+                                    fields: FHashMap::default(),
                                     current_key: key,
                                 });
                                 event = parser.parse()?;
@@ -233,7 +232,7 @@ fn parse_yaml_document(
                         return Err(ParseError::KeyIsObject(event.start_mark));
                     }
                     libyaml_safer::EventData::MappingEnd => {
-                        let object = program.gc_alloc(ObjectData::new_simple(HashMap::new()));
+                        let object = program.gc_alloc(ObjectData::new_simple(FHashMap::default()));
                         if let Some(anchor) = anchor {
                             anchors.insert(anchor, AnchorValue::Object(object.clone()));
                         }
@@ -256,7 +255,7 @@ fn parse_yaml_document(
                         }
                         stack.push(StackItem::Object {
                             anchor: anchor.clone(),
-                            fields: HashMap::new(),
+                            fields: FHashMap::default(),
                             current_key: key,
                         });
                         if let Some(anchor) = anchor {
