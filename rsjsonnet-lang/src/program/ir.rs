@@ -1,9 +1,8 @@
-use std::collections::HashMap;
 use std::rc::Rc;
 
-use crate::ast;
 use crate::interner::{InternedStr, StrInterner};
 use crate::span::SpanId;
+use crate::{ast, FHashMap};
 
 #[derive(Debug)]
 pub(super) enum Expr {
@@ -13,13 +12,13 @@ pub(super) enum Expr {
     String(Rc<str>),
     Object {
         is_top: bool,
-        locals: Rc<HashMap<InternedStr, Rc<Expr>>>,
+        locals: Rc<FHashMap<InternedStr, Rc<Expr>>>,
         asserts: Vec<Assert>,
         fields: Vec<ObjectField>,
     },
     ObjectComp {
         is_top: bool,
-        locals: Rc<HashMap<InternedStr, Rc<Expr>>>,
+        locals: Rc<FHashMap<InternedStr, Rc<Expr>>>,
         field_name: Rc<Expr>,
         field_name_span: SpanId,
         field_value: Rc<Expr>,
@@ -68,7 +67,7 @@ pub(super) enum Expr {
     SelfObj,
     TopObj,
     Local {
-        bindings: HashMap<InternedStr, Rc<Expr>>,
+        bindings: FHashMap<InternedStr, Rc<Expr>>,
         inner: Rc<Expr>,
     },
     If {
@@ -157,7 +156,7 @@ pub(super) enum CompSpecPart {
 
 #[derive(Debug)]
 pub(super) struct FuncParams {
-    pub(super) by_name: HashMap<InternedStr, (usize, Option<Rc<Expr>>)>,
+    pub(super) by_name: FHashMap<InternedStr, (usize, Option<Rc<Expr>>)>,
     pub(super) order: Vec<InternedStr>,
 }
 

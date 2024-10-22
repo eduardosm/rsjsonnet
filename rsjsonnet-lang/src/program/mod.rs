@@ -73,15 +73,14 @@
 //! ```
 
 use std::cell::OnceCell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
-use crate::ast;
 use crate::gc::{Gc, GcContext, GcTrace, GcView};
 use crate::interner::{InternedStr, StrInterner};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 use crate::span::{SourceId, SpanContextId, SpanId, SpanManager};
+use crate::{ast, FHashMap};
 
 mod analyze;
 mod data;
@@ -198,8 +197,8 @@ pub struct Program {
     stdlib_obj: Option<GcView<ObjectData>>,
     empty_array: GcView<ArrayData>,
     identity_func: GcView<FuncData>,
-    ext_vars: HashMap<InternedStr, GcView<ThunkData>>,
-    native_funcs: HashMap<InternedStr, GcView<FuncData>>,
+    ext_vars: FHashMap<InternedStr, GcView<ThunkData>>,
+    native_funcs: FHashMap<InternedStr, GcView<FuncData>>,
 }
 
 impl Default for Program {
@@ -241,8 +240,8 @@ impl Program {
             stdlib_obj: None,
             empty_array,
             identity_func,
-            ext_vars: HashMap::new(),
-            native_funcs: HashMap::new(),
+            ext_vars: FHashMap::default(),
+            native_funcs: FHashMap::default(),
         };
         this.load_stdlib(stdlib_span_ctx);
         this
@@ -319,7 +318,7 @@ impl Program {
                 panic!("native function {:?} already registered", entry.key());
             }
             std::collections::hash_map::Entry::Vacant(entry) => {
-                let mut params_by_name = HashMap::new();
+                let mut params_by_name = FHashMap::default();
                 let mut params_order = Vec::new();
                 for (param_i, param) in params.iter().enumerate() {
                     let prev = params_by_name.insert(param.clone(), (param_i, None));
@@ -370,7 +369,7 @@ impl Program {
 
     /// Creates an object value.
     pub fn make_object(&mut self, obj_fields: &[(InternedStr, Value)]) -> Value {
-        let mut fields = HashMap::new();
+        let mut fields = FHashMap::default();
         for (name, value) in obj_fields.iter() {
             let value_thunk = self.gc_alloc(ThunkData::new_done(value.inner.clone()));
             let prev = fields.insert(
@@ -411,7 +410,7 @@ impl Program {
             let stdlib_thunk =
                 self.gc_alloc_view(ThunkData::new_done(ValueData::Object(stdlib_obj)));
 
-            let mut env = HashMap::new();
+            let mut env = FHashMap::default();
             env.insert(self.str_interner.intern("std"), Thunk::new(stdlib_thunk));
 
             Some(env)
@@ -425,7 +424,7 @@ impl Program {
     fn analyze(
         &mut self,
         ast: &ast::Expr,
-        env: Option<HashMap<InternedStr, Thunk>>,
+        env: Option<FHashMap<InternedStr, Thunk>>,
     ) -> Result<Thunk, AnalyzeError> {
         let analyze_env = env
             .as_ref()

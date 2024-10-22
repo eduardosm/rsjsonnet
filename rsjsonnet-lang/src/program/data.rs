@@ -1,12 +1,12 @@
 use std::cell::{Cell, OnceCell, RefCell};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::BTreeSet;
 use std::rc::Rc;
 
 use super::{ir, Program};
-use crate::ast;
 use crate::gc::{Gc, GcTrace, GcTraceCtx, GcView};
 use crate::interner::{InternedStr, SortedInternedStr};
 use crate::span::SpanId;
+use crate::{ast, FHashMap};
 
 impl Program {
     #[inline]
@@ -354,11 +354,11 @@ impl GcTrace for ObjectData {
 
 impl ObjectData {
     #[inline]
-    pub(super) fn new_simple(fields: HashMap<InternedStr, ObjectField>) -> Self {
+    pub(super) fn new_simple(fields: FHashMap<InternedStr, ObjectField>) -> Self {
         Self {
             self_core: ObjectCore {
                 is_top: false,
-                locals: Rc::new(HashMap::new()),
+                locals: Rc::new(FHashMap::default()),
                 base_env: None,
                 env: OnceCell::new(),
                 fields,
@@ -441,10 +441,10 @@ impl ObjectData {
 
 pub(super) struct ObjectCore {
     pub(super) is_top: bool,
-    pub(super) locals: Rc<HashMap<InternedStr, Rc<ir::Expr>>>,
+    pub(super) locals: Rc<FHashMap<InternedStr, Rc<ir::Expr>>>,
     pub(super) base_env: Option<Gc<ThunkEnv>>,
     pub(super) env: OnceCell<Gc<ThunkEnv>>,
-    pub(super) fields: HashMap<InternedStr, ObjectField>,
+    pub(super) fields: FHashMap<InternedStr, ObjectField>,
     pub(super) asserts: Vec<ObjectAssert>,
 }
 
@@ -677,7 +677,7 @@ impl ThunkEnv {
 
 pub(super) struct ThunkEnvData {
     parent: Option<Gc<ThunkEnv>>,
-    vars: HashMap<InternedStr, Gc<ThunkData>>,
+    vars: FHashMap<InternedStr, Gc<ThunkData>>,
     object: Option<ThunkEnvObject>,
 }
 
@@ -713,7 +713,7 @@ impl ThunkEnvData {
         let object = parent.as_ref().and_then(|p| p.view().data().object.clone());
         Self {
             parent,
-            vars: HashMap::new(),
+            vars: FHashMap::default(),
             object,
         }
     }

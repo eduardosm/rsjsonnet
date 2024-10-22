@@ -23,3 +23,6 @@ pub mod parser;
 pub mod program;
 pub mod span;
 pub mod token;
+
+type FHashMap<K, V> = std::collections::HashMap<K, V, foldhash::fast::RandomState>;
+type FHashSet<T> = std::collections::HashSet<T, foldhash::fast::RandomState>;

@@ -1,5 +1,4 @@
 use std::cell::{Cell, OnceCell};
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use super::super::{
@@ -7,10 +6,10 @@ use super::super::{
     ValueData,
 };
 use super::{EvalError, EvalErrorKind, EvalErrorValueType, Evaluator, State, TraceItem};
-use crate::ast;
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
 use crate::span::SpanId;
+use crate::{ast, FHashMap};
 
 impl Evaluator<'_> {
     pub(super) fn do_expr(
@@ -54,7 +53,7 @@ impl Evaluator<'_> {
                         locals: ir_locals.clone(),
                         base_env: Some(Gc::from(&env)),
                         env: OnceCell::new(),
-                        fields: HashMap::new(),
+                        fields: FHashMap::default(),
                         asserts,
                     },
                     super_cores: Vec::new(),

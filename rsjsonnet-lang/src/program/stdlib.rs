@@ -1,14 +1,13 @@
 use std::cell::OnceCell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use super::{
     ir, BuiltInFunc, FuncData, ObjectData, ObjectField, Program, ThunkData, ThunkState, ValueData,
 };
-use crate::ast;
 use crate::gc::Gc;
 use crate::interner::InternedStr;
 use crate::span::SpanContextId;
+use crate::{ast, FHashMap};
 
 // From jsonnet 0.20.0
 pub(super) const STDLIB_DATA: &[u8] = include_bytes!("std.jsonnet");
@@ -36,7 +35,7 @@ impl Program {
     }
 
     fn build_stdlib_extra(&mut self) -> ObjectData {
-        let mut extra_fields = HashMap::new();
+        let mut extra_fields = FHashMap::default();
 
         let mut add_builtin_func =
             |name: InternedStr, kind: BuiltInFunc, params: ir::FuncParams| {
@@ -281,7 +280,7 @@ impl Program {
     pub(super) fn make_custom_stdlib(&mut self, this_file: &str) -> Gc<ObjectData> {
         let stdlib_obj = self.stdlib_obj.as_ref().unwrap().clone();
 
-        let mut extra_fields = HashMap::new();
+        let mut extra_fields = FHashMap::default();
         extra_fields.insert(
             self.str_interner.intern("thisFile"),
             ObjectField {

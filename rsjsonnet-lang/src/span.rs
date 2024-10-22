@@ -1,5 +1,6 @@
-use std::collections::HashMap;
 use std::num::NonZeroU64;
+
+use crate::FHashMap;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SpanId(NonZeroU64);
@@ -54,7 +55,7 @@ pub struct SpanManager {
     contexts: Vec<(u64, SpanContext)>,
     sources: Vec<SpanContextId>,
     // span interner
-    span_to_idx: HashMap<(SpanContextId, usize, usize), usize>,
+    span_to_idx: FHashMap<(SpanContextId, usize, usize), usize>,
     idx_to_span: Vec<(SpanContextId, usize, usize)>,
 }
 
@@ -70,7 +71,7 @@ impl SpanManager {
         Self {
             contexts: Vec::new(),
             sources: Vec::new(),
-            span_to_idx: HashMap::default(),
+            span_to_idx: FHashMap::default(),
             idx_to_span: Vec::new(),
         }
     }

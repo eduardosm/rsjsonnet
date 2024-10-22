@@ -18,7 +18,7 @@ pub(super) trait InternAs<T: ?Sized + Internable> {
 }
 
 pub(super) struct Interner<T: ?Sized + Internable> {
-    hasher: std::collections::hash_map::RandomState,
+    hasher: foldhash::fast::RandomState,
     items: RefCell<hashbrown::HashTable<Rc<T::Container>>>,
 }
 
@@ -33,7 +33,7 @@ impl<T: ?Sized + Internable> Interner<T> {
     #[inline]
     pub(super) fn new() -> Self {
         Self {
-            hasher: std::collections::hash_map::RandomState::new(),
+            hasher: foldhash::fast::RandomState::default(),
             items: RefCell::new(hashbrown::HashTable::new()),
         }
     }

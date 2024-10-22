@@ -1,11 +1,10 @@
 use std::collections::hash_map::Entry as HashMapEntry;
-use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use super::{ir, AnalyzeError, Program};
-use crate::ast;
 use crate::interner::InternedStr;
 use crate::span::SpanId;
+use crate::{ast, FHashMap, FHashSet};
 
 pub(super) struct Analyzer<'a> {
     program: &'a Program,
@@ -19,7 +18,7 @@ impl<'a> Analyzer<'a> {
     pub(super) fn analyze(
         mut self,
         ast: &ast::Expr,
-        env: HashSet<InternedStr>,
+        env: FHashSet<InternedStr>,
     ) -> Result<Rc<ir::Expr>, AnalyzeError> {
         let env = Env {
             is_obj: false,
@@ -277,7 +276,7 @@ impl<'a> Analyzer<'a> {
                     ast::ExprKind::Local(ref binds_ast, ref inner_ast) => {
                         let mut inner_env = env.clone();
 
-                        let mut locals_spans = HashMap::<InternedStr, SpanId>::new();
+                        let mut locals_spans = FHashMap::<InternedStr, SpanId>::default();
                         for bind_ast in binds_ast.iter() {
                             let name = &bind_ast.name.value;
                             match locals_spans.entry(name.clone()) {
@@ -295,7 +294,7 @@ impl<'a> Analyzer<'a> {
                             }
                         }
 
-                        let mut bindings = HashMap::new();
+                        let mut bindings = FHashMap::default();
                         for bind_ast in binds_ast.iter() {
                             let name = &bind_ast.name.value;
                             if let HashMapEntry::Vacant(entry) = bindings.entry(name.clone()) {
@@ -443,7 +442,7 @@ impl<'a> Analyzer<'a> {
                 let mut inner_env = env.clone();
                 inner_env.is_obj = true;
 
-                let mut locals_spans = HashMap::<InternedStr, SpanId>::new();
+                let mut locals_spans = FHashMap::<InternedStr, SpanId>::default();
                 for member_ast in members_ast.iter() {
                     if let ast::Member::Local(local_ast) = member_ast {
                         let name = &local_ast.bind.name.value;
@@ -463,10 +462,10 @@ impl<'a> Analyzer<'a> {
                     }
                 }
 
-                let mut locals = HashMap::new();
+                let mut locals = FHashMap::default();
                 let mut asserts = Vec::new();
                 let mut fields = Vec::<ir::ObjectField>::new();
-                let mut fix_fields = HashMap::<InternedStr, usize>::new();
+                let mut fix_fields = FHashMap::<InternedStr, usize>::default();
 
                 for member_ast in members_ast.iter() {
                     match member_ast {
@@ -566,7 +565,7 @@ impl<'a> Analyzer<'a> {
                 let mut inner_env = env.clone();
                 inner_env.is_obj = true;
 
-                let mut locals_spans = HashMap::new();
+                let mut locals_spans = FHashMap::default();
                 for local_ast in locals1_ast.iter().chain(locals2_ast.iter()) {
                     let name = &local_ast.bind.name.value;
                     match locals_spans.entry(name.clone()) {
@@ -584,7 +583,7 @@ impl<'a> Analyzer<'a> {
                     }
                 }
 
-                let mut locals = HashMap::new();
+                let mut locals = FHashMap::default();
                 for local_ast in locals1_ast.iter().chain(locals2_ast.iter()) {
                     let name = &local_ast.bind.name.value;
                     if let HashMapEntry::Vacant(entry) = locals.entry(name.clone()) {
@@ -620,7 +619,7 @@ impl<'a> Analyzer<'a> {
     ) -> Result<Rc<ir::Expr>, AnalyzeError> {
         let mut inner_env = env.clone();
 
-        let mut params_spans = HashMap::new();
+        let mut params_spans = FHashMap::default();
         for param_ast in params_ast.iter() {
             let name = &param_ast.name.value;
             match params_spans.entry(name.clone()) {
@@ -639,7 +638,7 @@ impl<'a> Analyzer<'a> {
         }
 
         let mut params = ir::FuncParams {
-            by_name: HashMap::new(),
+            by_name: FHashMap::default(),
             order: Vec::new(),
         };
         for (param_i, param_ast) in params_ast.iter().enumerate() {
@@ -717,5 +716,5 @@ impl<'a> Analyzer<'a> {
 #[derive(Clone)]
 pub(super) struct Env {
     pub(super) is_obj: bool,
-    pub(super) vars: HashSet<InternedStr>,
+    pub(super) vars: FHashSet<InternedStr>,
 }

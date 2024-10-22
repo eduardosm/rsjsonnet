@@ -1,10 +1,9 @@
 use std::cell::OnceCell;
-use std::collections::HashMap;
 
 use super::{ObjectData, ObjectField, Program, ThunkData, ValueData};
-use crate::ast;
 use crate::gc::Gc;
 use crate::interner::InternedStr;
+use crate::{ast, FHashMap};
 
 pub(super) struct ParseError {
     line: usize,
@@ -61,7 +60,7 @@ impl std::fmt::Display for ParseErrorKind {
 pub(super) fn parse_json(program: &mut Program, s: &str) -> Result<ValueData, ParseError> {
     enum StackItem {
         Array(Vec<Gc<ThunkData>>),
-        Object(HashMap<InternedStr, ObjectField>, InternedStr),
+        Object(FHashMap<InternedStr, ObjectField>, InternedStr),
     }
 
     let mut lexer = Lexer {
@@ -101,7 +100,7 @@ pub(super) fn parse_json(program: &mut Program, s: &str) -> Result<ValueData, Pa
             lexer.skip_spaces();
             if lexer.eat_char('}') {
                 lexer.skip_spaces();
-                ValueData::Object(program.gc_alloc(ObjectData::new_simple(HashMap::new())))
+                ValueData::Object(program.gc_alloc(ObjectData::new_simple(FHashMap::default())))
             } else {
                 let first_key = lexer
                     .lex_string()?
@@ -112,7 +111,7 @@ pub(super) fn parse_json(program: &mut Program, s: &str) -> Result<ValueData, Pa
                 }
                 lexer.skip_spaces();
                 stack.push(StackItem::Object(
-                    HashMap::new(),
+                    FHashMap::default(),
                     program.str_interner.intern(&first_key),
                 ));
                 continue;
