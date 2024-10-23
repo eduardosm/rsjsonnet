@@ -103,9 +103,7 @@ impl Evaluator<'_> {
                             self.state_stack.push(State::AppendToString(tmp));
                         }
 
-                        self.push_trace_item(TraceItem::ManifestArrayItem {
-                            index: i,
-                        });
+                        self.push_trace_item(TraceItem::ManifestArrayItem { index: i });
                         self.state_stack.push(State::ManifestJson {
                             format: format.clone(),
                             depth: depth + 1,
@@ -279,9 +277,7 @@ impl Evaluator<'_> {
                             self.state_stack.push(State::AppendToString("\n".into()));
                         }
 
-                        self.push_trace_item(TraceItem::ManifestArrayItem {
-                            index: i,
-                        });
+                        self.push_trace_item(TraceItem::ManifestArrayItem { index: i });
                         self.state_stack.push(State::ManifestYamlDoc {
                             indent_array_in_object,
                             quote_keys,

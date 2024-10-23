@@ -1,0 +1,14 @@
+error: explicit error: err
+ --> inner_error_2.jsonnet:1:48
+  |
+1 | std.equals([0, { a: 1, b: 2 }], [0, { a: 1, b: error "err" }])
+  |                                                ^^^^^^^^^^^
+note: while comparing object field "b"
+note: while comparing array item 1
+note: while evaluating call to `equals`
+ --> inner_error_2.jsonnet:1:1
+  |
+1 | std.equals([0, { a: 1, b: 2 }], [0, { a: 1, b: error "err" }])
+  | --------------------------------------------------------------
+note: during top-level value evaluation
+

@@ -173,6 +173,12 @@ pub enum EvalStackTraceItem {
         span: Option<SpanId>,
         name: String,
     },
+    CompareArrayItem {
+        index: usize,
+    },
+    CompareObjectField {
+        name: String,
+    },
     ManifestArrayItem {
         index: usize,
     },
