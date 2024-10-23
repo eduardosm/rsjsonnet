@@ -79,6 +79,12 @@ enum TraceItem {
         span: Option<SpanId>,
         name: InternedStr,
     },
+    CompareArrayItem {
+        index: usize,
+    },
+    CompareObjectField {
+        name: InternedStr,
+    },
     ManifestArrayItem {
         index: usize,
     },
@@ -862,10 +868,7 @@ impl<'a> Evaluator<'a> {
                                     rhs: rhs.clone(),
                                     index: 0,
                                 });
-                                self.push_trace_item(TraceItem::ArrayItem {
-                                    span: None,
-                                    index: 0,
-                                });
+                                self.push_trace_item(TraceItem::CompareArrayItem { index: 0 });
                                 self.state_stack.push(State::EqualsValue);
                                 self.state_stack.push(State::DoThunk(rhs[0].view()));
                                 self.state_stack.push(State::DoThunk(lhs[0].view()));
@@ -905,8 +908,7 @@ impl<'a> Evaluator<'a> {
                                         rhs: rhs.clone(),
                                         rem_fields: fields,
                                     });
-                                    self.push_trace_item(TraceItem::ObjectField {
-                                        span: None,
+                                    self.push_trace_item(TraceItem::CompareObjectField {
                                         name: first_field,
                                     });
                                     self.state_stack.push(State::EqualsValue);
@@ -942,7 +944,7 @@ impl<'a> Evaluator<'a> {
                                 rhs: rhs.clone(),
                                 index,
                             });
-                            self.push_trace_item(TraceItem::ArrayItem { span: None, index });
+                            self.push_trace_item(TraceItem::CompareArrayItem { index });
                             self.state_stack.push(State::EqualsValue);
                             self.state_stack.push(State::DoThunk(rhs[index].view()));
                             self.state_stack.push(State::DoThunk(lhs[index].view()));
@@ -972,8 +974,7 @@ impl<'a> Evaluator<'a> {
                                 rhs,
                                 rem_fields,
                             });
-                            self.push_trace_item(TraceItem::ObjectField {
-                                span: None,
+                            self.push_trace_item(TraceItem::CompareObjectField {
                                 name: next_field,
                             });
                             self.state_stack.push(State::EqualsValue);
@@ -1020,10 +1021,7 @@ impl<'a> Evaluator<'a> {
                                         rhs: rhs.clone(),
                                         index: 0,
                                     });
-                                    self.push_trace_item(TraceItem::ArrayItem {
-                                        span: None,
-                                        index: 0,
-                                    });
+                                    self.push_trace_item(TraceItem::CompareArrayItem { index: 0 });
                                     self.state_stack.push(State::CompareValue);
                                     self.state_stack.push(State::DoThunk(rhs[0].view()));
                                     self.state_stack.push(State::DoThunk(lhs[0].view()));
@@ -1066,7 +1064,7 @@ impl<'a> Evaluator<'a> {
                                     rhs: rhs.clone(),
                                     index,
                                 });
-                                self.push_trace_item(TraceItem::ArrayItem { span: None, index });
+                                self.push_trace_item(TraceItem::CompareArrayItem { index });
                                 self.state_stack.push(State::CompareValue);
                                 self.state_stack.push(State::DoThunk(rhs[index].view()));
                                 self.state_stack.push(State::DoThunk(lhs[index].view()));
@@ -3607,6 +3605,14 @@ impl<'a> Evaluator<'a> {
                         span,
                         name: name.value().into(),
                     },
+                    TraceItem::CompareArrayItem { index } => {
+                        EvalStackTraceItem::CompareArrayItem { index }
+                    }
+                    TraceItem::CompareObjectField { ref name } => {
+                        EvalStackTraceItem::CompareObjectField {
+                            name: name.value().into(),
+                        }
+                    }
                     TraceItem::ManifestArrayItem { index } => {
                         EvalStackTraceItem::ManifestArrayItem { index }
                     }

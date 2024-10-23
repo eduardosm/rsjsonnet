@@ -1,0 +1,14 @@
+error: explicit error: err
+ --> inner_error_1_le.jsonnet:1:6
+  |
+1 | [0, [error "err"]] <= [0, [1]]
+  |      ^^^^^^^^^^^
+note: while comparing array item 0
+note: while comparing array item 1
+note: while evaluating this expression
+ --> inner_error_1_le.jsonnet:1:1
+  |
+1 | [0, [error "err"]] <= [0, [1]]
+  | ------------------------------
+note: during top-level value evaluation
+

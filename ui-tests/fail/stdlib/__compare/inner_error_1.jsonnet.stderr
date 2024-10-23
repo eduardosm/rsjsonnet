@@ -1,0 +1,14 @@
+error: explicit error: err
+ --> inner_error_1.jsonnet:1:20
+  |
+1 | std.__compare([0, [error "err"]], [0, [1]])
+  |                    ^^^^^^^^^^^
+note: while comparing array item 0
+note: while comparing array item 1
+note: while evaluating call to `__compare`
+ --> inner_error_1.jsonnet:1:1
+  |
+1 | std.__compare([0, [error "err"]], [0, [1]])
+  | -------------------------------------------
+note: during top-level value evaluation
+

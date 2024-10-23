@@ -1,14 +1,14 @@
 error: stack overflow
-note: while evaluating object field "a"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
+note: while comparing object field "a"
+note: while comparing object field "c"
+note: while comparing object field "c"
+note: while comparing object field "c"
+note: while comparing object field "c"
+note: while comparing object field "c"
+note: while comparing object field "c"
+note: while comparing object field "c"
+note: while comparing object field "c"
+note: while comparing object field "c"
 note: while evaluating this expression
  --> object_equals.jsonnet:3:1
   |

@@ -88,6 +88,22 @@ pub(crate) fn render(
                 }
                 .render(span_mgr, src_mgr, &mut out);
             }
+            EvalStackTraceItem::CompareArrayItem { index } => {
+                Message {
+                    kind: MessageKind::Note,
+                    message: format!("while comparing array item {index}"),
+                    labels: vec![],
+                }
+                .render(span_mgr, src_mgr, &mut out);
+            }
+            EvalStackTraceItem::CompareObjectField { ref name } => {
+                Message {
+                    kind: MessageKind::Note,
+                    message: format!("while comparing object field {name:?}"),
+                    labels: vec![],
+                }
+                .render(span_mgr, src_mgr, &mut out);
+            }
             EvalStackTraceItem::ManifestArrayItem { index } => {
                 Message {
                     kind: MessageKind::Note,
