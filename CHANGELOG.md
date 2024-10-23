@@ -15,6 +15,8 @@
 ### Changed
 
 - Improved error message when passing a value of invalid type to a built-in function.
+- Stack trace improvements.
+- Performance improvements.
 
 ## 0.2.0 (2024-08-12)
 
