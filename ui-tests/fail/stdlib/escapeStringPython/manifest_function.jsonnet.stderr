@@ -5,7 +5,7 @@ note: while evaluating call to `escapeStringJson`
 268 |     std.escapeStringJson(str),
     |     -------------------------
 note: while evaluating call to function
- --> manifest_fun.jsonnet:1:1
+ --> manifest_function.jsonnet:1:1
   |
 1 | std.escapeStringPython(function() null)
   | ---------------------------------------

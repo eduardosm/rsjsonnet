@@ -1,6 +1,6 @@
 error: functions cannot be manifested
 note: while evaluating call to `escapeStringDollars`
- --> manifest_fun.jsonnet:1:1
+ --> manifest_function.jsonnet:1:1
   |
 1 | std.escapeStringDollars(function() null)
   | ----------------------------------------
