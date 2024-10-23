@@ -1,1 +1,1 @@
-[ function() null ]
+[function() null]

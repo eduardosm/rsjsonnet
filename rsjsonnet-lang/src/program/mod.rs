@@ -173,6 +173,12 @@ pub enum EvalStackTraceItem {
         span: Option<SpanId>,
         name: String,
     },
+    ManifestArrayItem {
+        index: usize,
+    },
+    ManifestObjectField {
+        name: String,
+    },
     Import {
         span: SpanId,
     },

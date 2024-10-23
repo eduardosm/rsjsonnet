@@ -88,6 +88,22 @@ pub(crate) fn render(
                 }
                 .render(span_mgr, src_mgr, &mut out);
             }
+            EvalStackTraceItem::ManifestArrayItem { index } => {
+                Message {
+                    kind: MessageKind::Note,
+                    message: format!("while manifesting array item {index}"),
+                    labels: vec![],
+                }
+                .render(span_mgr, src_mgr, &mut out);
+            }
+            EvalStackTraceItem::ManifestObjectField { ref name } => {
+                Message {
+                    kind: MessageKind::Note,
+                    message: format!("while manifesting object field {name:?}"),
+                    labels: vec![],
+                }
+                .render(span_mgr, src_mgr, &mut out);
+            }
             EvalStackTraceItem::Import { span } => {
                 Message {
                     kind: MessageKind::Note,

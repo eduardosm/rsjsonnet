@@ -1,14 +1,14 @@
 error: stack overflow
-note: while evaluating object field "a"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
-note: while evaluating object field "c"
+note: while manifesting object field "a"
+note: while manifesting object field "c"
+note: while manifesting object field "c"
+note: while manifesting object field "c"
+note: while manifesting object field "c"
+note: while manifesting object field "c"
+note: while manifesting object field "c"
+note: while manifesting object field "c"
+note: while manifesting object field "c"
+note: while manifesting object field "c"
 note: while evaluating call to `toString`
  --> object_to_string.jsonnet:3:1
   |
