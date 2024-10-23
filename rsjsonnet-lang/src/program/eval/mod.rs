@@ -79,6 +79,12 @@ enum TraceItem {
         span: Option<SpanId>,
         name: InternedStr,
     },
+    ManifestArrayItem {
+        index: usize,
+    },
+    ManifestObjectField {
+        name: InternedStr,
+    },
     Import {
         span: SpanId,
     },
@@ -3601,6 +3607,14 @@ impl<'a> Evaluator<'a> {
                         span,
                         name: name.value().into(),
                     },
+                    TraceItem::ManifestArrayItem { index } => {
+                        EvalStackTraceItem::ManifestArrayItem { index }
+                    }
+                    TraceItem::ManifestObjectField { ref name } => {
+                        EvalStackTraceItem::ManifestObjectField {
+                            name: name.value().into(),
+                        }
+                    }
                     TraceItem::Import { span } => EvalStackTraceItem::Import { span },
                 }
             }

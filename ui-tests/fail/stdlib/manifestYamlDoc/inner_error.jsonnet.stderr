@@ -1,0 +1,14 @@
+error: explicit error: err
+ --> inner_error.jsonnet:1:36
+  |
+1 | std.manifestYamlDoc([0, { a: 1, b: error "err" }])
+  |                                    ^^^^^^^^^^^
+note: while manifesting object field "b"
+note: while manifesting array item 1
+note: while evaluating call to `manifestYamlDoc`
+ --> inner_error.jsonnet:1:1
+  |
+1 | std.manifestYamlDoc([0, { a: 1, b: error "err" }])
+  | --------------------------------------------------
+note: during top-level value evaluation
+

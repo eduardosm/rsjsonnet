@@ -103,8 +103,7 @@ impl Evaluator<'_> {
                             self.state_stack.push(State::AppendToString(tmp));
                         }
 
-                        self.push_trace_item(TraceItem::ArrayItem {
-                            span: None,
+                        self.push_trace_item(TraceItem::ManifestArrayItem {
                             index: i,
                         });
                         self.state_stack.push(State::ManifestJson {
@@ -159,8 +158,7 @@ impl Evaluator<'_> {
                             self.state_stack.push(State::AppendToString(tmp));
                         }
 
-                        self.push_trace_item(TraceItem::ObjectField {
-                            span: None,
+                        self.push_trace_item(TraceItem::ManifestObjectField {
                             name: field_name.clone(),
                         });
                         self.state_stack.push(State::ManifestJson {
@@ -281,8 +279,7 @@ impl Evaluator<'_> {
                             self.state_stack.push(State::AppendToString("\n".into()));
                         }
 
-                        self.push_trace_item(TraceItem::ArrayItem {
-                            span: None,
+                        self.push_trace_item(TraceItem::ManifestArrayItem {
                             index: i,
                         });
                         self.state_stack.push(State::ManifestYamlDoc {
@@ -325,8 +322,7 @@ impl Evaluator<'_> {
                             self.state_stack.push(State::AppendToString("\n".into()));
                         }
 
-                        self.push_trace_item(TraceItem::ObjectField {
-                            span: None,
+                        self.push_trace_item(TraceItem::ManifestObjectField {
                             name: field_name.clone(),
                         });
                         self.state_stack.push(State::ManifestYamlDoc {

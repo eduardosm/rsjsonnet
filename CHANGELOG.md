@@ -6,6 +6,7 @@
 
 - `EvalErrorKind::InvalidBuiltInFuncArgType` has been renamed to
   `EvalErrorKind::InvalidStdFuncArgType`.
+- New variants have been added to `EvalStackTraceItem`.
 
 ### Fixed
 
