@@ -122,7 +122,7 @@ impl Evaluator<'_> {
                 let visible_fields: Vec<_> = object
                     .get_fields_order()
                     .iter()
-                    .filter(|name| object.field_is_visible(name))
+                    .filter_map(|(name, visible)| visible.then_some(name))
                     .collect();
                 if visible_fields.is_empty() {
                     if let Some(ref empty_object) = format.empty_object {
@@ -298,7 +298,7 @@ impl Evaluator<'_> {
                 let visible_fields: Vec<_> = object
                     .get_fields_order()
                     .iter()
-                    .filter(|name| object.field_is_visible(name))
+                    .filter_map(|(name, visible)| visible.then_some(name))
                     .collect();
                 if visible_fields.is_empty() {
                     if parent_is_array || parent_is_object {

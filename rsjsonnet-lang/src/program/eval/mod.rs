@@ -235,8 +235,8 @@ impl<'a> Evaluator<'a> {
                         }
                     } else if let ValueData::Object(ref object) = value {
                         let object = object.view();
-                        for field_name in object.get_fields_order().iter().rev() {
-                            if object.field_is_visible(field_name) {
+                        for (field_name, field_visible) in object.get_fields_order().iter().rev() {
+                            if *field_visible {
                                 let thunk = self
                                     .program
                                     .find_object_field_thunk(&object, 0, field_name)
@@ -881,14 +881,14 @@ impl<'a> Evaluator<'a> {
                                 .get_fields_order()
                                 .iter()
                                 .rev()
-                                .filter(|name| lhs.field_is_visible(name))
+                                .filter_map(|(name, visible)| visible.then_some(name))
                                 .cloned()
                                 .collect();
                             let rhs_fields: Vec<_> = rhs
                                 .get_fields_order()
                                 .iter()
                                 .rev()
-                                .filter(|name| rhs.field_is_visible(name))
+                                .filter_map(|(name, visible)| visible.then_some(name))
                                 .cloned()
                                 .collect();
 
@@ -1270,7 +1270,7 @@ impl<'a> Evaluator<'a> {
                             object
                                 .get_fields_order()
                                 .iter()
-                                .filter(|name| object.field_is_visible(name))
+                                .filter_map(|(name, visible)| visible.then_some(name))
                                 .count()
                         }
                         ValueData::Function(func) => match *func.view() {
@@ -1327,8 +1327,8 @@ impl<'a> Evaluator<'a> {
 
                     let array = self
                         .program
-                        .make_value_array(fields_order.iter().filter_map(|name| {
-                            if inc_hidden || object.field_is_visible(name) {
+                        .make_value_array(fields_order.iter().filter_map(|(name, visible)| {
+                            if inc_hidden || *visible {
                                 Some(ValueData::String(name.value().into()))
                             } else {
                                 None

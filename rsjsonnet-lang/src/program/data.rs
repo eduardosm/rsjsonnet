@@ -1,5 +1,5 @@
 use std::cell::{Cell, OnceCell, RefCell};
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use super::{ir, Program};
@@ -341,7 +341,7 @@ pub(super) type ArrayData = Box<[Gc<ThunkData>]>;
 pub(super) struct ObjectData {
     pub(super) self_core: ObjectCore,
     pub(super) super_cores: Vec<ObjectCore>,
-    pub(super) fields_order: OnceCell<Box<[InternedStr]>>,
+    pub(super) fields_order: OnceCell<Box<[(InternedStr, bool)]>>,
     pub(super) asserts_checked: Cell<bool>,
 }
 
@@ -402,19 +402,33 @@ impl ObjectData {
         self.find_field(core_i, name).is_some()
     }
 
-    pub(super) fn get_fields_order(&self) -> &[InternedStr] {
+    pub(super) fn get_fields_order(&self) -> &[(InternedStr, bool)] {
         self.fields_order.get_or_init(|| {
-            let mut all_names = BTreeSet::new();
-            all_names.extend(
+            let mut all_fields = BTreeMap::new();
+            all_fields.extend(
                 self.self_core
                     .fields
-                    .keys()
-                    .map(|n| SortedInternedStr(n.clone())),
+                    .iter()
+                    .map(|(n, f)| (SortedInternedStr(n.clone()), f.visibility)),
             );
             for core in self.super_cores.iter() {
-                all_names.extend(core.fields.keys().map(|n| SortedInternedStr(n.clone())));
+                for (n, f) in core.fields.iter() {
+                    match all_fields.entry(SortedInternedStr(n.clone())) {
+                        std::collections::btree_map::Entry::Vacant(entry) => {
+                            entry.insert(f.visibility);
+                        }
+                        std::collections::btree_map::Entry::Occupied(mut entry) => {
+                            if *entry.get() == ast::Visibility::Default {
+                                *entry.get_mut() = f.visibility;
+                            }
+                        }
+                    }
+                }
             }
-            all_names.into_iter().map(|n| n.0).collect()
+            all_fields
+                .into_iter()
+                .map(|(n, vis)| (n.0, vis != ast::Visibility::Hidden))
+                .collect()
         })
     }
 
