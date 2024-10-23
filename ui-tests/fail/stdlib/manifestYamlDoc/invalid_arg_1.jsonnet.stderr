@@ -1,0 +1,8 @@
+error: second argument of `std.manifestYamlDoc` is expected to be boolean, got null
+note: while evaluating call to `manifestYamlDoc`
+ --> invalid_arg_1.jsonnet:1:1
+  |
+1 | std.manifestYamlDoc(null, indent_array_in_object=null)
+  | ------------------------------------------------------
+note: during top-level value evaluation
+
