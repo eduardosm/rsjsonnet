@@ -1,9 +1,5 @@
-error: explicit error: Can only base64 encode strings / arrays of single bytes.
-   --> <stdlib>:372:7
-    |
-372 |       error 'Can only base64 encode strings / arrays of single bytes.'
-    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: while evaluating call to function
+error: only codepoints up to 255 can be base64 encoded
+note: while evaluating call to `base64`
  --> out_of_range_string.jsonnet:1:1
   |
 1 | std.base64("\u0100")

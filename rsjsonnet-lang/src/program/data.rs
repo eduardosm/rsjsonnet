@@ -615,6 +615,7 @@ pub(super) enum BuiltInFunc {
     SetDiff,
     SetMember,
     // Encoding
+    Base64,
     Md5,
     // Native Functions
     Native,

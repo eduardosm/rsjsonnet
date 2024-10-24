@@ -1,8 +1,8 @@
 error: first argument of `std.length` is expected to be string, array, object or function, got null
 note: while evaluating call to `length`
-   --> <stdlib>:378:8
+   --> <stdlib>:331:8
     |
-378 |     if std.length(str) % 4 != 0 then
+331 |     if std.length(str) % 4 != 0 then
     |        ---------------
 note: while evaluating variable `a`
   --> <stdlib>:64:21
@@ -15,14 +15,14 @@ note: while evaluating call to `isNumber`
 64 |     if std.isNumber(a) && std.isNumber(b) then
    |        ---------------
 note: while evaluating call to function
-   --> <stdlib>:378:8
+   --> <stdlib>:331:8
     |
-378 |     if std.length(str) % 4 != 0 then
+331 |     if std.length(str) % 4 != 0 then
     |        -------------------
 note: while evaluating this expression
-   --> <stdlib>:378:8
+   --> <stdlib>:331:8
     |
-378 |     if std.length(str) % 4 != 0 then
+331 |     if std.length(str) % 4 != 0 then
     |        ------------------------
 note: while evaluating call to function
  --> invalid_arg.jsonnet:1:1

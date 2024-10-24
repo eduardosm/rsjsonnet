@@ -439,6 +439,11 @@ pub(super) enum State {
         end: usize,
         mid: usize,
     },
+    StdBase64,
+    StdBase64Array {
+        input: GcView<ArrayData>,
+        bytes: Vec<u8>,
+    },
     StdMd5,
     StdNative,
     StdTrace,

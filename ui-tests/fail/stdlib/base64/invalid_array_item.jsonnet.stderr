@@ -1,0 +1,8 @@
+error: array element must be a number, got null
+note: while evaluating call to `base64`
+ --> invalid_array_item.jsonnet:1:1
+  |
+1 | std.base64([null])
+  | ------------------
+note: during top-level value evaluation
+

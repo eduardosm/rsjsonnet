@@ -1,7 +1,7 @@
 error: explicit error: Not a base64 encoded string "AA"
-   --> <stdlib>:379:7
+   --> <stdlib>:332:7
     |
-379 |       error 'Not a base64 encoded string "%s"' % str
+332 |       error 'Not a base64 encoded string "%s"' % str
     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: while evaluating call to function
  --> invalid_length.jsonnet:1:1
