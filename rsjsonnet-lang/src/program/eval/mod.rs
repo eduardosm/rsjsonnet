@@ -1947,83 +1947,45 @@ impl<'a> Evaluator<'a> {
                 State::StdParseOctal => {
                     let arg = self.value_stack.pop().unwrap();
                     let s = self.expect_std_func_arg_string(arg, "parseOctal", 0)?;
-                    if s.is_empty() {
-                        return Err(self.report_error(EvalErrorKind::Other {
+
+                    let number = parse_num_radix::<8>(&s).map_err(|e| match e {
+                        ParseNumRadixError::Empty => self.report_error(EvalErrorKind::Other {
                             span: None,
                             message: format!("octal integer without digits: {s:?}"),
-                        }));
-                    }
-                    let s = s.trim_start_matches('0');
-
-                    let max_digits_128 = 128 / 3;
-                    let num_digits_128 = s.len().min(max_digits_128);
-
-                    let mut number = 0u128;
-                    for digit in s[..num_digits_128].chars() {
-                        let digit = digit.to_digit(8).ok_or_else(|| {
+                        }),
+                        ParseNumRadixError::InvalidDigit(chr) => {
                             self.report_error(EvalErrorKind::Other {
                                 span: None,
-                                message: format!("invalid octal digit: {digit:?}"),
+                                message: format!("invalid octal digit: {chr:?}"),
                             })
-                        })?;
-                        number = number * 8 + u128::from(digit);
-                    }
-
-                    let mut number = number as f64;
-                    for digit in s[num_digits_128..].chars() {
-                        if !digit.is_digit(8) {
-                            return Err(self.report_error(EvalErrorKind::Other {
-                                span: None,
-                                message: format!("invalid octal digit: {digit:?}"),
-                            }));
                         }
-                        number *= 8.0;
-                    }
+                        ParseNumRadixError::Overflow => {
+                            self.report_error(EvalErrorKind::NumberOverflow { span: None })
+                        }
+                    })?;
 
-                    if !number.is_finite() {
-                        return Err(self.report_error(EvalErrorKind::NumberOverflow { span: None }));
-                    }
                     self.value_stack.push(ValueData::Number(number));
                 }
                 State::StdParseHex => {
                     let arg = self.value_stack.pop().unwrap();
                     let s = self.expect_std_func_arg_string(arg, "parseHex", 0)?;
-                    if s.is_empty() {
-                        return Err(self.report_error(EvalErrorKind::Other {
+
+                    let number = parse_num_radix::<16>(&s).map_err(|e| match e {
+                        ParseNumRadixError::Empty => self.report_error(EvalErrorKind::Other {
                             span: None,
                             message: format!("hexadecimal integer without digits: {s:?}"),
-                        }));
-                    }
-                    let s = s.trim_start_matches('0');
-
-                    let max_digits_128 = 128 / 4;
-                    let num_digits_128 = s.len().min(max_digits_128);
-
-                    let mut number = 0u128;
-                    for digit in s[..num_digits_128].chars() {
-                        let digit = digit.to_digit(16).ok_or_else(|| {
+                        }),
+                        ParseNumRadixError::InvalidDigit(chr) => {
                             self.report_error(EvalErrorKind::Other {
                                 span: None,
-                                message: format!("invalid hexadecimal digit: {digit:?}"),
+                                message: format!("invalid hexadecimal digit: {chr:?}"),
                             })
-                        })?;
-                        number = number * 16 + u128::from(digit);
-                    }
-
-                    let mut number = number as f64;
-                    for digit in s[num_digits_128..].chars() {
-                        if !digit.is_ascii_hexdigit() {
-                            return Err(self.report_error(EvalErrorKind::Other {
-                                span: None,
-                                message: format!("invalid hexadecimal digit: {digit:?}"),
-                            }));
                         }
-                        number *= 16.0;
-                    }
+                        ParseNumRadixError::Overflow => {
+                            self.report_error(EvalErrorKind::NumberOverflow { span: None })
+                        }
+                    })?;
 
-                    if !number.is_finite() {
-                        return Err(self.report_error(EvalErrorKind::NumberOverflow { span: None }));
-                    }
                     self.value_stack.push(ValueData::Number(number));
                 }
                 State::StdParseJson => {
@@ -3633,4 +3595,46 @@ impl<'a> Evaluator<'a> {
         }
         stack_trace
     }
+}
+
+enum ParseNumRadixError {
+    Empty,
+    InvalidDigit(char),
+    Overflow,
+}
+
+fn parse_num_radix<const RADIX: u8>(s: &str) -> Result<f64, ParseNumRadixError> {
+    if s.is_empty() {
+        return Err(ParseNumRadixError::Empty);
+    }
+    let s = s.trim_start_matches('0');
+
+    let max_digits_128 = match RADIX {
+        8 => 128 / 3,
+        16 => 128 / 4,
+        _ => unreachable!(),
+    };
+    let num_digits_128 = s.len().min(max_digits_128);
+
+    let mut number = 0u128;
+    for chr in s[..num_digits_128].chars() {
+        let digit = chr
+            .to_digit(RADIX.into())
+            .ok_or(ParseNumRadixError::InvalidDigit(chr))?;
+        number = number * u128::from(RADIX) + u128::from(digit);
+    }
+
+    let mut number = number as f64;
+    for chr in s[num_digits_128..].chars() {
+        if !chr.is_ascii_hexdigit() {
+            return Err(ParseNumRadixError::InvalidDigit(chr));
+        }
+        number *= f64::from(RADIX);
+    }
+
+    if !number.is_finite() {
+        return Err(ParseNumRadixError::Overflow);
+    }
+
+    Ok(number)
 }
