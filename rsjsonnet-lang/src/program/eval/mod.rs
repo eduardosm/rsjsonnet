@@ -3220,6 +3220,79 @@ impl<'a> Evaluator<'a> {
                         }
                     }
                 }
+                State::StdBase64 => {
+                    let arg = self.value_stack.pop().unwrap();
+                    match arg {
+                        ValueData::String(s) => {
+                            let encoded = encode_base64(s.chars().map(|chr| {
+                                u8::try_from(chr).map_err(|_| {
+                                    self.report_error(EvalErrorKind::Other {
+                                        span: None,
+                                        message: "only codepoints up to 255 can be base64 encoded"
+                                            .into(),
+                                    })
+                                })
+                            }))?;
+                            self.value_stack.push(ValueData::String(encoded.into()));
+                        }
+                        ValueData::Array(arr) => {
+                            let arr = arr.view();
+                            if let Some(first_item) = arr.first() {
+                                let first_item = first_item.view();
+                                let arr_len = arr.len();
+                                self.state_stack.push(State::StdBase64Array {
+                                    input: arr,
+                                    bytes: Vec::with_capacity(arr_len),
+                                });
+                                self.state_stack.push(State::DoThunk(first_item));
+                            } else if arr.is_empty() {
+                                self.value_stack.push(ValueData::String("".into()));
+                            }
+                        }
+                        _ => {
+                            return Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
+                                func_name: "base64".into(),
+                                arg_index: 0,
+                                expected_types: vec![
+                                    EvalErrorValueType::String,
+                                    EvalErrorValueType::Array,
+                                ],
+                                got_type: EvalErrorValueType::from_value(&arg),
+                            }));
+                        }
+                    }
+                }
+                State::StdBase64Array { input, mut bytes } => {
+                    let item_value = self.value_stack.pop().unwrap();
+                    let ValueData::Number(item_value) = item_value else {
+                        return Err(self.report_error(EvalErrorKind::Other {
+                            span: None,
+                            message: format!(
+                                "array element must be a number, got {}",
+                                EvalErrorValueType::from_value(&item_value).to_str(),
+                            ),
+                        }));
+                    };
+                    let item_value_int = u8::try_from(item_value as i32).map_err(|_| {
+                        self.report_error(EvalErrorKind::Other {
+                            span: None,
+                            message: format!(
+                                "only numbers between 0 and 255 can be base64 encoded, got {item_value}",
+                            ),
+                        })
+                    })?;
+
+                    bytes.push(item_value_int);
+                    if bytes.len() == input.len() {
+                        let encoded = encode_base64(bytes.iter().map(|&b| Ok(b)))?;
+                        self.value_stack.push(ValueData::String(encoded.into()));
+                    } else {
+                        let next_item = input[bytes.len()].view();
+                        self.state_stack
+                            .push(State::StdBase64Array { input, bytes });
+                        self.state_stack.push(State::DoThunk(next_item));
+                    }
+                }
                 State::StdMd5 => {
                     let arg = self.value_stack.pop().unwrap();
                     let arg = self.expect_std_func_arg_string(arg, "md5", 0)?;
@@ -3637,4 +3710,53 @@ fn parse_num_radix<const RADIX: u8>(s: &str) -> Result<f64, ParseNumRadixError> 
     }
 
     Ok(number)
+}
+
+fn encode_base64<I>(input: I) -> Result<String, Box<EvalError>>
+where
+    I: IntoIterator<Item = Result<u8, Box<EvalError>>>,
+{
+    let encmap = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    let mut input = input.into_iter();
+    let mut encoded = String::new();
+    loop {
+        let Some(b0) = input.next() else {
+            break;
+        };
+        let b0 = b0?;
+
+        encoded.push(char::from(encmap[usize::from(b0 >> 2)]));
+
+        let Some(b1) = input.next() else {
+            //encoded.push(char::from(encmap[usize::from(b0 >> 2)]));
+            encoded.push(char::from(encmap[usize::from((b0 & 0b11) << 4)]));
+            encoded.push('=');
+            encoded.push('=');
+            break;
+        };
+        let b1 = b1?;
+
+        encoded.push(char::from(
+            encmap[usize::from((b0 & 0b11) << 4 | (b1 >> 4))],
+        ));
+
+        let Some(b2) = input.next() else {
+            //encoded.push(char::from(encmap[usize::from(b0 >> 2)]));
+            //encoded.push(char::from(encmap[usize::from((b0 & 0b11) << 4 | (b1 >> 4))]));
+            encoded.push(char::from(encmap[usize::from((b1 & 0b1111) << 2)]));
+            encoded.push('=');
+            break;
+        };
+        let b2 = b2?;
+
+        //encoded.push(char::from(encmap[usize::from(b0 >> 2)]));
+        //encoded.push(char::from(encmap[usize::from((b0 & 0b11) << 4 | (b1 >> 4))]));
+        encoded.push(char::from(
+            encmap[usize::from((b1 & 0b1111) << 2 | (b2 >> 6))],
+        ));
+        encoded.push(char::from(encmap[usize::from(b2 & 0b111111)]));
+    }
+
+    Ok(encoded)
 }

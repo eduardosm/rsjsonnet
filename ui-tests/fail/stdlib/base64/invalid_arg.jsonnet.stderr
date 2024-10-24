@@ -1,19 +1,5 @@
-error: expected array for comprenhension, got null
-   --> <stdlib>:370:46
-    |
-370 |     local sanity = std.all([a < 256 for a in bytes]);
-    |                                              ^^^^^
-note: while evaluating call to `all`
-   --> <stdlib>:370:20
-    |
-370 |     local sanity = std.all([a < 256 for a in bytes]);
-    |                    ---------------------------------
-note: while evaluating variable `sanity`
-   --> <stdlib>:371:9
-    |
-371 |     if !sanity then
-    |         ------
-note: while evaluating call to function
+error: first argument of `std.base64` is expected to be string or array, got null
+note: while evaluating call to `base64`
  --> invalid_arg.jsonnet:1:1
   |
 1 | std.base64(null)

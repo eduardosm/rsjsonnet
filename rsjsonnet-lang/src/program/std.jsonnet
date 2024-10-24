@@ -327,53 +327,6 @@ limitations under the License.
   local base64_table = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
   local base64_inv = { [base64_table[i]]: i for i in std.range(0, 63) },
 
-  base64(input)::
-    local bytes =
-      if std.isString(input) then
-        std.map(std.codepoint, input)
-      else
-        input;
-
-    local aux(arr, i, r) =
-      if i >= std.length(arr) then
-        r
-      else if i + 1 >= std.length(arr) then
-        local str =
-          // 6 MSB of i
-          base64_table[(arr[i] & 252) >> 2] +
-          // 2 LSB of i
-          base64_table[(arr[i] & 3) << 4] +
-          '==';
-        aux(arr, i + 3, r + str) tailstrict
-      else if i + 2 >= std.length(arr) then
-        local str =
-          // 6 MSB of i
-          base64_table[(arr[i] & 252) >> 2] +
-          // 2 LSB of i, 4 MSB of i+1
-          base64_table[(arr[i] & 3) << 4 | (arr[i + 1] & 240) >> 4] +
-          // 4 LSB of i+1
-          base64_table[(arr[i + 1] & 15) << 2] +
-          '=';
-        aux(arr, i + 3, r + str) tailstrict
-      else
-        local str =
-          // 6 MSB of i
-          base64_table[(arr[i] & 252) >> 2] +
-          // 2 LSB of i, 4 MSB of i+1
-          base64_table[(arr[i] & 3) << 4 | (arr[i + 1] & 240) >> 4] +
-          // 4 LSB of i+1, 2 MSB of i+2
-          base64_table[(arr[i + 1] & 15) << 2 | (arr[i + 2] & 192) >> 6] +
-          // 6 LSB of i+2
-          base64_table[(arr[i + 2] & 63)];
-        aux(arr, i + 3, r + str) tailstrict;
-
-    local sanity = std.all([a < 256 for a in bytes]);
-    if !sanity then
-      error 'Can only base64 encode strings / arrays of single bytes.'
-    else
-      aux(bytes, 0, ''),
-
-
   base64DecodeBytes(str)::
     if std.length(str) % 4 != 0 then
       error 'Not a base64 encoded string "%s"' % str

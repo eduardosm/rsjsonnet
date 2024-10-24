@@ -163,6 +163,7 @@ impl Program {
         add_simple("reverse", BuiltInFunc::Reverse, &["arr"]);
         add_simple("all", BuiltInFunc::All, &["arr"]);
         add_simple("any", BuiltInFunc::Any, &["arr"]);
+        add_simple("base64", BuiltInFunc::Base64, &["input"]);
         add_simple("md5", BuiltInFunc::Md5, &["str"]);
         add_simple("native", BuiltInFunc::Native, &["name"]);
         add_simple("trace", BuiltInFunc::Trace, &["str", "rest"]);

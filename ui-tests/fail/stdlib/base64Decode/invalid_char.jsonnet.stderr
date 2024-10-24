@@ -1,7 +1,7 @@
 error: unknown field "@"
-   --> <stdlib>:386:50
+   --> <stdlib>:339:50
     |
-386 |           local n1 = [base64_inv[str[i]] << 2 | (base64_inv[str[i + 1]] >> 4)];
+339 |           local n1 = [base64_inv[str[i]] << 2 | (base64_inv[str[i + 1]] >> 4)];
     |                                                  ^^^^^^^^^^^^^^^^^^^^^^
 note: while evaluating array item 0
   --> <stdlib>:77:55
@@ -14,9 +14,9 @@ note: while evaluating call to `char`
 77 |       std.makeArray(std.length(arr), function(i) func(arr[i])),
    |                                                  ------------
 note: while evaluating call to `join`
-   --> <stdlib>:400:5
+   --> <stdlib>:353:5
     |
-400 |     std.join('', std.map(std.char, bytes)),
+353 |     std.join('', std.map(std.char, bytes)),
     |     --------------------------------------
 note: while evaluating call to function
  --> invalid_char.jsonnet:1:1

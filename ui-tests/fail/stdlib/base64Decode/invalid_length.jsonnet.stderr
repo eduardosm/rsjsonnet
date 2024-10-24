@@ -1,17 +1,17 @@
 error: explicit error: Not a base64 encoded string "AA"
-   --> <stdlib>:379:7
+   --> <stdlib>:332:7
     |
-379 |       error 'Not a base64 encoded string "%s"' % str
+332 |       error 'Not a base64 encoded string "%s"' % str
     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: while evaluating call to function
-   --> <stdlib>:399:19
+   --> <stdlib>:352:19
     |
-399 |     local bytes = std.base64DecodeBytes(str);
+352 |     local bytes = std.base64DecodeBytes(str);
     |                   --------------------------
 note: while evaluating variable `bytes`
-   --> <stdlib>:400:36
+   --> <stdlib>:353:36
     |
-400 |     std.join('', std.map(std.char, bytes)),
+353 |     std.join('', std.map(std.char, bytes)),
     |                                    -----
 note: while evaluating variable `arr`
   --> <stdlib>:74:26
@@ -24,14 +24,14 @@ note: while evaluating call to `isArray`
 74 |     else if !std.isArray(arr) && !std.isString(arr) then
    |              ----------------
 note: while evaluating call to function
-   --> <stdlib>:400:18
+   --> <stdlib>:353:18
     |
-400 |     std.join('', std.map(std.char, bytes)),
+353 |     std.join('', std.map(std.char, bytes)),
     |                  ------------------------
 note: while evaluating call to `join`
-   --> <stdlib>:400:5
+   --> <stdlib>:353:5
     |
-400 |     std.join('', std.map(std.char, bytes)),
+353 |     std.join('', std.map(std.char, bytes)),
     |     --------------------------------------
 note: while evaluating call to function
  --> invalid_length.jsonnet:1:1
