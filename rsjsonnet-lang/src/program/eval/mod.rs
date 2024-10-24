@@ -1953,34 +1953,33 @@ impl<'a> Evaluator<'a> {
                             message: format!("octal integer without digits: {s:?}"),
                         }));
                     }
-                    let mut int = 0u128;
-                    let mut chars = s.chars().peekable();
-                    while let Some(chr) = chars.peek() {
-                        let digit = chr.to_digit(8).ok_or_else(|| {
+                    let s = s.trim_start_matches('0');
+
+                    let max_digits_128 = 128 / 3;
+                    let num_digits_128 = s.len().min(max_digits_128);
+
+                    let mut number = 0u128;
+                    for digit in s[..num_digits_128].chars() {
+                        let digit = digit.to_digit(8).ok_or_else(|| {
                             self.report_error(EvalErrorKind::Other {
                                 span: None,
-                                message: format!("invalid octal digit: {chr:?}"),
+                                message: format!("invalid octal digit: {digit:?}"),
                             })
                         })?;
-                        let new_int = int.checked_mul(8).and_then(|v| v.checked_add(digit.into()));
-                        if let Some(new_int) = new_int {
-                            int = new_int;
-                            chars.next();
-                        } else {
-                            break;
-                        }
+                        number = number * 8 + u128::from(digit);
                     }
 
-                    let mut number = int as f64;
-                    for chr in chars {
-                        let digit = chr.to_digit(8).ok_or_else(|| {
-                            self.report_error(EvalErrorKind::Other {
+                    let mut number = number as f64;
+                    for digit in s[num_digits_128..].chars() {
+                        if !digit.is_digit(8) {
+                            return Err(self.report_error(EvalErrorKind::Other {
                                 span: None,
-                                message: format!("invalid octal digit: {chr:?}"),
-                            })
-                        })?;
-                        number = number.mul_add(8.0, f64::from(digit));
+                                message: format!("invalid octal digit: {digit:?}"),
+                            }));
+                        }
+                        number *= 8.0;
                     }
+
                     if !number.is_finite() {
                         return Err(self.report_error(EvalErrorKind::NumberOverflow { span: None }));
                     }
@@ -1995,36 +1994,33 @@ impl<'a> Evaluator<'a> {
                             message: format!("hexadecimal integer without digits: {s:?}"),
                         }));
                     }
-                    let mut int = 0u128;
-                    let mut chars = s.chars().peekable();
-                    while let Some(chr) = chars.peek() {
-                        let digit = chr.to_digit(16).ok_or_else(|| {
+                    let s = s.trim_start_matches('0');
+
+                    let max_digits_128 = 128 / 4;
+                    let num_digits_128 = s.len().min(max_digits_128);
+
+                    let mut number = 0u128;
+                    for digit in s[..num_digits_128].chars() {
+                        let digit = digit.to_digit(16).ok_or_else(|| {
                             self.report_error(EvalErrorKind::Other {
                                 span: None,
-                                message: format!("invalid hexadecimal digit: {chr:?}"),
+                                message: format!("invalid hexadecimal digit: {digit:?}"),
                             })
                         })?;
-                        let new_int = int
-                            .checked_mul(16)
-                            .and_then(|v| v.checked_add(digit.into()));
-                        if let Some(new_int) = new_int {
-                            int = new_int;
-                            chars.next();
-                        } else {
-                            break;
-                        }
+                        number = number * 16 + u128::from(digit);
                     }
 
-                    let mut number = int as f64;
-                    for chr in chars {
-                        let digit = chr.to_digit(16).ok_or_else(|| {
-                            self.report_error(EvalErrorKind::Other {
+                    let mut number = number as f64;
+                    for digit in s[num_digits_128..].chars() {
+                        if !digit.is_ascii_hexdigit() {
+                            return Err(self.report_error(EvalErrorKind::Other {
                                 span: None,
-                                message: format!("invalid hexadecimal digit: {chr:?}"),
-                            })
-                        })?;
-                        number = number.mul_add(16.0, f64::from(digit));
+                                message: format!("invalid hexadecimal digit: {digit:?}"),
+                            }));
+                        }
+                        number *= 16.0;
                     }
+
                     if !number.is_finite() {
                         return Err(self.report_error(EvalErrorKind::NumberOverflow { span: None }));
                     }

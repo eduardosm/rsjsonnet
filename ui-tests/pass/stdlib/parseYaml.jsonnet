@@ -81,12 +81,31 @@ std.assertEqual(std.parseYaml("8.5e+2"), 850) &&
 std.assertEqual(std.parseYaml("25e-2"), 0.25) &&
 std.assertEqual(std.parseYaml("0.5e+10"), 5000000000) &&
 
+std.assertEqual(std.parseYaml("0o0"), 0) &&
 std.assertEqual(std.parseYaml("0o1"), 1) &&
 std.assertEqual(std.parseYaml("0o7"), 7) &&
+std.assertEqual(std.parseYaml("0o1234567"), 342391) &&
 
+std.assertEqual(std.parseYaml("0x0"), 0) &&
 std.assertEqual(std.parseYaml("0x1"), 1) &&
 std.assertEqual(std.parseYaml("0x9"), 9) &&
+std.assertEqual(std.parseYaml("0xf"), 15) &&
 std.assertEqual(std.parseYaml("0xF"), 15) &&
+std.assertEqual(std.parseYaml("0xabcdef"), 11259375) &&
+std.assertEqual(std.parseYaml("0xABCDEF"), 11259375) &&
+
+std.assertEqual(
+  std.parseYaml("0o123456712345671234567123456712345671234567123456712345671234567"),
+  1.281037429041102e+56,
+) &&
+std.assertEqual(
+  std.parseYaml("0x123456789ABCDEF123456789ABCDEF123456789ABCDEF123456789ABCDEF"),
+  1.2564245793979622e+71,
+) &&
+std.assertEqual(
+  std.parseYaml("0x123456789abcdef123456789abcdef123456789abcdef123456789abcdef"),
+  1.2564245793979622e+71,
+) &&
 
 std.assertEqual(std.parseYaml("."), ".") &&
 std.assertEqual(std.parseYaml("-."), "-.") &&

@@ -498,24 +498,27 @@ fn try_parse_octal_number(s: &str) -> Option<f64> {
     if digits.is_empty() {
         return None;
     }
+    let digits = digits.trim_start_matches('0');
 
-    let mut int = 0u128;
-    let mut chars = digits.chars().peekable();
-    while let Some(chr) = chars.peek() {
-        let digit = chr.to_digit(8)?;
-        let new_int = int.checked_mul(8).and_then(|v| v.checked_add(digit.into()));
-        if let Some(new_int) = new_int {
-            int = new_int;
-            chars.next();
-        } else {
-            break;
-        }
+    let max_digits_128 = 128 / 3;
+    let num_digits_128 = digits.len().min(max_digits_128);
+
+    let mut number = 0u128;
+    for digit in digits[..num_digits_128].bytes() {
+        let digit = char::from(digit).to_digit(8)?;
+        number = number * 8 + u128::from(digit);
     }
 
-    let mut number = int as f64;
-    for chr in chars {
-        let digit = chr.to_digit(8)?;
-        number = number.mul_add(8.0, f64::from(digit));
+    let mut number = number as f64;
+    for digit in digits[num_digits_128..].bytes() {
+        if !char::from(digit).is_digit(8) {
+            return None;
+        }
+        number *= 8.0;
+    }
+
+    if !number.is_finite() {
+        return None;
     }
 
     Some(number)
@@ -526,26 +529,27 @@ fn try_parse_hex_number(s: &str) -> Option<f64> {
     if digits.is_empty() {
         return None;
     }
+    let digits = digits.trim_start_matches('0');
 
-    let mut int = 0u128;
-    let mut chars = digits.chars().peekable();
-    while let Some(chr) = chars.peek() {
-        let digit = chr.to_digit(16)?;
-        let new_int = int
-            .checked_mul(16)
-            .and_then(|v| v.checked_add(digit.into()));
-        if let Some(new_int) = new_int {
-            int = new_int;
-            chars.next();
-        } else {
-            break;
-        }
+    let max_digits_128 = 128 / 4;
+    let num_digits_128 = digits.len().min(max_digits_128);
+
+    let mut number = 0u128;
+    for digit in digits[..num_digits_128].bytes() {
+        let digit = char::from(digit).to_digit(16)?;
+        number = number * 16 + u128::from(digit);
     }
 
-    let mut number = int as f64;
-    for chr in chars {
-        let digit = chr.to_digit(16)?;
-        number = number.mul_add(16.0, f64::from(digit));
+    let mut number = number as f64;
+    for digit in digits[num_digits_128..].bytes() {
+        if !digit.is_ascii_hexdigit() {
+            return None;
+        }
+        number *= 16.0;
+    }
+
+    if !number.is_finite() {
+        return None;
     }
 
     Some(number)
