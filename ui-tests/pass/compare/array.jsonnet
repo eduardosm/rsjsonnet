@@ -7,7 +7,11 @@ local test(a, b, cmp) =
   std.assertEqual(a >= b, cmp >= 0) &&
   std.assertEqual(std.equals(a, b), cmp == 0) &&
   std.assertEqual(std.__compare(a, b), cmp) &&
-  std.assertEqual(std.__compare_array(a, b), cmp);
+  std.assertEqual(std.__compare_array(a, b), cmp) &&
+  std.assertEqual(std.__array_less(a, b), cmp < 0) &&
+  std.assertEqual(std.__array_greater(a, b), cmp > 0) &&
+  std.assertEqual(std.__array_less_or_equal(a, b), cmp <= 0) &&
+  std.assertEqual(std.__array_greater_or_equal(a, b), cmp >= 0);
 
 test(['a', 'r', 'r', 'a', 'y'], ['a', 'r', 'r', 'a', 'y'], 0) &&
 test(['a', 'r', 'r'], ['a', 'r', 'r', 'a', 'y'], -1) &&
