@@ -1,0 +1,22 @@
+error: expected array for comprenhension, got null
+   --> <stdlib>:370:46
+    |
+370 |     local sanity = std.all([a < 256 for a in bytes]);
+    |                                              ^^^^^
+note: while evaluating call to `all`
+   --> <stdlib>:370:20
+    |
+370 |     local sanity = std.all([a < 256 for a in bytes]);
+    |                    ---------------------------------
+note: while evaluating variable `sanity`
+   --> <stdlib>:371:9
+    |
+371 |     if !sanity then
+    |         ------
+note: while evaluating call to function
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.base64(null)
+  | ----------------
+note: during top-level value evaluation
+
