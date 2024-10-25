@@ -81,6 +81,31 @@ enum WidthTmp {
 }
 
 impl Evaluator<'_> {
+    pub(super) fn do_std_format(&mut self) -> Result<(), Box<EvalError>> {
+        let vals = self.value_stack.pop().unwrap();
+        let fmt = self.value_stack.pop().unwrap();
+
+        let fmt = self.expect_std_func_arg_string(fmt, "format", 0)?;
+        let fmt_parts = self.parse_format_codes(&fmt)?;
+
+        match vals {
+            ValueData::Array(array) => {
+                self.want_format_array(fmt_parts, array.view());
+            }
+            ValueData::Object(object) => {
+                self.want_format_object(fmt_parts, object.view());
+            }
+            val => {
+                let val = self.program.gc_alloc(ThunkData::new_done(val));
+                let array: GcView<Box<[_]>> = self.program.gc_alloc_view(Box::new([val]));
+
+                self.want_format_array(fmt_parts, array);
+            }
+        }
+
+        Ok(())
+    }
+
     pub(super) fn parse_format_codes(
         &mut self,
         fmt: &str,
@@ -300,7 +325,7 @@ impl Evaluator<'_> {
         });
     }
 
-    pub(super) fn format_codes_array_1(
+    pub(super) fn do_std_format_codes_array_1(
         &mut self,
         parts: Rc<Vec<FormatPart>>,
         array: GcView<ArrayData>,
@@ -406,7 +431,7 @@ impl Evaluator<'_> {
         }
     }
 
-    pub(super) fn format_codes_array_2(
+    pub(super) fn do_std_format_codes_array_2(
         &mut self,
         parts: Rc<Vec<FormatPart>>,
         array: GcView<ArrayData>,
@@ -499,7 +524,7 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    pub(super) fn format_codes_array_3(
+    pub(super) fn do_std_format_codes_array_3(
         &mut self,
         parts: Rc<Vec<FormatPart>>,
         array: GcView<ArrayData>,
@@ -537,7 +562,7 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    pub(super) fn format_codes_object_1(
+    pub(super) fn do_std_format_codes_object_1(
         &mut self,
         parts: Rc<Vec<FormatPart>>,
         object: GcView<ObjectData>,
@@ -646,7 +671,7 @@ impl Evaluator<'_> {
         }
     }
 
-    pub(super) fn format_codes_object_2(
+    pub(super) fn do_std_format_codes_object_2(
         &mut self,
         parts: Rc<Vec<FormatPart>>,
         object: GcView<ObjectData>,
@@ -682,7 +707,7 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    pub(super) fn format_code(
+    pub(super) fn do_std_format_code(
         &mut self,
         parts: &[FormatPart],
         part_i: usize,

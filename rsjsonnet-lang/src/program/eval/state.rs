@@ -199,7 +199,6 @@ pub(super) enum State {
     StdObjectHasEx,
     StdObjectFieldsEx,
     StdPrimitiveEquals,
-    StdEquals,
     StdCompareArray,
     StdExponent,
     StdMantissa,
