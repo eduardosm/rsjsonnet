@@ -977,6 +977,69 @@ impl Evaluator<'_> {
         Ok(())
     }
 
+    pub(super) fn do_std_find(&mut self, value: GcView<ThunkData>) -> Result<(), Box<EvalError>> {
+        let array = self.value_stack.pop().unwrap();
+        let array = self.expect_std_func_arg_array(array, "find", 1)?;
+
+        if array.is_empty() {
+            self.value_stack
+                .push(ValueData::Array(Gc::from(&self.program.empty_array)));
+        } else {
+            self.array_stack.push(Vec::new());
+            self.state_stack.push(State::StdFindInner { array });
+            self.state_stack.push(State::DoThunk(value));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_find_inner(&mut self, array: GcView<ArrayData>) {
+        let value = self.value_stack.pop().unwrap();
+        self.value_stack.push(value.clone());
+
+        let item0 = array[0].view();
+        self.state_stack.push(State::StdFindCheckItem {
+            value,
+            array,
+            index: 0,
+        });
+        self.state_stack.push(State::EqualsValue);
+        self.state_stack.push(State::DoThunk(item0));
+    }
+
+    pub(super) fn do_std_find_check_item(
+        &mut self,
+        value: ValueData,
+        array: GcView<ArrayData>,
+        index: usize,
+    ) {
+        let equal = self.bool_stack.pop().unwrap();
+        if equal {
+            self.array_stack.last_mut().unwrap().push(
+                self.program
+                    .gc_alloc(ThunkData::new_done(ValueData::Number(index as f64))),
+            );
+        }
+
+        let next_index = index + 1;
+        if let Some(next_item) = array.get(next_index) {
+            let next_item = next_item.view();
+            self.value_stack.push(value.clone());
+            self.state_stack.push(State::StdFindCheckItem {
+                value,
+                array,
+                index: next_index,
+            });
+            self.state_stack.push(State::EqualsValue);
+            self.state_stack.push(State::DoThunk(next_item));
+        } else {
+            let result = self.array_stack.pop().unwrap();
+            self.value_stack.push(ValueData::Array(
+                self.program.gc_alloc(result.into_boxed_slice()),
+            ));
+        }
+    }
+
     pub(super) fn do_std_filter(&mut self) -> Result<(), Box<EvalError>> {
         let arr_value = self.value_stack.pop().unwrap();
         let func_value = self.value_stack.pop().unwrap();

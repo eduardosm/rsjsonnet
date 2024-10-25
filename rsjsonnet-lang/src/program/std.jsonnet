@@ -398,12 +398,6 @@ limitations under the License.
     } else
       a,
 
-  find(value, arr)::
-    if !std.isArray(arr) then
-      error 'find second parameter should be an array, got ' + std.type(arr)
-    else
-      std.filter(function(i) arr[i] == value, std.range(0, std.length(arr) - 1)),
-
   __array_less(arr1, arr2):: std.__compare_array(arr1, arr2) == -1,
   __array_greater(arr1, arr2):: std.__compare_array(arr1, arr2) == 1,
   __array_less_or_equal(arr1, arr2):: std.__compare_array(arr1, arr2) <= 0,
