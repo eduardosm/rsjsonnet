@@ -1,3 +1,5 @@
+std.assertEqual(std.splitLimitR("", ",", -1), [""]) &&
+
 std.assertEqual(std.splitLimitR("1,2,3", ",", -1), ["1", "2", "3"]) &&
 std.assertEqual(std.splitLimitR("1,2,3", ",", 0), ["1,2,3"]) &&
 std.assertEqual(std.splitLimitR("1,2,3", ",", 1), ["1,2", "3"]) &&

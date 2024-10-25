@@ -1,0 +1,12 @@
+error: assertion failed: std.split second parameter must be a String, got null
+  --> <stdlib>:43:5
+   |
+43 |     assert std.isString(c) : 'std.split second parameter must be a String, got ' + std.type(c);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: while evaluating call to function
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.split("", null)
+  | -------------------
+note: during top-level value evaluation
+
