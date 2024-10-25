@@ -3293,6 +3293,38 @@ impl<'a> Evaluator<'a> {
                         self.state_stack.push(State::DoThunk(next_item));
                     }
                 }
+                State::StdBase64DecodeBytes => {
+                    let arg = self.value_stack.pop().unwrap();
+                    let arg = self.expect_std_func_arg_string(arg, "base64DecodeBytes", 0)?;
+
+                    let encoded_chars: Vec<_> = arg.chars().collect();
+                    let decoded = decode_base64(&encoded_chars).map_err(|e| {
+                        self.report_error(EvalErrorKind::Other {
+                            span: None,
+                            message: e,
+                        })
+                    })?;
+
+                    self.value_stack
+                        .push(ValueData::Array(self.program.make_value_array(
+                            decoded.iter().map(|&b| ValueData::Number(b.into())),
+                        )));
+                }
+                State::StdBase64Decode => {
+                    let arg = self.value_stack.pop().unwrap();
+                    let arg = self.expect_std_func_arg_string(arg, "base64Decode", 0)?;
+
+                    let encoded_chars = arg.chars().collect::<Vec<_>>();
+                    let decoded = decode_base64(&encoded_chars).map_err(|e| {
+                        self.report_error(EvalErrorKind::Other {
+                            span: None,
+                            message: e,
+                        })
+                    })?;
+                    let decoded: String = decoded.iter().map(|&c| char::from(c)).collect();
+
+                    self.value_stack.push(ValueData::String(decoded.into()));
+                }
                 State::StdMd5 => {
                     let arg = self.value_stack.pop().unwrap();
                     let arg = self.expect_std_func_arg_string(arg, "md5", 0)?;
@@ -3759,4 +3791,55 @@ where
     }
 
     Ok(encoded)
+}
+
+fn decode_base64(encoded: &[char]) -> Result<Vec<u8>, String> {
+    let mut chunks = encoded.chunks_exact(4);
+    if !chunks.remainder().is_empty() {
+        return Err("length of base64 string is not a multiple of 4".into());
+    }
+
+    let mut decoded = Vec::new();
+    if let Some(last_chunk) = chunks.next_back() {
+        fn chr_to_index(chr: char) -> Result<u8, String> {
+            match chr {
+                'A'..='Z' => Ok(chr as u8 - b'A'),
+                'a'..='z' => Ok(chr as u8 - b'a' + 26),
+                '0'..='9' => Ok(chr as u8 - b'0' + 52),
+                '+' => Ok(62),
+                '/' => Ok(63),
+                _ => Err(format!("invalid base64 character: {chr:?}")),
+            }
+        }
+
+        for chunk in chunks {
+            let i0 = chr_to_index(chunk[0])?;
+            let i1 = chr_to_index(chunk[1])?;
+            let i2 = chr_to_index(chunk[2])?;
+            let i3 = chr_to_index(chunk[3])?;
+            decoded.push((i0 << 2) | (i1 >> 4));
+            decoded.push((i1 << 4) | (i2 >> 2));
+            decoded.push((i2 << 6) | i3);
+        }
+
+        let i0 = chr_to_index(last_chunk[0])?;
+        let i1 = chr_to_index(last_chunk[1])?;
+        decoded.push((i0 << 2) | (i1 >> 4));
+
+        match (last_chunk[2], last_chunk[3]) {
+            ('=', '=') => {}
+            (e2, '=') => {
+                let i2 = chr_to_index(e2)?;
+                decoded.push((i1 << 4) | (i2 >> 2));
+            }
+            (e2, e3) => {
+                let i2 = chr_to_index(e2)?;
+                let i3 = chr_to_index(e3)?;
+                decoded.push((i1 << 4) | (i2 >> 2));
+                decoded.push((i2 << 6) | i3);
+            }
+        }
+    }
+
+    Ok(decoded)
 }

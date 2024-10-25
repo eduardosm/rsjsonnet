@@ -616,6 +616,8 @@ pub(super) enum BuiltInFunc {
     SetMember,
     // Encoding
     Base64,
+    Base64DecodeBytes,
+    Base64Decode,
     Md5,
     // Native Functions
     Native,

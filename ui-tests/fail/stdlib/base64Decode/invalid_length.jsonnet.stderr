@@ -1,39 +1,5 @@
-error: explicit error: Not a base64 encoded string "AA"
-   --> <stdlib>:332:7
-    |
-332 |       error 'Not a base64 encoded string "%s"' % str
-    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: while evaluating call to function
-   --> <stdlib>:352:19
-    |
-352 |     local bytes = std.base64DecodeBytes(str);
-    |                   --------------------------
-note: while evaluating variable `bytes`
-   --> <stdlib>:353:36
-    |
-353 |     std.join('', std.map(std.char, bytes)),
-    |                                    -----
-note: while evaluating variable `arr`
-  --> <stdlib>:74:26
-   |
-74 |     else if !std.isArray(arr) && !std.isString(arr) then
-   |                          ---
-note: while evaluating call to `isArray`
-  --> <stdlib>:74:14
-   |
-74 |     else if !std.isArray(arr) && !std.isString(arr) then
-   |              ----------------
-note: while evaluating call to function
-   --> <stdlib>:353:18
-    |
-353 |     std.join('', std.map(std.char, bytes)),
-    |                  ------------------------
-note: while evaluating call to `join`
-   --> <stdlib>:353:5
-    |
-353 |     std.join('', std.map(std.char, bytes)),
-    |     --------------------------------------
-note: while evaluating call to function
+error: length of base64 string is not a multiple of 4
+note: while evaluating call to `base64Decode`
  --> invalid_length.jsonnet:1:1
   |
 1 | std.base64Decode("AA")
