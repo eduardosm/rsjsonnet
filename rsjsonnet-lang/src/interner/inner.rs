@@ -57,17 +57,14 @@ impl<T: ?Sized + Internable> Interner<T> {
     }
 
     pub(super) fn get_interned(&self, value: impl InternAs<T>) -> Option<Interned<T>> {
-        let mut items = self.items.borrow_mut();
-        match items.entry(
-            Self::hash_value(value.key(), &self.hasher),
-            |x| T::key(x) == value.key(),
-            |x| Self::hash_value(T::key(x), &self.hasher),
-        ) {
-            hashbrown::hash_table::Entry::Occupied(entry) => Some(Interned {
-                item: entry.get().clone(),
-            }),
-            hashbrown::hash_table::Entry::Vacant(_) => None,
-        }
+        self.items
+            .borrow()
+            .find(Self::hash_value(value.key(), &self.hasher), |x| {
+                T::key(x) == value.key()
+            })
+            .map(|entry| Interned {
+                item: entry.clone(),
+            })
     }
 
     pub(super) fn gc(&self) {
