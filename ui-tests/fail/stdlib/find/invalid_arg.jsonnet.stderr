@@ -1,0 +1,12 @@
+error: explicit error: find second parameter should be an array, got null
+   --> <stdlib>:403:7
+    |
+403 |       error 'find second parameter should be an array, got ' + std.type(arr)
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: while evaluating call to function
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.find(null, null)
+  | --------------------
+note: during top-level value evaluation
+
