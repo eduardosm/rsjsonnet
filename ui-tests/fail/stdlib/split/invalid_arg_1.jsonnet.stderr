@@ -1,9 +1,5 @@
-error: assertion failed: std.split first parameter must be a String, got null
-  --> <stdlib>:42:5
-   |
-42 |     assert std.isString(str) : 'std.split first parameter must be a String, got ' + std.type(str);
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: while evaluating call to function
+error: first argument of `std.split` is expected to be string, got null
+note: while evaluating call to `split`
  --> invalid_arg_1.jsonnet:1:1
   |
 1 | std.split(null, "")

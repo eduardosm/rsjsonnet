@@ -38,12 +38,6 @@ limitations under the License.
   stripChars(str, chars)::
     std.lstripChars(std.rstripChars(str, chars), chars),
 
-  split(str, c)::
-    assert std.isString(str) : 'std.split first parameter must be a String, got ' + std.type(str);
-    assert std.isString(c) : 'std.split second parameter must be a String, got ' + std.type(c);
-    assert std.length(c) >= 1 : 'std.split second parameter must have length 1 or greater, got ' + std.length(c);
-    std.splitLimit(str, c, -1),
-
   repeat(what, count)::
     local joiner =
       if std.isString(what) then ''

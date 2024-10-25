@@ -225,6 +225,7 @@ pub(super) enum State {
     StdFindSubstr,
     StdStartsWith,
     StdEndsWith,
+    StdSplit,
     StdSplitLimit,
     StdSplitLimitR,
     StdStrReplace,
