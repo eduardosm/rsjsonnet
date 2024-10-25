@@ -150,6 +150,7 @@ impl Program {
         add_simple("encodeUTF8", BuiltInFunc::EncodeUtf8, &["str"]);
         add_simple("decodeUTF8", BuiltInFunc::DecodeUtf8, &["arr"]);
         add_simple("makeArray", BuiltInFunc::MakeArray, &["sz", "func"]);
+        add_simple("find", BuiltInFunc::Find, &["value", "find"]);
         add_simple("filter", BuiltInFunc::Filter, &["func", "arr"]);
         add_simple("foldl", BuiltInFunc::Foldl, &["func", "arr", "init"]);
         add_simple("foldr", BuiltInFunc::Foldr, &["func", "arr", "init"]);

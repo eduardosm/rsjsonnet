@@ -597,6 +597,7 @@ pub(super) enum BuiltInFunc {
     ManifestYamlDoc,
     // Arrays
     MakeArray,
+    Find,
     Filter,
     Foldl,
     Foldr,

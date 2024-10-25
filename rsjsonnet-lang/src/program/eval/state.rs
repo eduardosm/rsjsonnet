@@ -284,6 +284,17 @@ pub(super) enum State {
     StdManifestJsonEx,
     StdManifestYamlDoc,
     StdMakeArray,
+    StdFind {
+        value: GcView<ThunkData>,
+    },
+    StdFindInner {
+        array: GcView<ArrayData>,
+    },
+    StdFindCheckItem {
+        value: ValueData,
+        array: GcView<ArrayData>,
+        index: usize,
+    },
     StdFilter,
     StdFilterCheck {
         item: GcView<ThunkData>,
