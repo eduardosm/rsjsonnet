@@ -1,24 +1,5 @@
-error: unknown field "@"
-   --> <stdlib>:339:50
-    |
-339 |           local n1 = [base64_inv[str[i]] << 2 | (base64_inv[str[i + 1]] >> 4)];
-    |                                                  ^^^^^^^^^^^^^^^^^^^^^^
-note: while evaluating array item 0
-  --> <stdlib>:77:55
-   |
-77 |       std.makeArray(std.length(arr), function(i) func(arr[i])),
-   |                                                       ------
-note: while evaluating call to `char`
-  --> <stdlib>:77:50
-   |
-77 |       std.makeArray(std.length(arr), function(i) func(arr[i])),
-   |                                                  ------------
-note: while evaluating call to `join`
-   --> <stdlib>:353:5
-    |
-353 |     std.join('', std.map(std.char, bytes)),
-    |     --------------------------------------
-note: while evaluating call to function
+error: invalid base64 character: '@'
+note: while evaluating call to `base64Decode`
  --> invalid_char.jsonnet:1:1
   |
 1 | std.base64Decode("A@==")

@@ -164,6 +164,12 @@ impl Program {
         add_simple("all", BuiltInFunc::All, &["arr"]);
         add_simple("any", BuiltInFunc::Any, &["arr"]);
         add_simple("base64", BuiltInFunc::Base64, &["input"]);
+        add_simple(
+            "base64DecodeBytes",
+            BuiltInFunc::Base64DecodeBytes,
+            &["str"],
+        );
+        add_simple("base64Decode", BuiltInFunc::Base64Decode, &["str"]);
         add_simple("md5", BuiltInFunc::Md5, &["str"]);
         add_simple("native", BuiltInFunc::Native, &["name"]);
         add_simple("trace", BuiltInFunc::Trace, &["str", "rest"]);

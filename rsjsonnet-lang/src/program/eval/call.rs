@@ -668,6 +668,16 @@ impl Evaluator<'_> {
                 self.state_stack.push(State::StdBase64);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
+            BuiltInFunc::Base64DecodeBytes => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::StdBase64DecodeBytes);
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
+            BuiltInFunc::Base64Decode => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::StdBase64Decode);
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
             BuiltInFunc::Md5 => {
                 let [arg] = check_num_args(args);
                 self.state_stack.push(State::StdMd5);
