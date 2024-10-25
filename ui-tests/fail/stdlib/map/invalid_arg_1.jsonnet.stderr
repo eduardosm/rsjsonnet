@@ -1,7 +1,7 @@
 error: explicit error: std.map first param must be function, got null
-  --> <stdlib>:73:7
+  --> <stdlib>:67:7
    |
-73 |       error ('std.map first param must be function, got ' + std.type(func))
+67 |       error ('std.map first param must be function, got ' + std.type(func))
    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: while evaluating call to function
  --> invalid_arg_1.jsonnet:1:1

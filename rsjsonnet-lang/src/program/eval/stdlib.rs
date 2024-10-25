@@ -538,6 +538,30 @@ impl Evaluator<'_> {
         Ok(())
     }
 
+    pub(super) fn do_std_split(&mut self) -> Result<(), Box<EvalError>> {
+        let c_value = self.value_stack.pop().unwrap();
+        let str_value = self.value_stack.pop().unwrap();
+
+        let str_value = self.expect_std_func_arg_string(str_value, "split", 0)?;
+        let c_value = self.expect_std_func_arg_string(c_value, "split", 1)?;
+
+        if c_value.is_empty() {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: "split delimiter is empty".into(),
+            }));
+        }
+
+        let result_array = self.program.make_value_array(
+            str_value
+                .split(&*c_value)
+                .map(|s| ValueData::String(s.into())),
+        );
+        self.value_stack.push(ValueData::Array(result_array));
+
+        Ok(())
+    }
+
     pub(super) fn do_std_split_limit(&mut self) -> Result<(), Box<EvalError>> {
         let maxsplits_value = self.value_stack.pop().unwrap();
         let c_value = self.value_stack.pop().unwrap();

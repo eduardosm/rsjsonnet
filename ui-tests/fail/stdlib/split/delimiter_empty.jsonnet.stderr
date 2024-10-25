@@ -1,9 +1,5 @@
-error: assertion failed: std.split second parameter must have length 1 or greater, got 0
-  --> <stdlib>:44:5
-   |
-44 |     assert std.length(c) >= 1 : 'std.split second parameter must have length 1 or greater, got ' + std.length(c);
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: while evaluating call to function
+error: split delimiter is empty
+note: while evaluating call to `split`
  --> delimiter_empty.jsonnet:1:1
   |
 1 | std.split("", "")

@@ -573,6 +573,7 @@ pub(super) enum BuiltInFunc {
     FindSubstr,
     StartsWith,
     EndsWith,
+    Split,
     SplitLimit,
     SplitLimitR,
     StrReplace,

@@ -1238,6 +1238,7 @@ impl<'a> Evaluator<'a> {
                 State::StdFindSubstr => self.do_std_find_substr()?,
                 State::StdStartsWith => self.do_std_starts_with()?,
                 State::StdEndsWith => self.do_std_ends_with()?,
+                State::StdSplit => self.do_std_split()?,
                 State::StdSplitLimit => self.do_std_split_limit()?,
                 State::StdSplitLimitR => self.do_std_split_limit_r()?,
                 State::StdStrReplace => self.do_std_str_replace()?,

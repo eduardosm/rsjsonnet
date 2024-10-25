@@ -1,7 +1,7 @@
 error: explicit error: std.map second param must be array / string, got null
-  --> <stdlib>:75:7
+  --> <stdlib>:69:7
    |
-75 |       error ('std.map second param must be array / string, got ' + std.type(arr))
+69 |       error ('std.map second param must be array / string, got ' + std.type(arr))
    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: while evaluating call to function
  --> invalid_arg_2.jsonnet:1:1
