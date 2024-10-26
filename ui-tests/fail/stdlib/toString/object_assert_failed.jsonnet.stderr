@@ -1,10 +1,10 @@
 error: assertion failed
- --> assert_failed_toString.jsonnet:1:16
+ --> object_assert_failed.jsonnet:1:16
   |
 1 | std.toString({ assert false })
   |                ^^^^^^^^^^^^
 note: while evaluating call to `toString`
- --> assert_failed_toString.jsonnet:1:1
+ --> object_assert_failed.jsonnet:1:1
   |
 1 | std.toString({ assert false })
   | ------------------------------

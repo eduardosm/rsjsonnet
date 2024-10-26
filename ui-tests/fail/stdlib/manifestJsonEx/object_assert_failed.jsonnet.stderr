@@ -1,0 +1,12 @@
+error: assertion failed
+ --> object_assert_failed.jsonnet:1:22
+  |
+1 | std.manifestJsonEx({ assert false }, "    ")
+  |                      ^^^^^^^^^^^^
+note: while evaluating call to `manifestJsonEx`
+ --> object_assert_failed.jsonnet:1:1
+  |
+1 | std.manifestJsonEx({ assert false }, "    ")
+  | --------------------------------------------
+note: during top-level value evaluation
+
