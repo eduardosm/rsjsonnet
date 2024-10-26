@@ -49,6 +49,89 @@ impl ManifestJsonFormat {
 }
 
 impl Evaluator<'_> {
+    pub(super) fn do_manifest_python(&mut self) -> Result<(), Box<EvalError>> {
+        let value = self.value_stack.pop().unwrap();
+        let result = self.string_stack.last_mut().unwrap();
+        match value {
+            ValueData::Null => {
+                result.push_str("None");
+            }
+            ValueData::Bool(b) => {
+                result.push_str(if b { "True" } else { "False" });
+            }
+            ValueData::Number(n) => {
+                write!(result, "{n}").unwrap();
+            }
+            ValueData::String(s) => {
+                escape_string_python(&s, result);
+            }
+            ValueData::Array(array) => {
+                let array = array.view();
+                if array.is_empty() {
+                    result.push_str("[]");
+                } else {
+                    result.push('[');
+
+                    self.state_stack.push(State::AppendToString(']'.into()));
+
+                    for (i, item) in array.iter().enumerate().rev() {
+                        if i != array.len() - 1 {
+                            self.state_stack.push(State::AppendToString(", ".into()));
+                        }
+
+                        self.push_trace_item(TraceItem::ManifestArrayItem { index: i });
+                        self.state_stack.push(State::ManifestPython);
+                        self.state_stack.push(State::DoThunk(item.view()));
+                        self.delay_trace_item();
+                    }
+                }
+            }
+            ValueData::Object(object) => {
+                let object = object.view();
+                let visible_fields: Vec<_> = object
+                    .get_fields_order()
+                    .iter()
+                    .filter_map(|(name, visible)| visible.then_some(name))
+                    .collect();
+                if visible_fields.is_empty() {
+                    result.push_str("{}");
+                } else {
+                    result.push('{');
+
+                    self.state_stack.push(State::AppendToString('}'.into()));
+
+                    for (i, &field_name) in visible_fields.iter().rev().enumerate() {
+                        if i != 0 {
+                            self.state_stack.push(State::AppendToString(", ".into()));
+                        }
+
+                        self.push_trace_item(TraceItem::ManifestObjectField {
+                            name: field_name.clone(),
+                        });
+                        self.state_stack.push(State::ManifestPython);
+                        let field_thunk = self
+                            .program
+                            .find_object_field_thunk(&object, 0, field_name)
+                            .unwrap();
+                        self.state_stack.push(State::DoThunk(field_thunk));
+                        self.delay_trace_item();
+                        self.state_stack.push(State::AppendToString(": ".into()));
+                        let mut name_manifested = String::new();
+                        escape_string_json(field_name.value(), &mut name_manifested);
+                        self.state_stack
+                            .push(State::AppendToString(name_manifested));
+                    }
+                }
+                self.check_object_asserts(&object);
+            }
+            ValueData::Function(_) => {
+                return Err(self.report_error(EvalErrorKind::ManifestFunction));
+            }
+        }
+
+        Ok(())
+    }
+
     pub(super) fn do_manifest_json(
         &mut self,
         format: Rc<ManifestJsonFormat>,
@@ -450,4 +533,8 @@ pub(super) fn escape_string_json(s: &str, result: &mut String) {
         }
     }
     result.push('"');
+}
+
+fn escape_string_python(s: &str, result: &mut String) {
+    escape_string_json(s, result);
 }

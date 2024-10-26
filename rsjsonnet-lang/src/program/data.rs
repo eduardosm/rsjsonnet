@@ -594,6 +594,7 @@ pub(super) enum BuiltInFunc {
     EncodeUtf8,
     DecodeUtf8,
     // Manifestation
+    ManifestPython,
     ManifestJsonEx,
     ManifestYamlDoc,
     ManifestYamlStream,
