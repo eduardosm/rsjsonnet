@@ -1,0 +1,77 @@
+error: explicit error: err
+ --> inner_error.jsonnet:1:35
+  |
+1 | std.manifestPython([0, { a: 1, b: error "err" }])
+  |                                   ^^^^^^^^^^^
+note: while evaluating object field "b"
+   --> <stdlib>:269:67
+    |
+269 |         '%s: %s' % [std.escapeStringPython(k), std.manifestPython(v[k])]
+    |                                                                   ----
+note: while evaluating variable `v`
+   --> <stdlib>:267:21
+    |
+267 |     if std.isObject(v) then
+    |                     -
+note: while evaluating call to `isObject`
+   --> <stdlib>:267:8
+    |
+267 |     if std.isObject(v) then
+    |        ---------------
+note: while evaluating call to function
+   --> <stdlib>:269:48
+    |
+269 |         '%s: %s' % [std.escapeStringPython(k), std.manifestPython(v[k])]
+    |                                                ------------------------
+note: while evaluating call to `format`
+  --> <stdlib>:59:7
+   |
+59 |       std.format(a, b)
+   |       ----------------
+note: while evaluating call to function
+   --> <stdlib>:269:9
+    |
+269 |         '%s: %s' % [std.escapeStringPython(k), std.manifestPython(v[k])]
+    |         ----------------------------------------------------------------
+note: while evaluating call to `join`
+   --> <stdlib>:272:17
+    |
+272 |       '{%s}' % [std.join(', ', fields)]
+    |                 ----------------------
+note: while evaluating call to `format`
+  --> <stdlib>:59:7
+   |
+59 |       std.format(a, b)
+   |       ----------------
+note: while evaluating call to function
+   --> <stdlib>:272:7
+    |
+272 |       '{%s}' % [std.join(', ', fields)]
+    |       ---------------------------------
+note: while evaluating call to function
+   --> <stdlib>:274:33
+    |
+274 |       '[%s]' % [std.join(', ', [std.manifestPython(v2) for v2 in v])]
+    |                                 ----------------------
+note: while evaluating call to `join`
+   --> <stdlib>:274:17
+    |
+274 |       '[%s]' % [std.join(', ', [std.manifestPython(v2) for v2 in v])]
+    |                 ----------------------------------------------------
+note: while evaluating call to `format`
+  --> <stdlib>:59:7
+   |
+59 |       std.format(a, b)
+   |       ----------------
+note: while evaluating call to function
+   --> <stdlib>:274:7
+    |
+274 |       '[%s]' % [std.join(', ', [std.manifestPython(v2) for v2 in v])]
+    |       ---------------------------------------------------------------
+note: while evaluating call to function
+ --> inner_error.jsonnet:1:1
+  |
+1 | std.manifestPython([0, { a: 1, b: error "err" }])
+  | -------------------------------------------------
+note: during top-level value evaluation
+
