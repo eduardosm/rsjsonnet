@@ -1,8 +1,8 @@
 error: division by zero
 note: while evaluating call to `modulo`
-  --> <stdlib>:59:7
+  --> <stdlib>:57:7
    |
-59 |       std.modulo(a, b)
+57 |       std.modulo(a, b)
    |       ----------------
 note: while evaluating call to function
  --> rem_by_zero.jsonnet:1:1

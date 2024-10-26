@@ -599,6 +599,7 @@ pub(super) enum BuiltInFunc {
     ManifestYamlStream,
     // Arrays
     MakeArray,
+    Count,
     Find,
     Filter,
     Foldl,

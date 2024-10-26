@@ -1,8 +1,8 @@
 error: functions cannot be manifested
 note: while evaluating call to `escapeStringJson`
-   --> <stdlib>:262:5
+   --> <stdlib>:260:5
     |
-262 |     std.escapeStringJson(str),
+260 |     std.escapeStringJson(str),
     |     -------------------------
 note: while evaluating call to function
  --> manifest_function.jsonnet:1:1

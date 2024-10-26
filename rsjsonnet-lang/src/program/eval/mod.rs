@@ -1299,6 +1299,14 @@ impl<'a> Evaluator<'a> {
                 State::StdManifestYamlDoc => self.do_std_manifest_yaml_doc()?,
                 State::StdManifestYamlStream => self.do_std_manifest_yaml_stream()?,
                 State::StdMakeArray => self.do_std_make_array()?,
+                State::StdCount { value } => self.do_std_count(value)?,
+                State::StdCountInner { array } => self.do_std_count_inner(array),
+                State::StdCountCheckItem {
+                    value,
+                    array,
+                    index,
+                    count,
+                } => self.do_std_count_check_item(value, array, index, count),
                 State::StdFind { value } => self.do_std_find(value)?,
                 State::StdFindInner { array } => self.do_std_find_inner(array),
                 State::StdFindCheckItem {

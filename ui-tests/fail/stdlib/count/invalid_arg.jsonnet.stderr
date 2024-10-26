@@ -1,15 +1,5 @@
-error: second argument of `std.filter` is expected to be array, got null
-note: while evaluating call to `filter`
-  --> <stdlib>:55:30
-   |
-55 |   count(arr, x):: std.length(std.filter(function(v) v == x, arr)),
-   |                              -----------------------------------
-note: while evaluating call to `length`
-  --> <stdlib>:55:19
-   |
-55 |   count(arr, x):: std.length(std.filter(function(v) v == x, arr)),
-   |                   -----------------------------------------------
-note: while evaluating call to function
+error: first argument of `std.find` is expected to be array, got null
+note: while evaluating call to `count`
  --> invalid_arg.jsonnet:1:1
   |
 1 | std.count(null, null)
