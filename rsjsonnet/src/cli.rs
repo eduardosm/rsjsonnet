@@ -54,21 +54,55 @@ pub(crate) struct Cli {
         value_name = "n"
     )]
     pub(crate) max_trace: Option<usize>,
-    #[clap(long = "ext-str", short = 'V', value_name = "var=[val]")]
+    #[clap(
+        long = "ext-str",
+        short = 'V',
+        help = "Provide an external variable as a string",
+        value_name = "var[=val]"
+    )]
     pub(crate) ext_str: Vec<VarOptVal>,
-    #[clap(long = "ext-str-file", value_name = "var=file")]
+    #[clap(
+        long = "ext-str-file",
+        help = "Provide an external variable as a string read from a file",
+        value_name = "var=file"
+    )]
     pub(crate) ext_str_file: Vec<VarFile>,
-    #[clap(long = "ext-code", value_name = "var[=code]")]
+    #[clap(
+        long = "ext-code",
+        help = "Provide an external variable as code",
+        value_name = "var[=code]"
+    )]
     pub(crate) ext_code: Vec<VarOptVal>,
-    #[clap(long = "ext-code-file", value_name = "var=file")]
+    #[clap(
+        long = "ext-code-file",
+        help = "Provide an external variable as code read from a file",
+        value_name = "var=file"
+    )]
     pub(crate) ext_code_file: Vec<VarFile>,
-    #[clap(long = "tla-str", short = 'A', value_name = "var[=val]")]
+    #[clap(
+        long = "tla-str",
+        short = 'A',
+        help = "Provide a top-level argument as a string",
+        value_name = "var[=val]"
+    )]
     pub(crate) tla_str: Vec<VarOptVal>,
-    #[clap(long = "tla-str-file", value_name = "var=file")]
+    #[clap(
+        long = "tla-str-file",
+        help = "Provide a top-level argument as a string read from a file",
+        value_name = "var=file"
+    )]
     pub(crate) tla_str_file: Vec<VarFile>,
-    #[clap(long = "tla-code", value_name = "var[=code]")]
+    #[clap(
+        long = "tla-code",
+        help = "Provide a top-level argument as code",
+        value_name = "var[=code]"
+    )]
     pub(crate) tla_code: Vec<VarOptVal>,
-    #[clap(long = "tla-code-file", value_name = "var=file")]
+    #[clap(
+        long = "tla-code-file",
+        help = "Provide a top-level argument as code read from a file",
+        value_name = "var=file"
+    )]
     pub(crate) tla_code_file: Vec<VarFile>,
 }
 
