@@ -464,4 +464,15 @@ std.assertEqual(
   { arr: [{ obj: { arr: [{ obj: { arr: [{ text: "A B" }] } }] } }] },
 ) &&
 
+# Stress test
+local num_repeats = 10000;
+std.assertEqual(
+  std.parseYaml("[" + std.join(",", std.repeat(["{}"], num_repeats)) + "]"),
+  std.repeat([{}], num_repeats)
+) &&
+std.assertEqual(
+  std.parseYaml(std.repeat("- {}\n", num_repeats)),
+  std.repeat([{}], num_repeats)
+) &&
+
 true
