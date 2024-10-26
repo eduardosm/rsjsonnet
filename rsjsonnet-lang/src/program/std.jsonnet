@@ -263,10 +263,6 @@ limitations under the License.
 
   manifestJsonMinified(value):: std.manifestJsonEx(value, '', '', ':'),
 
-  manifestPythonVars(conf)::
-    local vars = ['%s = %s' % [k, std.manifestPython(conf[k])] for k in std.objectFields(conf)];
-    std.join('\n', vars + ['']),
-
   manifestXmlJsonml(value)::
     if !std.isArray(value) then
       error 'Expected a JSONML value (an array), got %s' % std.type(value)
