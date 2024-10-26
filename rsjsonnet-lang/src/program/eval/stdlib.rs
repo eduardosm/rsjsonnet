@@ -1057,12 +1057,10 @@ impl Evaluator<'_> {
     }
 
     pub(super) fn do_std_count_inner(&mut self, array: GcView<ArrayData>) {
-        let value = self.value_stack.pop().unwrap();
-        self.value_stack.push(value.clone());
-
         let item0 = array[0].view();
+        self.value_stack
+            .push(self.value_stack.last().unwrap().clone());
         self.state_stack.push(State::StdCountCheckItem {
-            value,
             array,
             index: 0,
             count: 0,
@@ -1073,7 +1071,6 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_count_check_item(
         &mut self,
-        value: ValueData,
         array: GcView<ArrayData>,
         index: usize,
         mut count: usize,
@@ -1086,9 +1083,9 @@ impl Evaluator<'_> {
         let next_index = index + 1;
         if let Some(next_item) = array.get(next_index) {
             let next_item = next_item.view();
-            self.value_stack.push(value.clone());
+            self.value_stack
+                .push(self.value_stack.last().unwrap().clone());
             self.state_stack.push(State::StdCountCheckItem {
-                value,
                 array,
                 index: next_index,
                 count,
@@ -1096,7 +1093,7 @@ impl Evaluator<'_> {
             self.state_stack.push(State::EqualsValue);
             self.state_stack.push(State::DoThunk(next_item));
         } else {
-            self.value_stack.push(ValueData::Number(count as f64));
+            *self.value_stack.last_mut().unwrap() = ValueData::Number(count as f64);
         }
     }
 
@@ -1117,25 +1114,16 @@ impl Evaluator<'_> {
     }
 
     pub(super) fn do_std_find_inner(&mut self, array: GcView<ArrayData>) {
-        let value = self.value_stack.pop().unwrap();
-        self.value_stack.push(value.clone());
-
         let item0 = array[0].view();
-        self.state_stack.push(State::StdFindCheckItem {
-            value,
-            array,
-            index: 0,
-        });
+        self.value_stack
+            .push(self.value_stack.last().unwrap().clone());
+        self.state_stack
+            .push(State::StdFindCheckItem { array, index: 0 });
         self.state_stack.push(State::EqualsValue);
         self.state_stack.push(State::DoThunk(item0));
     }
 
-    pub(super) fn do_std_find_check_item(
-        &mut self,
-        value: ValueData,
-        array: GcView<ArrayData>,
-        index: usize,
-    ) {
+    pub(super) fn do_std_find_check_item(&mut self, array: GcView<ArrayData>, index: usize) {
         let equal = self.bool_stack.pop().unwrap();
         if equal {
             self.array_stack.last_mut().unwrap().push(
@@ -1147,9 +1135,9 @@ impl Evaluator<'_> {
         let next_index = index + 1;
         if let Some(next_item) = array.get(next_index) {
             let next_item = next_item.view();
-            self.value_stack.push(value.clone());
+            self.value_stack
+                .push(self.value_stack.last().unwrap().clone());
             self.state_stack.push(State::StdFindCheckItem {
-                value,
                 array,
                 index: next_index,
             });
@@ -1157,9 +1145,8 @@ impl Evaluator<'_> {
             self.state_stack.push(State::DoThunk(next_item));
         } else {
             let result = self.array_stack.pop().unwrap();
-            self.value_stack.push(ValueData::Array(
-                self.program.gc_alloc(result.into_boxed_slice()),
-            ));
+            *self.value_stack.last_mut().unwrap() =
+                ValueData::Array(self.program.gc_alloc(result.into_boxed_slice()));
         }
     }
 
