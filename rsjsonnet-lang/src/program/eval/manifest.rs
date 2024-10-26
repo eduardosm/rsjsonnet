@@ -435,6 +435,7 @@ impl Evaluator<'_> {
                         }
                     }
                 }
+                self.check_object_asserts(&object);
             }
             ValueData::Function(_) => {
                 return Err(self.report_error(EvalErrorKind::ManifestFunction));
