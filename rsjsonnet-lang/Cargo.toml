@@ -13,5 +13,5 @@ publish.workspace = true
 [dependencies]
 foldhash = "0.1.3"
 hashbrown = "0.15.0"
-libyaml-safer = "0.1.1"
 md-5 = { version = "0.10.6", default-features = false }
+saphyr-parser = "0.0.3"

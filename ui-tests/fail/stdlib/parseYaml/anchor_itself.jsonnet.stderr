@@ -1,4 +1,4 @@
-error: failed to parse YAML: Parser error: line 0 column 6: did not find expected key while parsing a block mapping (line 0 column 0)
+error: failed to parse YAML: while parsing a block mapping, did not find expected key at byte 6 line 1 column 7
 note: while evaluating call to `parseYaml`
  --> anchor_itself.jsonnet:1:1
   |
