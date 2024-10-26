@@ -153,6 +153,24 @@ std.assertEqual(std.parseYaml('"string"'), "string") &&
 std.assertEqual(std.parseYaml("'string'"), "string") &&
 std.assertEqual(std.parseYaml('"\\uABCD"'), "\uABCD") &&
 
+std.assertEqual(std.parseYaml(">\n x"), "x\n") &&
+std.assertEqual(std.parseYaml(">\n x\n"), "x\n") &&
+std.assertEqual(std.parseYaml(">\n x\n y"), "x y\n") &&
+std.assertEqual(std.parseYaml(">\n x\n y\n"), "x y\n") &&
+std.assertEqual(std.parseYaml(">-\n x"), "x") &&
+std.assertEqual(std.parseYaml(">-\n x\n"), "x") &&
+std.assertEqual(std.parseYaml(">-\n x\n y"), "x y") &&
+std.assertEqual(std.parseYaml(">-\n x\n y\n"), "x y") &&
+
+std.assertEqual(std.parseYaml("|\n x"), "x\n") &&
+std.assertEqual(std.parseYaml("|\n x\n"), "x\n") &&
+std.assertEqual(std.parseYaml("|\n x\n y"), "x\ny\n") &&
+std.assertEqual(std.parseYaml("|\n x\n y\n"), "x\ny\n") &&
+std.assertEqual(std.parseYaml("|-\n x"), "x") &&
+std.assertEqual(std.parseYaml("|-\n x\n"), "x") &&
+std.assertEqual(std.parseYaml("|-\n x\n y"), "x\ny") &&
+std.assertEqual(std.parseYaml("|-\n x\n y\n"), "x\ny") &&
+
 std.assertEqual(
   std.parseYaml(
     |||
@@ -186,6 +204,16 @@ std.assertEqual(
     |||
   ),
   ["false", "False", "FALSE"],
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      - ---1
+      - ...2
+    |||
+  ),
+  ["---1", "...2"],
 ) &&
 
 std.assertEqual(std.parseYaml('[]'), []) &&
@@ -418,6 +446,22 @@ std.assertEqual(
     |||
   ),
   { a: 1, b: 2, c: { "1": 2, "2": 1 }, d: { "1": 2, "2": 1 } },
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      arr:
+        - obj:
+            arr:
+              - obj:
+                  arr:
+                    - text: >-
+                        A
+                        B
+    |||
+  ),
+  { arr: [{ obj: { arr: [{ obj: { arr: [{ text: "A B" }] } }] } }] },
 ) &&
 
 true
