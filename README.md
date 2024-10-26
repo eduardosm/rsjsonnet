@@ -51,14 +51,14 @@ Options:
   -S, --string                    Expect a string, manifest as plain text
   -s, --max-stack <n>             Number of allowed stack frames
   -t, --max-trace <n>             Max length of stack trace before cropping
-  -V, --ext-str <var=[val]>
-      --ext-str-file <var=file>
-      --ext-code <var[=code]>
-      --ext-code-file <var=file>
-  -A, --tla-str <var[=val]>
-      --tla-str-file <var=file>
-      --tla-code <var[=code]>
-      --tla-code-file <var=file>
+  -V, --ext-str <var[=val]>       Provide an external variable as a string
+      --ext-str-file <var=file>   Provide an external variable as a string read from a file
+      --ext-code <var[=code]>     Provide an external variable as code
+      --ext-code-file <var=file>  Provide an external variable as code read from a file
+  -A, --tla-str <var[=val]>       Provide a top-level argument as a string
+      --tla-str-file <var=file>   Provide a top-level argument as a string read from a file
+      --tla-code <var[=code]>     Provide a top-level argument as code
+      --tla-code-file <var=file>  Provide a top-level argument as code read from a file
   -h, --help                      Print help
 ```
 
