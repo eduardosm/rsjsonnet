@@ -1,25 +1,5 @@
-error: first argument of `std.objectFieldsEx` is expected to be object, got null
-note: while evaluating call to `objectFieldsEx`
-   --> <stdlib>:316:5
-    |
-316 |     std.objectFieldsEx(o, false),
-    |     ----------------------------
-note: while evaluating call to function
-   --> <stdlib>:267:73
-    |
-267 |     local vars = ['%s = %s' % [k, std.manifestPython(conf[k])] for k in std.objectFields(conf)];
-    |                                                                         ----------------------
-note: while evaluating variable `vars`
-   --> <stdlib>:268:20
-    |
-268 |     std.join('\n', vars + ['']),
-    |                    ----
-note: while evaluating call to `join`
-   --> <stdlib>:268:5
-    |
-268 |     std.join('\n', vars + ['']),
-    |     ---------------------------
-note: while evaluating call to function
+error: first argument of `std.manifestPythonVars` is expected to be object, got null
+note: while evaluating call to `manifestPythonVars`
  --> invalid_arg.jsonnet:1:1
   |
 1 | std.manifestPythonVars(null)

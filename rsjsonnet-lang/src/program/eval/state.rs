@@ -284,6 +284,7 @@ pub(super) enum State {
     StdDecodeUtf8CheckItem,
     StdDecodeUtf8Finish,
     StdManifestPython,
+    StdManifestPythonVars,
     StdManifestJsonEx,
     StdManifestYamlDoc,
     StdManifestYamlStream,

@@ -1,25 +1,6 @@
 error: functions cannot be manifested
-note: while evaluating call to `manifestPython`
-   --> <stdlib>:267:35
-    |
-267 |     local vars = ['%s = %s' % [k, std.manifestPython(conf[k])] for k in std.objectFields(conf)];
-    |                                   ---------------------------
-note: while evaluating call to `format`
-  --> <stdlib>:59:7
-   |
-59 |       std.format(a, b)
-   |       ----------------
-note: while evaluating call to function
-   --> <stdlib>:267:19
-    |
-267 |     local vars = ['%s = %s' % [k, std.manifestPython(conf[k])] for k in std.objectFields(conf)];
-    |                   --------------------------------------------
-note: while evaluating call to `join`
-   --> <stdlib>:268:5
-    |
-268 |     std.join('\n', vars + ['']),
-    |     ---------------------------
-note: while evaluating call to function
+note: while manifesting object field "func"
+note: while evaluating call to `manifestPythonVars`
  --> manifest_function.jsonnet:1:1
   |
 1 | std.manifestPythonVars({ func: function() null })

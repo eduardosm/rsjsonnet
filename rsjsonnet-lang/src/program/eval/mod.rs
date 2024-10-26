@@ -1293,6 +1293,7 @@ impl<'a> Evaluator<'a> {
                 State::StdDecodeUtf8CheckItem => self.do_std_decode_utf8_check_item()?,
                 State::StdDecodeUtf8Finish => self.do_std_decode_utf8_finish(),
                 State::StdManifestPython => self.do_std_manifest_python(),
+                State::StdManifestPythonVars => self.do_std_manifest_python_vars()?,
                 State::StdManifestJsonEx => self.do_std_manifest_json_ex()?,
                 State::StdManifestYamlDoc => self.do_std_manifest_yaml_doc()?,
                 State::StdManifestYamlStream => self.do_std_manifest_yaml_stream()?,

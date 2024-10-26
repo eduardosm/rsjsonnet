@@ -1,0 +1,1 @@
+std.manifestPythonVars({ assert false })
