@@ -1,9 +1,5 @@
-error: explicit error: cannot manifest function
-   --> <stdlib>:278:7
-    |
-278 |       error 'cannot manifest function'
-    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: while evaluating call to function
+error: functions cannot be manifested
+note: while evaluating call to `manifestPython`
  --> manifest_function.jsonnet:1:1
   |
 1 | std.manifestPython(function() null)

@@ -916,6 +916,12 @@ impl Evaluator<'_> {
         self.value_stack.push(ValueData::String(s.into()));
     }
 
+    pub(super) fn do_std_manifest_python(&mut self) {
+        self.string_stack.push(String::new());
+        self.state_stack.push(State::StringToValue);
+        self.state_stack.push(State::ManifestPython);
+    }
+
     pub(super) fn do_std_manifest_json_ex(&mut self) -> Result<(), Box<EvalError>> {
         let key_val_sep = self.value_stack.pop().unwrap();
         let newline = self.value_stack.pop().unwrap();

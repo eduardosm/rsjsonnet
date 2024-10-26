@@ -342,24 +342,21 @@ impl<'a> Evaluator<'a> {
                         self.program.gc_alloc(array.into_boxed_slice()),
                     ));
                 }
-                State::ManifestJson { format, depth } => {
-                    self.do_manifest_json(format, depth)?;
-                }
+                State::ManifestPython => self.do_manifest_python()?,
+                State::ManifestJson { format, depth } => self.do_manifest_json(format, depth)?,
                 State::ManifestYamlDoc {
                     indent_array_in_object,
                     quote_keys,
                     depth,
                     parent_is_array,
                     parent_is_object,
-                } => {
-                    self.do_manifest_yaml_doc(
-                        indent_array_in_object,
-                        quote_keys,
-                        depth,
-                        parent_is_array,
-                        parent_is_object,
-                    )?;
-                }
+                } => self.do_manifest_yaml_doc(
+                    indent_array_in_object,
+                    quote_keys,
+                    depth,
+                    parent_is_array,
+                    parent_is_object,
+                )?,
                 State::Expr { expr, env } => self.do_expr(expr, env)?,
                 State::Error { span } => {
                     let msg = self.string_stack.pop().unwrap();
@@ -1295,6 +1292,7 @@ impl<'a> Evaluator<'a> {
                 State::StdDecodeUtf8 => self.do_std_decode_utf8()?,
                 State::StdDecodeUtf8CheckItem => self.do_std_decode_utf8_check_item()?,
                 State::StdDecodeUtf8Finish => self.do_std_decode_utf8_finish(),
+                State::StdManifestPython => self.do_std_manifest_python(),
                 State::StdManifestJsonEx => self.do_std_manifest_json_ex()?,
                 State::StdManifestYamlDoc => self.do_std_manifest_yaml_doc()?,
                 State::StdManifestYamlStream => self.do_std_manifest_yaml_stream()?,

@@ -35,6 +35,7 @@ pub(super) enum State {
     OutputValue,
     OutputString,
     ArrayToValue,
+    ManifestPython,
     ManifestJson {
         format: Rc<ManifestJsonFormat>,
         depth: usize,
@@ -282,6 +283,7 @@ pub(super) enum State {
     StdDecodeUtf8,
     StdDecodeUtf8CheckItem,
     StdDecodeUtf8Finish,
+    StdManifestPython,
     StdManifestJsonEx,
     StdManifestYamlDoc,
     StdManifestYamlStream,

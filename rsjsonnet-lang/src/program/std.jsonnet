@@ -263,28 +263,6 @@ limitations under the License.
 
   manifestJsonMinified(value):: std.manifestJsonEx(value, '', '', ':'),
 
-  manifestPython(v)::
-    if std.isObject(v) then
-      local fields = [
-        '%s: %s' % [std.escapeStringPython(k), std.manifestPython(v[k])]
-        for k in std.objectFields(v)
-      ];
-      '{%s}' % [std.join(', ', fields)]
-    else if std.isArray(v) then
-      '[%s]' % [std.join(', ', [std.manifestPython(v2) for v2 in v])]
-    else if std.isString(v) then
-      '%s' % [std.escapeStringPython(v)]
-    else if std.isFunction(v) then
-      error 'cannot manifest function'
-    else if std.isNumber(v) then
-      std.toString(v)
-    else if v == true then
-      'True'
-    else if v == false then
-      'False'
-    else if v == null then
-      'None',
-
   manifestPythonVars(conf)::
     local vars = ['%s = %s' % [k, std.manifestPython(conf[k])] for k in std.objectFields(conf)];
     std.join('\n', vars + ['']),
