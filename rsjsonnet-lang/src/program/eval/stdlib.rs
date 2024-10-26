@@ -1050,7 +1050,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_count(&mut self, value: GcView<ThunkData>) -> Result<(), Box<EvalError>> {
         let array = self.value_stack.pop().unwrap();
-        let array = self.expect_std_func_arg_array(array, "find", 0)?;
+        let array = self.expect_std_func_arg_array(array, "count", 0)?;
 
         if array.is_empty() {
             self.value_stack.push(ValueData::Number(0.0));

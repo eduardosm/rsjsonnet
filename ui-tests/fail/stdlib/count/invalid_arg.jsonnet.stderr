@@ -1,4 +1,4 @@
-error: first argument of `std.find` is expected to be array, got null
+error: first argument of `std.count` is expected to be array, got null
 note: while evaluating call to `count`
  --> invalid_arg.jsonnet:1:1
   |
