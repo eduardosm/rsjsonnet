@@ -1042,6 +1042,64 @@ impl Evaluator<'_> {
         Ok(())
     }
 
+    pub(super) fn do_std_count(&mut self, value: GcView<ThunkData>) -> Result<(), Box<EvalError>> {
+        let array = self.value_stack.pop().unwrap();
+        let array = self.expect_std_func_arg_array(array, "find", 0)?;
+
+        if array.is_empty() {
+            self.value_stack.push(ValueData::Number(0.0));
+        } else {
+            self.state_stack.push(State::StdCountInner { array });
+            self.state_stack.push(State::DoThunk(value));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_count_inner(&mut self, array: GcView<ArrayData>) {
+        let value = self.value_stack.pop().unwrap();
+        self.value_stack.push(value.clone());
+
+        let item0 = array[0].view();
+        self.state_stack.push(State::StdCountCheckItem {
+            value,
+            array,
+            index: 0,
+            count: 0,
+        });
+        self.state_stack.push(State::EqualsValue);
+        self.state_stack.push(State::DoThunk(item0));
+    }
+
+    pub(super) fn do_std_count_check_item(
+        &mut self,
+        value: ValueData,
+        array: GcView<ArrayData>,
+        index: usize,
+        mut count: usize,
+    ) {
+        let equal = self.bool_stack.pop().unwrap();
+        if equal {
+            count += 1;
+        }
+
+        let next_index = index + 1;
+        if let Some(next_item) = array.get(next_index) {
+            let next_item = next_item.view();
+            self.value_stack.push(value.clone());
+            self.state_stack.push(State::StdCountCheckItem {
+                value,
+                array,
+                index: next_index,
+                count,
+            });
+            self.state_stack.push(State::EqualsValue);
+            self.state_stack.push(State::DoThunk(next_item));
+        } else {
+            self.value_stack.push(ValueData::Number(count as f64));
+        }
+    }
+
     pub(super) fn do_std_find(&mut self, value: GcView<ThunkData>) -> Result<(), Box<EvalError>> {
         let array = self.value_stack.pop().unwrap();
         let array = self.expect_std_func_arg_array(array, "find", 1)?;

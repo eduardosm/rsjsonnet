@@ -52,8 +52,6 @@ limitations under the License.
       std.length(std.findSubstr(x, arr)) > 0
     else error 'std.member first argument must be an array or a string',
 
-  count(arr, x):: std.length(std.filter(function(v) v == x, arr)),
-
   mod(a, b)::
     if std.isNumber(a) && std.isNumber(b) then
       std.modulo(a, b)

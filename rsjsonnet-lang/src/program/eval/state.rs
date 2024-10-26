@@ -286,6 +286,18 @@ pub(super) enum State {
     StdManifestYamlDoc,
     StdManifestYamlStream,
     StdMakeArray,
+    StdCount {
+        value: GcView<ThunkData>,
+    },
+    StdCountInner {
+        array: GcView<ArrayData>,
+    },
+    StdCountCheckItem {
+        value: ValueData,
+        array: GcView<ArrayData>,
+        index: usize,
+        count: usize,
+    },
     StdFind {
         value: GcView<ThunkData>,
     },
