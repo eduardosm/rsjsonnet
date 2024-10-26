@@ -84,4 +84,11 @@ std.assertEqual(
   { a: { x: 1, y: 2 }, b: { x: 3, y: 4 } },
 ) &&
 
+# Stress test
+local num_repeats = 10000;
+std.assertEqual(
+  std.parseJson("[" + std.join(",", std.repeat(["{}"], num_repeats)) + "]"),
+  std.repeat([{}], num_repeats)
+) &&
+
 true
