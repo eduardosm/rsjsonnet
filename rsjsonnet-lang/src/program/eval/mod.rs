@@ -1302,18 +1302,15 @@ impl<'a> Evaluator<'a> {
                 State::StdCount { value } => self.do_std_count(value)?,
                 State::StdCountInner { array } => self.do_std_count_inner(array),
                 State::StdCountCheckItem {
-                    value,
                     array,
                     index,
                     count,
-                } => self.do_std_count_check_item(value, array, index, count),
+                } => self.do_std_count_check_item(array, index, count),
                 State::StdFind { value } => self.do_std_find(value)?,
                 State::StdFindInner { array } => self.do_std_find_inner(array),
-                State::StdFindCheckItem {
-                    value,
-                    array,
-                    index,
-                } => self.do_std_find_check_item(value, array, index),
+                State::StdFindCheckItem { array, index } => {
+                    self.do_std_find_check_item(array, index)
+                }
                 State::StdFilter => self.do_std_filter()?,
                 State::StdFilterCheck { item } => self.do_std_filter_check(item)?,
                 State::StdFoldl { init } => self.do_std_foldl(init)?,

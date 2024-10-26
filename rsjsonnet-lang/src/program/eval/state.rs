@@ -293,7 +293,6 @@ pub(super) enum State {
         array: GcView<ArrayData>,
     },
     StdCountCheckItem {
-        value: ValueData,
         array: GcView<ArrayData>,
         index: usize,
         count: usize,
@@ -305,7 +304,6 @@ pub(super) enum State {
         array: GcView<ArrayData>,
     },
     StdFindCheckItem {
-        value: ValueData,
         array: GcView<ArrayData>,
         index: usize,
     },
