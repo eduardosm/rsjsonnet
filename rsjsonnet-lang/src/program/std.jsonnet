@@ -265,15 +265,6 @@ limitations under the License.
 
   manifestJsonMinified(value):: std.manifestJsonEx(value, '', '', ':'),
 
-  manifestYamlStream(value, indent_array_in_object=false, c_document_end=true, quote_keys=true)::
-    if !std.isArray(value) then
-      error 'manifestYamlStream only takes arrays, got ' + std.type(value)
-    else
-      '---\n' + std.join(
-        '\n---\n', [std.manifestYamlDoc(e, indent_array_in_object, quote_keys) for e in value]
-      ) + if c_document_end then '\n...\n' else '\n',
-
-
   manifestPython(v)::
     if std.isObject(v) then
       local fields = [

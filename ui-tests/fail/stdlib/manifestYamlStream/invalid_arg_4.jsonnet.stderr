@@ -1,0 +1,8 @@
+error: fourth argument of `std.manifestYamlStream` is expected to be boolean, got null
+note: while evaluating call to `manifestYamlStream`
+ --> invalid_arg_4.jsonnet:1:1
+  |
+1 | std.manifestYamlStream([], quote_keys=null)
+  | -------------------------------------------
+note: during top-level value evaluation
+

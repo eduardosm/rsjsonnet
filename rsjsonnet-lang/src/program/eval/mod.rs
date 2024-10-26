@@ -1297,6 +1297,7 @@ impl<'a> Evaluator<'a> {
                 State::StdDecodeUtf8Finish => self.do_std_decode_utf8_finish(),
                 State::StdManifestJsonEx => self.do_std_manifest_json_ex()?,
                 State::StdManifestYamlDoc => self.do_std_manifest_yaml_doc()?,
+                State::StdManifestYamlStream => self.do_std_manifest_yaml_stream()?,
                 State::StdMakeArray => self.do_std_make_array()?,
                 State::StdFind { value } => self.do_std_find(value)?,
                 State::StdFindInner { array } => self.do_std_find_inner(array),

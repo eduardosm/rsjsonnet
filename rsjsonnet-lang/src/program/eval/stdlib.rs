@@ -956,6 +956,47 @@ impl Evaluator<'_> {
         Ok(())
     }
 
+    pub(super) fn do_std_manifest_yaml_stream(&mut self) -> Result<(), Box<EvalError>> {
+        let quote_keys = self.value_stack.pop().unwrap();
+        let c_document_end = self.value_stack.pop().unwrap();
+        let indent_array_in_object = self.value_stack.pop().unwrap();
+        let value = self.value_stack.pop().unwrap();
+
+        let array = self.expect_std_func_arg_array(value, "manifestYamlStream", 0)?;
+        let indent_array_in_object =
+            self.expect_std_func_arg_bool(indent_array_in_object, "manifestYamlStream", 1)?;
+        let c_document_end =
+            self.expect_std_func_arg_bool(c_document_end, "manifestYamlStream", 2)?;
+        let quote_keys = self.expect_std_func_arg_bool(quote_keys, "manifestYamlStream", 3)?;
+
+        self.string_stack.push("---\n".into());
+        self.state_stack.push(State::StringToValue);
+
+        if c_document_end {
+            self.state_stack
+                .push(State::AppendToString("\n...\n".into()));
+        } else {
+            self.state_stack.push(State::AppendToString('\n'.into()));
+        }
+
+        for (i, item) in array.iter().rev().enumerate() {
+            if i != 0 {
+                self.state_stack
+                    .push(State::AppendToString("\n---\n".into()));
+            }
+            self.state_stack.push(State::ManifestYamlDoc {
+                indent_array_in_object,
+                quote_keys,
+                depth: 0,
+                parent_is_array: false,
+                parent_is_object: false,
+            });
+            self.state_stack.push(State::DoThunk(item.view()));
+        }
+
+        Ok(())
+    }
+
     pub(super) fn do_std_make_array(&mut self) -> Result<(), Box<EvalError>> {
         let func_value = self.value_stack.pop().unwrap();
         let sz_value = self.value_stack.pop().unwrap();
