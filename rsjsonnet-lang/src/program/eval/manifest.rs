@@ -117,7 +117,7 @@ impl Evaluator<'_> {
                         self.delay_trace_item();
                         self.state_stack.push(State::AppendToString(": ".into()));
                         let mut name_manifested = String::new();
-                        escape_string_json(field_name.value(), &mut name_manifested);
+                        escape_string_python(field_name.value(), &mut name_manifested);
                         self.state_stack
                             .push(State::AppendToString(name_manifested));
                     }

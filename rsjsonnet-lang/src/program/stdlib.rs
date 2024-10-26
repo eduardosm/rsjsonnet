@@ -151,6 +151,11 @@ impl Program {
         add_simple("encodeUTF8", BuiltInFunc::EncodeUtf8, &["str"]);
         add_simple("decodeUTF8", BuiltInFunc::DecodeUtf8, &["arr"]);
         add_simple("manifestPython", BuiltInFunc::ManifestPython, &["v"]);
+        add_simple(
+            "manifestPythonVars",
+            BuiltInFunc::ManifestPythonVars,
+            &["conf"],
+        );
         add_simple("makeArray", BuiltInFunc::MakeArray, &["sz", "func"]);
         add_simple("count", BuiltInFunc::Count, &["arr", "x"]);
         add_simple("find", BuiltInFunc::Find, &["value", "find"]);

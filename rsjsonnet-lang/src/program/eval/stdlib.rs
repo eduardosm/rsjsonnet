@@ -2,11 +2,11 @@ use std::cell::{Cell, OnceCell};
 use std::fmt::Write as _;
 use std::rc::Rc;
 
-use super::super::data::{ArrayData, FuncData, ThunkData, ValueData};
+use super::super::{ArrayData, FuncData, ThunkData, ValueData};
 use super::manifest::escape_string_json;
 use super::{
     float, parse_num_radix, EvalError, EvalErrorKind, EvalErrorValueType, Evaluator,
-    ManifestJsonFormat, ParseNumRadixError, State,
+    ManifestJsonFormat, ParseNumRadixError, State, TraceItem,
 };
 use crate::gc::{Gc, GcView};
 
@@ -920,6 +920,41 @@ impl Evaluator<'_> {
         self.string_stack.push(String::new());
         self.state_stack.push(State::StringToValue);
         self.state_stack.push(State::ManifestPython);
+    }
+
+    pub(super) fn do_std_manifest_python_vars(&mut self) -> Result<(), Box<EvalError>> {
+        let value = self.value_stack.pop().unwrap();
+        let object = self.expect_std_func_arg_object(value, "manifestPythonVars", 0)?;
+
+        self.string_stack.push(String::new());
+        self.state_stack.push(State::StringToValue);
+
+        let visible_fields: Vec<_> = object
+            .get_fields_order()
+            .iter()
+            .filter_map(|(name, visible)| visible.then_some(name))
+            .collect();
+
+        for &field_name in visible_fields.iter().rev() {
+            self.state_stack.push(State::AppendToString('\n'.into()));
+
+            self.push_trace_item(TraceItem::ManifestObjectField {
+                name: field_name.clone(),
+            });
+            self.state_stack.push(State::ManifestPython);
+            let field_thunk = self
+                .program
+                .find_object_field_thunk(&object, 0, field_name)
+                .unwrap();
+            self.state_stack.push(State::DoThunk(field_thunk));
+            self.delay_trace_item();
+            self.state_stack.push(State::AppendToString(" = ".into()));
+            self.state_stack
+                .push(State::AppendToString(field_name.value().into()));
+        }
+        self.check_object_asserts(&object);
+
+        Ok(())
     }
 
     pub(super) fn do_std_manifest_json_ex(&mut self) -> Result<(), Box<EvalError>> {
