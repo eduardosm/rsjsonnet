@@ -1,0 +1,1 @@
+std.manifestPython(function() null)
