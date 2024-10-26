@@ -1,1 +1,0 @@
-std.manifestJson({ assert false })

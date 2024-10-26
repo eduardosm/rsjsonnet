@@ -1,0 +1,12 @@
+error: assertion failed: assert msg
+ --> object_assert_failed_with_msg.jsonnet:1:16
+  |
+1 | std.toString({ assert false : "assert msg" })
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: while evaluating call to `toString`
+ --> object_assert_failed_with_msg.jsonnet:1:1
+  |
+1 | std.toString({ assert false : "assert msg" })
+  | ---------------------------------------------
+note: during top-level value evaluation
+
