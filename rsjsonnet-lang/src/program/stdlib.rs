@@ -202,6 +202,19 @@ impl Program {
             ),
         );
         add_builtin_func(
+            self.str_interner.intern("manifestYamlStream"),
+            BuiltInFunc::ManifestYamlStream,
+            ir::FuncParams::create_with_defaults(
+                &self.str_interner,
+                [
+                    ("value", None),
+                    ("indent_array_in_object", Some(self.false_expr.clone())),
+                    ("c_document_end", Some(self.true_expr.clone())),
+                    ("quote_keys", Some(self.true_expr.clone())),
+                ],
+            ),
+        );
+        add_builtin_func(
             self.str_interner.intern("sort"),
             BuiltInFunc::Sort,
             ir::FuncParams::create_with_defaults(

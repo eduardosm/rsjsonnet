@@ -1,0 +1,8 @@
+error: first argument of `std.manifestYamlStream` is expected to be array, got null
+note: while evaluating call to `manifestYamlStream`
+ --> invalid_arg_1.jsonnet:1:1
+  |
+1 | std.manifestYamlStream(null)
+  | ----------------------------
+note: during top-level value evaluation
+

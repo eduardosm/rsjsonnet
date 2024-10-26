@@ -284,6 +284,7 @@ pub(super) enum State {
     StdDecodeUtf8Finish,
     StdManifestJsonEx,
     StdManifestYamlDoc,
+    StdManifestYamlStream,
     StdMakeArray,
     StdFind {
         value: GcView<ThunkData>,
