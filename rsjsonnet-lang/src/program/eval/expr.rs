@@ -1,8 +1,8 @@
 use std::cell::{Cell, OnceCell};
 
 use super::super::{
-    ir, FuncData, ImportError, ObjectAssert, ObjectCore, ObjectData, ThunkEnv, ThunkEnvData,
-    ValueData,
+    ir, FuncData, FuncKind, ImportError, ObjectAssert, ObjectCore, ObjectData, ThunkEnv,
+    ThunkEnvData, ValueData,
 };
 use super::{EvalError, EvalErrorKind, EvalErrorValueType, Evaluator, State, TraceItem};
 use crate::gc::{Gc, GcView};
@@ -387,14 +387,14 @@ impl Evaluator<'_> {
                 ref body,
             } => {
                 self.value_stack
-                    .push(ValueData::Function(self.program.gc_alloc(
-                        FuncData::Normal {
+                    .push(ValueData::Function(self.program.gc_alloc(FuncData {
+                        params: params.clone(),
+                        kind: FuncKind::Normal {
                             name: None, // TODO: Function name
-                            params: params.clone(),
                             body: body.clone(),
                             env: Gc::from(&env),
                         },
-                    )));
+                    })));
             }
             ir::Expr::Error { ref msg, span } => {
                 self.state_stack.push(State::Error { span });

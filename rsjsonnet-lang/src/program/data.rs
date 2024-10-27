@@ -541,25 +541,37 @@ impl GcTrace for ObjectAssert {
     }
 }
 
-pub(crate) enum FuncData {
+pub(super) struct FuncData {
+    pub(super) params: Rc<ir::FuncParams>,
+    pub(super) kind: FuncKind,
+}
+
+impl GcTrace for FuncData {
+    #[inline]
+    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    where
+        Self: 'a,
+    {
+        self.kind.trace(ctx);
+    }
+}
+
+pub(super) enum FuncKind {
     Normal {
         name: Option<InternedStr>,
-        params: Rc<ir::FuncParams>,
         body: ir::RcExpr,
         env: Gc<ThunkEnv>,
     },
     BuiltIn {
         name: InternedStr,
-        params: Rc<ir::FuncParams>,
         kind: BuiltInFunc,
     },
     Native {
         name: InternedStr,
-        params: Rc<ir::FuncParams>,
     },
 }
 
-impl GcTrace for FuncData {
+impl GcTrace for FuncKind {
     #[inline]
     fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
     where

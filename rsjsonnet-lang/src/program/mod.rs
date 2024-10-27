@@ -90,7 +90,7 @@ mod ir;
 mod stdlib;
 
 use data::{
-    ArrayData, BuiltInFunc, FuncData, ObjectAssert, ObjectCore, ObjectData, ObjectField,
+    ArrayData, BuiltInFunc, FuncData, FuncKind, ObjectAssert, ObjectCore, ObjectData, ObjectField,
     PendingThunk, ThunkData, ThunkEnv, ThunkEnvData, ThunkState, ValueData,
 };
 pub use error::{AnalyzeError, EvalError, EvalErrorKind, EvalErrorValueType, LoadError};
@@ -230,10 +230,12 @@ impl Program {
         let (stdlib_span_ctx, stdlib_src_id) = span_mgr.insert_source_context(stdlib_data.len());
 
         let empty_array: GcView<ArrayData> = gc_ctx.alloc_view(Box::new([]));
-        let identity_func = gc_ctx.alloc_view(FuncData::BuiltIn {
-            name: str_interner.intern("id"),
+        let identity_func = gc_ctx.alloc_view(FuncData {
             params: Rc::new(ir::FuncParams::create_simple(&str_interner, &["x"])),
-            kind: BuiltInFunc::Identity,
+            kind: FuncKind::BuiltIn {
+                name: str_interner.intern("id"),
+                kind: BuiltInFunc::Identity,
+            },
         });
 
         let mut this = Self {
@@ -346,12 +348,12 @@ impl Program {
                     params_order.push(param.clone());
                 }
 
-                entry.insert(self.gc_ctx.alloc_view(FuncData::Native {
-                    name,
+                entry.insert(self.gc_ctx.alloc_view(FuncData {
                     params: Rc::new(ir::FuncParams {
                         by_name: params_by_name,
                         order: params_order,
                     }),
+                    kind: FuncKind::Native { name },
                 }));
             }
         }

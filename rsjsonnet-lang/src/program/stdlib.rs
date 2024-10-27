@@ -2,7 +2,8 @@ use std::cell::OnceCell;
 use std::rc::Rc;
 
 use super::{
-    ir, BuiltInFunc, FuncData, ObjectData, ObjectField, Program, ThunkData, ThunkState, ValueData,
+    ir, BuiltInFunc, FuncData, FuncKind, ObjectData, ObjectField, Program, ThunkData, ThunkState,
+    ValueData,
 };
 use crate::gc::Gc;
 use crate::interner::InternedStr;
@@ -46,10 +47,9 @@ impl Program {
                         visibility: ast::Visibility::Hidden,
                         expr: None,
                         thunk: OnceCell::from(self.gc_alloc(ThunkData::new_done(
-                            ValueData::Function(self.gc_alloc(FuncData::BuiltIn {
-                                name,
+                            ValueData::Function(self.gc_alloc(FuncData {
                                 params: Rc::new(params),
-                                kind,
+                                kind: FuncKind::BuiltIn { name, kind },
                             })),
                         ))),
                     },
