@@ -39,7 +39,9 @@ impl Program {
         let mut extra_fields = FHashMap::default();
 
         let mut add_builtin_func =
-            |name: InternedStr, kind: BuiltInFunc, params: ir::FuncParams| {
+            |name: InternedStr,
+             kind: BuiltInFunc,
+             params: Vec<(InternedStr, Option<ir::RcExpr>)>| {
                 let prev = extra_fields.insert(
                     name.clone(),
                     ObjectField {
@@ -47,10 +49,10 @@ impl Program {
                         visibility: ast::Visibility::Hidden,
                         expr: None,
                         thunk: OnceCell::from(self.gc_alloc(ThunkData::new_done(
-                            ValueData::Function(self.gc_alloc(FuncData {
-                                params: Rc::new(params),
-                                kind: FuncKind::BuiltIn { name, kind },
-                            })),
+                            ValueData::Function(self.gc_alloc(FuncData::new(
+                                Rc::new(params),
+                                FuncKind::BuiltIn { name, kind },
+                            ))),
                         ))),
                     },
                 );
@@ -61,7 +63,7 @@ impl Program {
             add_builtin_func(
                 self.intern_str(name),
                 kind,
-                ir::FuncParams::create_simple(&self.str_interner, params),
+                params.iter().map(|&s| (self.intern_str(s), None)).collect(),
             );
         };
 
@@ -188,7 +190,10 @@ impl Program {
                 add_builtin_func(
                     self.intern_str(name),
                     kind,
-                    ir::FuncParams::create_with_defaults(&self.str_interner, params),
+                    params
+                        .iter()
+                        .map(|(s, e)| (self.intern_str(s), e.clone()))
+                        .collect(),
                 );
             };
 

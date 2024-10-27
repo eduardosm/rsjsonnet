@@ -1,4 +1,6 @@
-use super::super::{ir, BuiltInFunc, FuncData, FuncKind, ThunkData, ThunkEnv, ThunkEnvData};
+use super::super::{
+    ir, BuiltInFunc, FuncData, FuncKind, FuncParams, ThunkData, ThunkEnv, ThunkEnvData,
+};
 use super::{EvalError, EvalErrorKind, Evaluator, State, TraceItem};
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
@@ -21,7 +23,7 @@ impl Evaluator<'_> {
 
     pub(super) fn check_call_expr_args(
         &self,
-        params: &ir::FuncParams,
+        params: &FuncParams,
         positional_args: &[ir::RcExpr],
         named_args: &[(InternedStr, SpanId, ir::RcExpr)],
         call_env: GcView<ThunkEnv>,
@@ -43,7 +45,7 @@ impl Evaluator<'_> {
 
     fn check_call_thunk_args(
         &self,
-        params: &ir::FuncParams,
+        params: &FuncParams,
         positional_args: &[GcView<ThunkData>],
         named_args: &[(InternedStr, GcView<ThunkData>)],
         func_env: Option<Gc<ThunkEnv>>,
@@ -64,7 +66,7 @@ impl Evaluator<'_> {
     #[inline]
     fn check_call_args_generic<PosArg, NamedArg>(
         &self,
-        params: &ir::FuncParams,
+        params: &FuncParams,
         positional_args: &[PosArg],
         pos_arg_thunk: impl Fn(&Self, &PosArg) -> Gc<ThunkData>,
         named_args: &[NamedArg],
@@ -96,7 +98,7 @@ impl Evaluator<'_> {
         for named_arg in named_args.iter() {
             let param_name = named_arg_name(named_arg);
             let name_span = named_arg_name_span(named_arg);
-            let Some(&(param_i, _)) = params.by_name.get(param_name) else {
+            let Some(&param_i) = params.by_name.get(param_name) else {
                 return Err(self.report_error(EvalErrorKind::UnknownCallParam {
                     span: name_span,
                     param_name: param_name.value().into(),
@@ -143,8 +145,8 @@ impl Evaluator<'_> {
             if let Some(arg) = arg_tmp {
                 args_thunks.push(arg);
             } else {
-                let param_name = &params.order[args_thunks.len()];
-                let (_, Some(default_arg)) = &params.by_name[param_name] else {
+                let (param_name, default_arg) = &params.order[args_thunks.len()];
+                let Some(default_arg) = default_arg else {
                     return Err(self.report_error(EvalErrorKind::CallParamNotBound {
                         span: call_span,
                         param_name: param_name.value().into(),
@@ -156,7 +158,7 @@ impl Evaluator<'_> {
         }
 
         let mut args_env_data = ThunkEnvData::new(func_env);
-        for (arg_name, arg_thunk) in params.order.iter().zip(args_thunks.iter()) {
+        for ((arg_name, _), arg_thunk) in params.order.iter().zip(args_thunks.iter()) {
             args_env_data.set_var(arg_name.clone(), arg_thunk.clone());
         }
 
@@ -203,14 +205,14 @@ impl Evaluator<'_> {
 
     pub(super) fn execute_normal_call(
         &mut self,
-        params: &ir::FuncParams,
+        params: &FuncParams,
         body: ir::RcExpr,
         env: Gc<ThunkEnv>,
         args: Box<[Gc<ThunkData>]>,
     ) {
         let inner_env = self.program.gc_alloc_view(ThunkEnv::new());
         let mut inner_env_data = ThunkEnvData::new(Some(env));
-        for (arg_name, arg_thunk) in params.order.iter().zip(Vec::from(args)) {
+        for ((arg_name, _), arg_thunk) in params.order.iter().zip(Vec::from(args)) {
             inner_env_data.set_var(arg_name.clone(), arg_thunk);
         }
         inner_env.set_data(inner_env_data);

@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
-use crate::interner::{InternedStr, StrInterner};
+use crate::ast;
+use crate::interner::InternedStr;
 use crate::span::SpanId;
-use crate::{ast, FHashMap};
 
 #[derive(Debug)]
 pub(super) enum Expr {
@@ -89,7 +89,7 @@ pub(super) enum Expr {
     },
     IdentityFunc,
     Func {
-        params: Rc<FuncParams>,
+        params: Rc<Vec<(InternedStr, Option<RcExpr>)>>,
         body: RcExpr,
     },
     Error {
@@ -378,35 +378,4 @@ pub(super) enum CompSpecPart {
         cond: RcExpr,
         cond_span: SpanId,
     },
-}
-
-#[derive(Debug)]
-pub(super) struct FuncParams {
-    pub(super) by_name: FHashMap<InternedStr, (usize, Option<RcExpr>)>,
-    pub(super) order: Vec<InternedStr>,
-}
-
-impl FuncParams {
-    pub(super) fn create_simple(str_interner: &StrInterner, params: &[&str]) -> Self {
-        let order: Vec<_> = params.iter().map(|s| str_interner.intern(s)).collect();
-        let by_name = order
-            .iter()
-            .enumerate()
-            .map(|(i, name)| (name.clone(), (i, None)))
-            .collect();
-        Self { by_name, order }
-    }
-
-    pub(super) fn create_with_defaults(
-        str_interner: &StrInterner,
-        params: &[(&str, Option<RcExpr>)],
-    ) -> Self {
-        let order: Vec<_> = params.iter().map(|(s, _)| str_interner.intern(s)).collect();
-        let by_name = params
-            .iter()
-            .enumerate()
-            .map(|(i, (name, default))| (str_interner.intern(name), (i, default.clone())))
-            .collect();
-        Self { by_name, order }
-    }
 }

@@ -1127,7 +1127,7 @@ impl<'a> Evaluator<'a> {
                     )?;
                     match func.kind {
                         FuncKind::Normal { .. } if tailstrict => {
-                            let params = func.params.clone();
+                            let params_order = func.params.order.clone();
                             self.state_stack.push(State::ExecTailstrictCall {
                                 func,
                                 args: args_thunks.clone(),
@@ -1136,7 +1136,7 @@ impl<'a> Evaluator<'a> {
                             for (i, arg_thunk) in args_thunks.iter().enumerate().rev() {
                                 self.push_trace_item(TraceItem::Variable {
                                     span: call_span,
-                                    name: params.order[i].clone(),
+                                    name: params_order[i].0.clone(),
                                 });
                                 self.state_stack.push(State::DiscardValue);
                                 self.state_stack.push(State::DoThunk(arg_thunk.view()));

@@ -631,21 +631,15 @@ impl<'a> Analyzer<'a> {
             }
         }
 
-        let mut params = ir::FuncParams {
-            by_name: FHashMap::default(),
-            order: Vec::new(),
-        };
-        for (param_i, param_ast) in params_ast.iter().enumerate() {
+        let mut params = Vec::new();
+        for param_ast in params_ast.iter() {
             let name = &param_ast.name.value;
-            if let HashMapEntry::Vacant(entry) = params.by_name.entry(name.clone()) {
-                let default_value = param_ast
-                    .default_value
-                    .as_ref()
-                    .map(|e| self.analyze_expr(e, &inner_env, false))
-                    .transpose()?;
-                entry.insert((param_i, default_value));
-                params.order.push(name.clone());
-            }
+            let default_value = param_ast
+                .default_value
+                .as_ref()
+                .map(|e| self.analyze_expr(e, &inner_env, false))
+                .transpose()?;
+            params.push((name.clone(), default_value));
         }
 
         let body = self.analyze_expr(body_ast, &inner_env, true)?;
