@@ -296,17 +296,15 @@ impl<'a> Analyzer<'a> {
                             }
                         }
 
-                        let mut bindings = FHashMap::default();
+                        let mut bindings = Vec::new();
                         for bind_ast in binds_ast.iter() {
                             let name = &bind_ast.name.value;
-                            if let HashMapEntry::Vacant(entry) = bindings.entry(name.clone()) {
-                                let value = if let Some((ref params, _)) = bind_ast.params {
-                                    self.analyze_function(params, &bind_ast.value, &inner_env)?
-                                } else {
-                                    self.analyze_expr(&bind_ast.value, &inner_env, false)?
-                                };
-                                entry.insert(value);
-                            }
+                            let value = if let Some((ref params, _)) = bind_ast.params {
+                                self.analyze_function(params, &bind_ast.value, &inner_env)?
+                            } else {
+                                self.analyze_expr(&bind_ast.value, &inner_env, false)?
+                            };
+                            bindings.push((name.clone(), value));
                         }
 
                         let inner = self.analyze_expr(inner_ast, &inner_env, can_be_tailstrict)?;
@@ -466,7 +464,7 @@ impl<'a> Analyzer<'a> {
                     }
                 }
 
-                let mut locals = FHashMap::default();
+                let mut locals = Vec::new();
                 let mut asserts = Vec::new();
                 let mut fields = Vec::<ir::ObjectField>::new();
                 let mut fix_fields = FHashMap::<InternedStr, usize>::default();
@@ -475,18 +473,12 @@ impl<'a> Analyzer<'a> {
                     match member_ast {
                         ast::Member::Local(local_ast) => {
                             let name = &local_ast.bind.name.value;
-                            if let HashMapEntry::Vacant(entry) = locals.entry(name.clone()) {
-                                let value = if let Some((ref params, _)) = local_ast.bind.params {
-                                    self.analyze_function(
-                                        params,
-                                        &local_ast.bind.value,
-                                        &inner_env,
-                                    )?
-                                } else {
-                                    self.analyze_expr(&local_ast.bind.value, &inner_env, false)?
-                                };
-                                entry.insert(value);
-                            }
+                            let value = if let Some((ref params, _)) = local_ast.bind.params {
+                                self.analyze_function(params, &local_ast.bind.value, &inner_env)?
+                            } else {
+                                self.analyze_expr(&local_ast.bind.value, &inner_env, false)?
+                            };
+                            locals.push((name.clone(), value));
                         }
                         ast::Member::Assert(assert_ast) => {
                             asserts.push(self.analyze_assert(assert_ast, &inner_env)?);
@@ -587,17 +579,15 @@ impl<'a> Analyzer<'a> {
                     }
                 }
 
-                let mut locals = FHashMap::default();
+                let mut locals = Vec::new();
                 for local_ast in locals1_ast.iter().chain(locals2_ast.iter()) {
                     let name = &local_ast.bind.name.value;
-                    if let HashMapEntry::Vacant(entry) = locals.entry(name.clone()) {
-                        let value = if let Some((ref params, _)) = local_ast.bind.params {
-                            self.analyze_function(params, &local_ast.bind.value, &inner_env)?
-                        } else {
-                            self.analyze_expr(&local_ast.bind.value, &inner_env, false)?
-                        };
-                        entry.insert(value);
-                    }
+                    let value = if let Some((ref params, _)) = local_ast.bind.params {
+                        self.analyze_function(params, &local_ast.bind.value, &inner_env)?
+                    } else {
+                        self.analyze_expr(&local_ast.bind.value, &inner_env, false)?
+                    };
+                    locals.push((name.clone(), value));
                 }
 
                 let field_name = self.analyze_expr(name_ast, &env, false)?;
