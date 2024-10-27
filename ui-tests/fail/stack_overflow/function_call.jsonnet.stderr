@@ -1,9 +1,9 @@
 error: stack overflow
-note: while evaluating variable `f`
+note: while evaluating call to function
  --> function_call.jsonnet:1:13
   |
 1 | local f() = f();
-  |             -
+  |             ---
 note: while evaluating call to function
  --> function_call.jsonnet:1:13
   |

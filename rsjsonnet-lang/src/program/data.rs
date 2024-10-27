@@ -266,6 +266,14 @@ impl ThunkData {
         assert!(matches!(*state, ThunkState::InProgress));
         *state = ThunkState::Done(value);
     }
+
+    #[inline]
+    pub(super) fn get_value(&self) -> Option<ValueData> {
+        match *self.state.borrow() {
+            ThunkState::Done(ref value) => Some(value.clone()),
+            _ => None,
+        }
+    }
 }
 
 pub(super) enum ThunkState {
