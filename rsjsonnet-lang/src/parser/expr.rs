@@ -1,4 +1,4 @@
-use super::{ExpectedThing, ParseError, Parser};
+use super::{ExpectedToken, ParseError, Parser};
 use crate::ast;
 use crate::span::SpanId;
 use crate::token::STokenKind;
@@ -234,7 +234,7 @@ impl Parser<'_> {
                         stack.push(StackItem::BinaryRhs(kind, Box::new(lhs), op));
                         state = kind.next_state();
                     } else {
-                        self.expected_things.push(ExpectedThing::BinaryOp);
+                        self.expected_things.push(ExpectedToken::BinaryOp);
                         state = State::Parsed(lhs);
                     }
                 }
@@ -390,7 +390,7 @@ impl Parser<'_> {
                         stack.push(StackItem::Paren(start_span));
                         state = INIT_STATE;
                     } else {
-                        self.expected_things.push(ExpectedThing::Expr);
+                        self.expected_things.push(ExpectedToken::Expr);
                         return Err(self.report_expected());
                     }
                 }

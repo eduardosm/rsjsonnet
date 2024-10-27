@@ -28,14 +28,14 @@ use crate::token::{Number, STokenKind, Token, TokenKind};
 mod error;
 mod expr;
 
-pub use error::{ExpectedThing, ParseError};
+pub use error::{ExpectedToken, ParseError};
 
 pub struct Parser<'a> {
     str_interner: &'a StrInterner,
     span_mgr: &'a mut SpanManager,
     curr_token: Token,
     rem_tokens: std::vec::IntoIter<Token>,
-    expected_things: Vec<ExpectedThing>,
+    expected_things: Vec<ExpectedToken>,
 }
 
 impl<'a> Parser<'a> {
@@ -87,7 +87,7 @@ impl<'a> Parser<'a> {
             true
         } else {
             if add_to_expected {
-                self.expected_things.push(ExpectedThing::EndOfFile);
+                self.expected_things.push(ExpectedToken::EndOfFile);
             }
             false
         }
@@ -101,7 +101,7 @@ impl<'a> Parser<'a> {
             Some(span)
         } else {
             if add_to_expected {
-                self.expected_things.push(ExpectedThing::Simple(kind));
+                self.expected_things.push(ExpectedToken::Simple(kind));
             }
             None
         }
@@ -129,7 +129,7 @@ impl<'a> Parser<'a> {
             Some(ast::Ident { value, span })
         } else {
             if add_to_expected {
-                self.expected_things.push(ExpectedThing::Ident);
+                self.expected_things.push(ExpectedToken::Ident);
             }
             None
         }
@@ -154,7 +154,7 @@ impl<'a> Parser<'a> {
             Some((n, span))
         } else {
             if add_to_expected {
-                self.expected_things.push(ExpectedThing::Number);
+                self.expected_things.push(ExpectedToken::Number);
             }
             None
         }
@@ -170,7 +170,7 @@ impl<'a> Parser<'a> {
             Some((s, span))
         } else {
             if add_to_expected {
-                self.expected_things.push(ExpectedThing::String);
+                self.expected_things.push(ExpectedToken::String);
             }
             None
         }
@@ -186,7 +186,7 @@ impl<'a> Parser<'a> {
             Some((s, span))
         } else {
             if add_to_expected {
-                self.expected_things.push(ExpectedThing::TextBlock);
+                self.expected_things.push(ExpectedToken::TextBlock);
             }
             None
         }

@@ -4,7 +4,7 @@ use crate::span::SpanId;
 use crate::token::{STokenKind, TokenKind};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ExpectedThing {
+pub enum ExpectedToken {
     EndOfFile,
     Simple(STokenKind),
     Ident,
@@ -19,7 +19,7 @@ pub enum ExpectedThing {
 pub enum ParseError {
     Expected {
         span: SpanId,
-        expected: BTreeSet<ExpectedThing>,
+        expected: BTreeSet<ExpectedToken>,
         instead: TokenKind,
     },
 }
