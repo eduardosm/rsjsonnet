@@ -48,7 +48,7 @@ pub(super) enum State {
         parent_is_object: bool,
     },
     Expr {
-        expr: Rc<ir::Expr>,
+        expr: ir::RcExpr,
         env: GcView<ThunkEnv>,
     },
     Error {
@@ -57,7 +57,7 @@ pub(super) enum State {
     Assert {
         assert_span: SpanId,
         cond_span: SpanId,
-        msg_expr: Option<(Rc<ir::Expr>, GcView<ThunkEnv>)>,
+        msg_expr: Option<(ir::RcExpr, GcView<ThunkEnv>)>,
     },
     AssertMsg {
         assert_span: SpanId,
@@ -67,14 +67,14 @@ pub(super) enum State {
         name_span: SpanId,
         plus: bool,
         visibility: ast::Visibility,
-        value: Rc<ir::Expr>,
+        value: ir::RcExpr,
         base_env: Option<Gc<ThunkEnv>>,
     },
     ObjectDynField {
         name_span: SpanId,
         plus: bool,
         visibility: ast::Visibility,
-        value: Rc<ir::Expr>,
+        value: ir::RcExpr,
         base_env: Option<Gc<ThunkEnv>>,
     },
     FinishObject,
@@ -84,7 +84,7 @@ pub(super) enum State {
     },
     InitCompSpec {
         var_name: InternedStr,
-        value: Rc<ir::Expr>,
+        value: ir::RcExpr,
         value_span: SpanId,
         env: GcView<ThunkEnv>,
     },
@@ -94,7 +94,7 @@ pub(super) enum State {
     },
     ForSpec {
         var_name: InternedStr,
-        value: Rc<ir::Expr>,
+        value: ir::RcExpr,
         value_span: SpanId,
         env: GcView<ThunkEnv>,
     },
@@ -103,7 +103,7 @@ pub(super) enum State {
         value_span: SpanId,
     },
     IfSpec {
-        cond: Rc<ir::Expr>,
+        cond: ir::RcExpr,
         cond_span: SpanId,
         env: GcView<ThunkEnv>,
     },
@@ -111,11 +111,11 @@ pub(super) enum State {
         cond_span: SpanId,
     },
     ArrayComp {
-        item: Rc<ir::Expr>,
+        item: ir::RcExpr,
         env: GcView<ThunkEnv>,
     },
     ObjectComp {
-        expr: Rc<ir::Expr>,
+        expr: ir::RcExpr,
         env: GcView<ThunkEnv>,
     },
     FinishObjectComp,
@@ -137,12 +137,12 @@ pub(super) enum State {
     },
     LogicAnd {
         span: SpanId,
-        rhs: Rc<ir::Expr>,
+        rhs: ir::RcExpr,
         env: GcView<ThunkEnv>,
     },
     LogicOr {
         span: SpanId,
-        rhs: Rc<ir::Expr>,
+        rhs: ir::RcExpr,
         env: GcView<ThunkEnv>,
     },
     InSuper {
@@ -167,7 +167,7 @@ pub(super) enum State {
         index: usize,
     },
     CallWithExpr {
-        call_expr: Rc<ir::Expr>,
+        call_expr: ir::RcExpr,
         call_env: GcView<ThunkEnv>,
     },
     TopLevelCall {
@@ -184,8 +184,8 @@ pub(super) enum State {
     },
     If {
         cond_span: SpanId,
-        then_body: Rc<ir::Expr>,
-        else_body: Option<Rc<ir::Expr>>,
+        then_body: ir::RcExpr,
+        else_body: Option<ir::RcExpr>,
         env: GcView<ThunkEnv>,
     },
     StdExtVar,

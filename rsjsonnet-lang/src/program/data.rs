@@ -221,7 +221,7 @@ impl ThunkData {
     }
 
     #[inline]
-    pub(super) fn new_pending_expr(expr: Rc<ir::Expr>, env: Gc<ThunkEnv>) -> Self {
+    pub(super) fn new_pending_expr(expr: ir::RcExpr, env: Gc<ThunkEnv>) -> Self {
         Self {
             state: RefCell::new(ThunkState::Pending(PendingThunk::Expr { expr, env })),
         }
@@ -278,7 +278,7 @@ impl GcTrace for ThunkState {
 
 pub(super) enum PendingThunk {
     Expr {
-        expr: Rc<ir::Expr>,
+        expr: ir::RcExpr,
         env: Gc<ThunkEnv>,
     },
     Call {
@@ -470,7 +470,7 @@ impl ObjectData {
 
 pub(super) struct ObjectCore {
     pub(super) is_top: bool,
-    pub(super) locals: Rc<FHashMap<InternedStr, Rc<ir::Expr>>>,
+    pub(super) locals: Rc<FHashMap<InternedStr, ir::RcExpr>>,
     pub(super) base_env: Option<Gc<ThunkEnv>>,
     pub(super) env: OnceCell<Gc<ThunkEnv>>,
     pub(super) fields: FHashMap<InternedStr, ObjectField>,
@@ -494,7 +494,7 @@ impl GcTrace for ObjectCore {
 pub(super) struct ObjectField {
     pub(super) base_env: Option<Gc<ThunkEnv>>,
     pub(super) visibility: ast::Visibility,
-    pub(super) expr: Option<Rc<ir::Expr>>,
+    pub(super) expr: Option<ir::RcExpr>,
     pub(super) thunk: OnceCell<Gc<ThunkData>>,
 }
 
@@ -509,9 +509,9 @@ impl GcTrace for ObjectField {
 }
 
 pub(super) struct ObjectAssert {
-    pub(super) cond: Rc<ir::Expr>,
+    pub(super) cond: ir::RcExpr,
     pub(super) cond_span: SpanId,
-    pub(super) msg: Option<Rc<ir::Expr>>,
+    pub(super) msg: Option<ir::RcExpr>,
     pub(super) assert_span: SpanId,
 }
 
@@ -528,7 +528,7 @@ pub(crate) enum FuncData {
     Normal {
         name: Option<InternedStr>,
         params: Rc<ir::FuncParams>,
-        body: Rc<ir::Expr>,
+        body: ir::RcExpr,
         env: Gc<ThunkEnv>,
     },
     BuiltIn {

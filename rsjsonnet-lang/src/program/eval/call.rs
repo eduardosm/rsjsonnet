@@ -28,8 +28,8 @@ impl Evaluator<'_> {
     pub(super) fn check_call_expr_args(
         &self,
         params: &ir::FuncParams,
-        positional_args: &[Rc<ir::Expr>],
-        named_args: &[(InternedStr, SpanId, Rc<ir::Expr>)],
+        positional_args: &[ir::RcExpr],
+        named_args: &[(InternedStr, SpanId, ir::RcExpr)],
         call_env: GcView<ThunkEnv>,
         func_env: Option<Gc<ThunkEnv>>,
         call_span: SpanId,
@@ -210,7 +210,7 @@ impl Evaluator<'_> {
     pub(super) fn execute_normal_call(
         &mut self,
         params: &ir::FuncParams,
-        body: Rc<ir::Expr>,
+        body: ir::RcExpr,
         env: Gc<ThunkEnv>,
         args: Box<[Gc<ThunkData>]>,
     ) {

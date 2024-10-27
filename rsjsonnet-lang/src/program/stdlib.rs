@@ -184,7 +184,7 @@ impl Program {
         add_simple("trace", BuiltInFunc::Trace, &["str", "rest"]);
 
         let mut add_with_defaults =
-            |name: &str, kind: BuiltInFunc, params: &[(&str, Option<Rc<ir::Expr>>)]| {
+            |name: &str, kind: BuiltInFunc, params: &[(&str, Option<ir::RcExpr>)]| {
                 add_builtin_func(
                     self.intern_str(name),
                     kind,
@@ -198,8 +198,14 @@ impl Program {
             &[
                 ("value", None),
                 ("indent", None),
-                ("newline", Some(Rc::new(ir::Expr::String("\n".into())))),
-                ("key_val_sep", Some(Rc::new(ir::Expr::String(": ".into())))),
+                (
+                    "newline",
+                    Some(ir::RcExpr::new(ir::Expr::String("\n".into()))),
+                ),
+                (
+                    "key_val_sep",
+                    Some(ir::RcExpr::new(ir::Expr::String(": ".into()))),
+                ),
             ],
         );
         add_with_defaults(
@@ -226,7 +232,7 @@ impl Program {
             BuiltInFunc::Sort,
             &[
                 ("arr", None),
-                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
             ],
         );
         add_with_defaults(
@@ -234,7 +240,7 @@ impl Program {
             BuiltInFunc::Uniq,
             &[
                 ("arr", None),
-                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
             ],
         );
         add_with_defaults(
@@ -242,7 +248,7 @@ impl Program {
             BuiltInFunc::Set,
             &[
                 ("arr", None),
-                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
             ],
         );
         add_with_defaults(
@@ -251,7 +257,7 @@ impl Program {
             &[
                 ("a", None),
                 ("b", None),
-                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
             ],
         );
         add_with_defaults(
@@ -260,7 +266,7 @@ impl Program {
             &[
                 ("a", None),
                 ("b", None),
-                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
             ],
         );
         add_with_defaults(
@@ -269,7 +275,7 @@ impl Program {
             &[
                 ("a", None),
                 ("b", None),
-                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
             ],
         );
         add_with_defaults(
@@ -278,7 +284,7 @@ impl Program {
             &[
                 ("x", None),
                 ("arr", None),
-                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
             ],
         );
 

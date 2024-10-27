@@ -9,11 +9,13 @@
 - New variants have been added to `EvalStackTraceItem`.
 - `ExpectedThing` as been renamed to `ExpectedToken`.
 - `ParseError::Expected` now uses `ActualToken` instead of `TokenKind`.
+- `ast::Expr` now implements `Drop`, so it cannot be destructured.
 
 ### Fixed
 
 - Reject tags in object keys in `std.parseYaml`.
 - Avoid some panics in `std.parseYaml` with some inputs found with fuzzing.
+- Avoid stack overflow when dropping expressions with too much nesting.
 
 ### Changed
 
