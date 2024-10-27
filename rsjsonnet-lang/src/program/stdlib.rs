@@ -197,6 +197,8 @@ impl Program {
                 );
             };
 
+        let identity_func = ir::RcExpr::new(ir::Expr::IdentityFunc);
+
         add_with_defaults(
             "manifestJsonEx",
             BuiltInFunc::ManifestJsonEx,
@@ -235,26 +237,17 @@ impl Program {
         add_with_defaults(
             "sort",
             BuiltInFunc::Sort,
-            &[
-                ("arr", None),
-                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
-            ],
+            &[("arr", None), ("keyF", Some(identity_func.clone()))],
         );
         add_with_defaults(
             "uniq",
             BuiltInFunc::Uniq,
-            &[
-                ("arr", None),
-                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
-            ],
+            &[("arr", None), ("keyF", Some(identity_func.clone()))],
         );
         add_with_defaults(
             "set",
             BuiltInFunc::Set,
-            &[
-                ("arr", None),
-                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
-            ],
+            &[("arr", None), ("keyF", Some(identity_func.clone()))],
         );
         add_with_defaults(
             "setInter",
@@ -262,7 +255,7 @@ impl Program {
             &[
                 ("a", None),
                 ("b", None),
-                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
+                ("keyF", Some(identity_func.clone())),
             ],
         );
         add_with_defaults(
@@ -271,7 +264,7 @@ impl Program {
             &[
                 ("a", None),
                 ("b", None),
-                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
+                ("keyF", Some(identity_func.clone())),
             ],
         );
         add_with_defaults(
@@ -280,17 +273,13 @@ impl Program {
             &[
                 ("a", None),
                 ("b", None),
-                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
+                ("keyF", Some(identity_func.clone())),
             ],
         );
         add_with_defaults(
             "setMember",
             BuiltInFunc::SetMember,
-            &[
-                ("x", None),
-                ("arr", None),
-                ("keyF", Some(ir::RcExpr::new(ir::Expr::IdentityFunc))),
-            ],
+            &[("x", None), ("arr", None), ("keyF", Some(identity_func))],
         );
 
         ObjectData::new_simple(extra_fields)
