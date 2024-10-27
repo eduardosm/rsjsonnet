@@ -756,7 +756,7 @@ impl Evaluator<'_> {
                 self.state_stack.push(State::CoerceToStringValue);
             }
             (ast::BinaryOp::In, ValueData::String(lhs), ValueData::Object(rhs)) => {
-                let field_name = self.program.str_interner.intern(&lhs);
+                let field_name = self.program.intern_str(&lhs);
                 let object = rhs.view();
 
                 self.value_stack

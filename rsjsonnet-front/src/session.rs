@@ -121,9 +121,8 @@ impl Session {
     ) where
         F: FnMut(&mut Program, &[Value; N]) -> Result<Value, String> + 'static,
     {
-        let str_interner = self.program.str_interner();
-        let name = str_interner.intern(name);
-        let params: Vec<_> = params.iter().map(|p| str_interner.intern(p)).collect();
+        let name = self.program.intern_str(name);
+        let params: Vec<_> = params.iter().map(|p| self.program.intern_str(p)).collect();
 
         self.program.register_native_func(name.clone(), &params);
         self.inner.native_funcs.insert(

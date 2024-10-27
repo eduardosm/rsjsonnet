@@ -102,7 +102,7 @@ fn main_inner() -> Result<(), RunError> {
     let mut ext_names = HashSet::new();
 
     for arg in args.ext_str.iter() {
-        let name = session.program().str_interner().intern(&arg.var);
+        let name = session.program().intern_str(&arg.var);
         if !ext_names.insert(name.clone()) {
             eprintln!(
                 "error: external variable {:?} defined more than once",
@@ -116,7 +116,7 @@ fn main_inner() -> Result<(), RunError> {
     }
 
     for arg in args.ext_str_file.iter() {
-        let name = session.program().str_interner().intern(&arg.var);
+        let name = session.program().intern_str(&arg.var);
         if !ext_names.insert(name.clone()) {
             eprintln!(
                 "error: external variable {:?} defined more than once",
@@ -130,7 +130,7 @@ fn main_inner() -> Result<(), RunError> {
     }
 
     for arg in args.ext_code.iter() {
-        let name = session.program().str_interner().intern(&arg.var);
+        let name = session.program().intern_str(&arg.var);
         if !ext_names.insert(name.clone()) {
             eprintln!(
                 "error: external variable {:?} defined more than once",
@@ -144,7 +144,7 @@ fn main_inner() -> Result<(), RunError> {
     }
 
     for arg in args.ext_code_file.iter() {
-        let name = session.program().str_interner().intern(&arg.var);
+        let name = session.program().intern_str(&arg.var);
         if !ext_names.insert(name.clone()) {
             eprintln!(
                 "error: external variable {:?} defined more than once",
@@ -161,7 +161,7 @@ fn main_inner() -> Result<(), RunError> {
     let mut tla = Vec::new();
 
     for arg in args.tla_str.iter() {
-        let name = session.program().str_interner().intern(&arg.var);
+        let name = session.program().intern_str(&arg.var);
         if !tla_names.insert(name.clone()) {
             eprintln!("error: TLA {:?} defined more than once", arg.var);
         }
@@ -171,7 +171,7 @@ fn main_inner() -> Result<(), RunError> {
     }
 
     for arg in args.tla_str_file.iter() {
-        let name = session.program().str_interner().intern(&arg.var);
+        let name = session.program().intern_str(&arg.var);
         if !tla_names.insert(name.clone()) {
             eprintln!("error: TLA {:?} defined more than once", arg.var);
         }
@@ -181,7 +181,7 @@ fn main_inner() -> Result<(), RunError> {
     }
 
     for arg in args.tla_code.iter() {
-        let name = session.program().str_interner().intern(&arg.var);
+        let name = session.program().intern_str(&arg.var);
         if !tla_names.insert(name.clone()) {
             eprintln!("error: TLA {:?} defined more than once", arg.var);
         }
@@ -191,7 +191,7 @@ fn main_inner() -> Result<(), RunError> {
     }
 
     for arg in args.tla_code_file.iter() {
-        let name = session.program().str_interner().intern(&arg.var);
+        let name = session.program().intern_str(&arg.var);
         if !tla_names.insert(name.clone()) {
             eprintln!("error: TLA {:?} defined more than once", arg.var);
         }
