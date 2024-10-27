@@ -66,6 +66,7 @@ std.assertEqual(({ a: self.b, b: 1 } + { b: 2 }) + ({ b: 3 } + { b: 4 }), { a: 4
 std.assertEqual({ local x = self.a, a: 1, b: x + 10 } + { a: 2 }, { a: 2, b: 12 }) &&
 
 std.assertEqual({ assert self.a, a: false } + { a: true }, { a: true }) &&
+std.assertEqual({ assert self.a, a: false } + { a: true, b: super.a }, { a: true, b: false }) &&
 
 std.assertEqual(local obj = { a: 1 }; obj + obj, { a: 1 }) &&
 std.assertEqual(local obj = { a: super.a };  { a: 1 } + (obj + obj), { a: 1 }) &&
