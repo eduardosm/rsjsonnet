@@ -196,7 +196,7 @@ pub enum EvalStackTraceItem {
 pub struct Program {
     str_interner: StrInterner,
     span_mgr: SpanManager,
-    gc_ctx: GcContext,
+    gc_ctx: GcContext<'static>,
     objs_after_last_gc: usize,
     max_stack: usize,
     null_expr: Rc<ir::Expr>,
@@ -354,13 +354,13 @@ impl Program {
 
     #[must_use]
     #[inline]
-    fn gc_alloc<T: GcTrace>(&self, data: T) -> Gc<T> {
+    fn gc_alloc<T: GcTrace + 'static>(&self, data: T) -> Gc<T> {
         self.gc_ctx.alloc(data)
     }
 
     #[must_use]
     #[inline]
-    fn gc_alloc_view<T: GcTrace>(&self, data: T) -> GcView<T> {
+    fn gc_alloc_view<T: GcTrace + 'static>(&self, data: T) -> GcView<T> {
         self.gc_ctx.alloc_view(data)
     }
 

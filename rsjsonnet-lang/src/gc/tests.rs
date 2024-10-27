@@ -12,7 +12,7 @@ pub(super) struct Stats {
     pub(super) view: usize,
 }
 
-impl GcContext {
+impl GcContext<'_> {
     fn stats(&self) -> Stats {
         let inner = self.inner.borrow();
         let mut dead = 0;
@@ -59,13 +59,17 @@ fn test_empty() {
     });
 }
 
-struct TestObj {
+struct TestObj<'a> {
     id: u32,
     sub_objs: RefCell<Vec<Gc<Self>>>,
+    _x: &'a i32,
 }
 
-impl GcTrace for TestObj {
-    fn trace(&self, ctx: &mut GcTraceCtx) {
+impl GcTrace for TestObj<'_> {
+    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    where
+        Self: 'a,
+    {
         self.sub_objs.trace(ctx);
     }
 }
@@ -79,12 +83,14 @@ enum TestAction {
     Gc { dead: usize, maybe: usize },
 }
 
-enum TestObjRef {
-    Gc(Gc<TestObj>),
-    View(GcView<TestObj>),
+enum TestObjRef<'a> {
+    Gc(Gc<TestObj<'a>>),
+    View(GcView<TestObj<'a>>),
 }
 
 fn test(actions: &[TestAction]) {
+    let x = 42;
+
     let ctx = GcContext::new();
     let mut objs = HashMap::new();
     let mut num_dead = 0;
@@ -97,6 +103,7 @@ fn test(actions: &[TestAction]) {
                     let obj = ctx.alloc_view(TestObj {
                         id,
                         sub_objs: RefCell::new(Vec::new()),
+                        _x: &x,
                     });
                     let prev = objs.insert(id, TestObjRef::View(obj));
                     assert!(prev.is_none());
@@ -104,6 +111,7 @@ fn test(actions: &[TestAction]) {
                     let obj = ctx.alloc(TestObj {
                         id,
                         sub_objs: RefCell::new(Vec::new()),
+                        _x: &x,
                     });
                     let prev = objs.insert(id, TestObjRef::Gc(obj));
                     assert!(prev.is_none());
@@ -552,6 +560,7 @@ fn test_doubly_linked_big() {
     const NUM_SETS: usize = 4;
     const NUM_OBJS: usize = if cfg!(miri) { 10 } else { 1000 };
 
+    let x = 42;
     let ctx = GcContext::new();
 
     let mut sets_last = Vec::new();
@@ -559,12 +568,14 @@ fn test_doubly_linked_big() {
         let mut last = ctx.alloc_view(TestObj {
             id: 0,
             sub_objs: RefCell::new(Vec::new()),
+            _x: &x,
         });
 
         for i in 1..NUM_OBJS {
             let obj = ctx.alloc_view(TestObj {
                 id: i.try_into().unwrap(),
                 sub_objs: RefCell::new(Vec::new()),
+                _x: &x,
             });
             last.sub_objs.borrow_mut().push(Gc::from(&obj));
             obj.sub_objs.borrow_mut().push(Gc::from(&last));
@@ -598,6 +609,7 @@ fn test_doubly_linked_big_with_view() {
     const NUM_SETS: usize = 4;
     const NUM_OBJS: usize = if cfg!(miri) { 10 } else { 1000 };
 
+    let x = 42;
     let ctx = GcContext::new();
 
     let mut sets_last = Vec::new();
@@ -605,12 +617,14 @@ fn test_doubly_linked_big_with_view() {
         let mut last = ctx.alloc_view(TestObj {
             id: 0,
             sub_objs: RefCell::new(Vec::new()),
+            _x: &x,
         });
 
         for i in 1..NUM_OBJS {
             let obj = ctx.alloc_view(TestObj {
                 id: i.try_into().unwrap(),
                 sub_objs: RefCell::new(Vec::new()),
+                _x: &x,
             });
             last.sub_objs.borrow_mut().push(Gc::from(&obj));
             obj.sub_objs.borrow_mut().push(Gc::from(&last));
