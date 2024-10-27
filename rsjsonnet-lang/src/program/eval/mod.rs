@@ -1481,7 +1481,7 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn new_pending_expr_thunk(&self, expr: Rc<ir::Expr>, env: Gc<ThunkEnv>) -> Gc<ThunkData> {
+    fn new_pending_expr_thunk(&self, expr: ir::RcExpr, env: Gc<ThunkEnv>) -> Gc<ThunkData> {
         let thunk = if let Some(value) = Self::try_value_from_expr(self.program, &expr) {
             ThunkData::new_done(value)
         } else {
@@ -1496,7 +1496,7 @@ impl<'a> Evaluator<'a> {
         name_span: SpanId,
         plus: bool,
         visibility: ast::Visibility,
-        value: Rc<ir::Expr>,
+        value: ir::RcExpr,
         base_env: Option<Gc<ThunkEnv>>,
     ) -> Result<(), Box<EvalError>> {
         let object = self.object_stack.last_mut().unwrap();
@@ -1509,7 +1509,7 @@ impl<'a> Evaluator<'a> {
                 let actual_expr;
                 let thunk;
                 if plus {
-                    actual_expr = Some(Rc::new(ir::Expr::FieldPlus {
+                    actual_expr = Some(ir::RcExpr::new(ir::Expr::FieldPlus {
                         field_name: name,
                         field_expr: value,
                     }));

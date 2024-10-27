@@ -1,5 +1,4 @@
 use std::cell::{Cell, OnceCell};
-use std::rc::Rc;
 
 use super::super::{
     ir, FuncData, ImportError, ObjectAssert, ObjectCore, ObjectData, ThunkEnv, ThunkEnvData,
@@ -14,7 +13,7 @@ use crate::{ast, FHashMap};
 impl Evaluator<'_> {
     pub(super) fn do_expr(
         &mut self,
-        expr: Rc<ir::Expr>,
+        expr: ir::RcExpr,
         env: GcView<ThunkEnv>,
     ) -> Result<(), Box<EvalError>> {
         match *expr {

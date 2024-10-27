@@ -565,7 +565,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert!(matches!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(members)) if members.len() == 1
+                ast::ExprKind::Object(ast::ObjInside::Members(ref members)) if members.len() == 1
             ));
         },
     }
@@ -577,7 +577,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert!(matches!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(members)) if members.len() == 2
+                ast::ExprKind::Object(ast::ObjInside::Members(ref members)) if members.len() == 2
             ));
         },
     }
@@ -589,7 +589,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert!(matches!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(members)) if members.len() == 2
+                ast::ExprKind::Object(ast::ObjInside::Members(ref members)) if members.len() == 2
             ));
         },
     }
@@ -601,7 +601,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert!(matches!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(members)) if members.len() == 3
+                ast::ExprKind::Object(ast::ObjInside::Members(ref members)) if members.len() == 3
             ));
         },
     }
@@ -613,7 +613,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert!(matches!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(members)) if members.len() == 3
+                ast::ExprKind::Object(ast::ObjInside::Members(ref members)) if members.len() == 3
             ));
         },
     }

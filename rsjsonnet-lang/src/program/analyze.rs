@@ -19,7 +19,7 @@ impl<'a> Analyzer<'a> {
         mut self,
         ast: &ast::Expr,
         env: FHashSet<InternedStr>,
-    ) -> Result<Rc<ir::Expr>, AnalyzeError> {
+    ) -> Result<ir::RcExpr, AnalyzeError> {
         let env = Env {
             is_obj: false,
             vars: env,
@@ -32,16 +32,16 @@ impl<'a> Analyzer<'a> {
         root_expr_ast: &ast::Expr,
         env: &Env,
         can_be_tailstrict: bool,
-    ) -> Result<Rc<ir::Expr>, AnalyzeError> {
+    ) -> Result<ir::RcExpr, AnalyzeError> {
         enum State<'a> {
-            Analyzed(Rc<ir::Expr>),
+            Analyzed(ir::RcExpr),
             Expr(&'a ast::Expr),
         }
 
         enum StackItem<'a> {
-            ArrayItem(SpanId, Vec<Rc<ir::Expr>>, &'a [ast::Expr]),
+            ArrayItem(SpanId, Vec<ir::RcExpr>, &'a [ast::Expr]),
             BinaryLhs(SpanId, ast::BinaryOp, &'a ast::Expr),
-            BinaryRhs(SpanId, ast::BinaryOp, Rc<ir::Expr>),
+            BinaryRhs(SpanId, ast::BinaryOp, ir::RcExpr),
             UnaryRhs(SpanId, ast::UnaryOp),
         }
 
@@ -59,7 +59,7 @@ impl<'a> Analyzer<'a> {
                             stack.push(StackItem::ArrayItem(span, items_ir, rem_items_ast));
                             state = State::Expr(next_item_ast);
                         } else {
-                            state = State::Analyzed(Rc::new(ir::Expr::Array(items_ir)));
+                            state = State::Analyzed(ir::RcExpr::new(ir::Expr::Array(items_ir)));
                         }
                     }
                     Some(StackItem::BinaryLhs(span, op, rhs_ast)) => {
@@ -69,8 +69,8 @@ impl<'a> Analyzer<'a> {
                     Some(StackItem::BinaryRhs(span, op, lhs)) => {
                         let rhs = expr_ir;
                         let bin_expr_ir = match op {
-                            ast::BinaryOp::Rem => Rc::new(ir::Expr::Call {
-                                callee: Rc::new(ir::Expr::StdField {
+                            ast::BinaryOp::Rem => ir::RcExpr::new(ir::Expr::Call {
+                                callee: ir::RcExpr::new(ir::Expr::StdField {
                                     field_name: self.program.intern_str("mod"),
                                 }),
                                 positional_args: vec![lhs, rhs],
@@ -78,13 +78,13 @@ impl<'a> Analyzer<'a> {
                                 tailstrict: false,
                                 span,
                             }),
-                            _ => Rc::new(ir::Expr::Binary { op, lhs, rhs, span }),
+                            _ => ir::RcExpr::new(ir::Expr::Binary { op, lhs, rhs, span }),
                         };
                         state = State::Analyzed(bin_expr_ir);
                     }
                     Some(StackItem::UnaryRhs(span, op)) => {
                         let rhs = expr_ir;
-                        state = State::Analyzed(Rc::new(ir::Expr::Unary { op, rhs, span }));
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::Unary { op, rhs, span }));
                     }
                 },
                 State::Expr(expr_ast) => match expr_ast.kind {
@@ -117,16 +117,18 @@ impl<'a> Analyzer<'a> {
                         }
                     }
                     ast::ExprKind::String(ref s) => {
-                        state = State::Analyzed(Rc::new(ir::Expr::String((**s).into())));
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::String((**s).into())));
                     }
                     ast::ExprKind::TextBlock(ref s) => {
-                        state = State::Analyzed(Rc::new(ir::Expr::String((**s).into())));
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::String((**s).into())));
                     }
                     ast::ExprKind::Number(ref value) => {
                         let float_value =
                             format!("{}e{}", value.digits, value.exp).parse().unwrap();
-                        state =
-                            State::Analyzed(Rc::new(ir::Expr::Number(float_value, expr_ast.span)));
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::Number(
+                            float_value,
+                            expr_ast.span,
+                        )));
                     }
                     ast::ExprKind::Paren(ref inner) => {
                         state = State::Expr(inner);
@@ -143,20 +145,20 @@ impl<'a> Analyzer<'a> {
                             ));
                             state = State::Expr(first_item_ast);
                         } else {
-                            state = State::Analyzed(Rc::new(ir::Expr::Array(Vec::new())));
+                            state = State::Analyzed(ir::RcExpr::new(ir::Expr::Array(Vec::new())));
                         }
                     }
                     ast::ExprKind::ArrayComp(ref body_ast, ref comp_spec_ast) => {
                         let (comp_spec, env) = self.analyze_comp_spec(comp_spec_ast, env)?;
                         let body = self.analyze_expr(body_ast, &env, false)?;
-                        state = State::Analyzed(Rc::new(ir::Expr::ArrayComp {
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::ArrayComp {
                             value: body,
                             comp_spec,
                         }));
                     }
                     ast::ExprKind::Field(ref obj_ast, ref field_name_ast) => {
                         let object = self.analyze_expr(obj_ast, env, false)?;
-                        state = State::Analyzed(Rc::new(ir::Expr::Field {
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::Field {
                             object,
                             field_name: field_name_ast.value.clone(),
                             expr_span: expr_ast.span,
@@ -165,7 +167,7 @@ impl<'a> Analyzer<'a> {
                     ast::ExprKind::Index(ref obj_ast, ref index_ast) => {
                         let object = self.analyze_expr(obj_ast, env, false)?;
                         let index = self.analyze_expr(index_ast, env, false)?;
-                        state = State::Analyzed(Rc::new(ir::Expr::Index {
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::Index {
                             object,
                             index,
                             expr_span: expr_ast.span,
@@ -182,20 +184,20 @@ impl<'a> Analyzer<'a> {
                             .as_ref()
                             .map(|e| self.analyze_expr(e, env, false))
                             .transpose()?
-                            .unwrap_or_else(|| Rc::new(ir::Expr::Null));
+                            .unwrap_or_else(|| ir::RcExpr::new(ir::Expr::Null));
                         let end_index = end_index_ast
                             .as_ref()
                             .map(|e| self.analyze_expr(e, env, false))
                             .transpose()?
-                            .unwrap_or_else(|| Rc::new(ir::Expr::Null));
+                            .unwrap_or_else(|| ir::RcExpr::new(ir::Expr::Null));
                         let step = step_ast
                             .as_ref()
                             .map(|e| self.analyze_expr(e, env, false))
                             .transpose()?
-                            .unwrap_or_else(|| Rc::new(ir::Expr::Null));
+                            .unwrap_or_else(|| ir::RcExpr::new(ir::Expr::Null));
 
-                        state = State::Analyzed(Rc::new(ir::Expr::Call {
-                            callee: Rc::new(ir::Expr::StdField {
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::Call {
+                            callee: ir::RcExpr::new(ir::Expr::StdField {
                                 field_name: self.program.intern_str("slice"),
                             }),
                             positional_args: vec![object, start_index, end_index, step],
@@ -206,7 +208,7 @@ impl<'a> Analyzer<'a> {
                     }
                     ast::ExprKind::SuperField(super_span, ref field_name_ast) => {
                         if env.is_obj {
-                            state = State::Analyzed(Rc::new(ir::Expr::SuperField {
+                            state = State::Analyzed(ir::RcExpr::new(ir::Expr::SuperField {
                                 super_span,
                                 field_name: field_name_ast.value.clone(),
                                 expr_span: expr_ast.span,
@@ -218,7 +220,7 @@ impl<'a> Analyzer<'a> {
                     ast::ExprKind::SuperIndex(super_span, ref index_ast) => {
                         if env.is_obj {
                             let index = self.analyze_expr(index_ast, env, false)?;
-                            state = State::Analyzed(Rc::new(ir::Expr::SuperIndex {
+                            state = State::Analyzed(ir::RcExpr::new(ir::Expr::SuperIndex {
                                 super_span,
                                 index,
                                 expr_span: expr_ast.span,
@@ -252,7 +254,7 @@ impl<'a> Analyzer<'a> {
                             }
                         }
 
-                        state = State::Analyzed(Rc::new(ir::Expr::Call {
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::Call {
                             callee,
                             positional_args,
                             named_args,
@@ -262,7 +264,7 @@ impl<'a> Analyzer<'a> {
                     }
                     ast::ExprKind::Ident(ref name) => {
                         if env.vars.contains(&name.value) {
-                            state = State::Analyzed(Rc::new(ir::Expr::Var(
+                            state = State::Analyzed(ir::RcExpr::new(ir::Expr::Var(
                                 name.value.clone(),
                                 expr_ast.span,
                             )));
@@ -309,7 +311,8 @@ impl<'a> Analyzer<'a> {
 
                         let inner = self.analyze_expr(inner_ast, &inner_env, can_be_tailstrict)?;
 
-                        state = State::Analyzed(Rc::new(ir::Expr::Local { bindings, inner }));
+                        state =
+                            State::Analyzed(ir::RcExpr::new(ir::Expr::Local { bindings, inner }));
                     }
                     ast::ExprKind::If(ref cond_ast, ref then_body_ast, ref else_body_ast) => {
                         let cond = self.analyze_expr(cond_ast, env, false)?;
@@ -319,7 +322,7 @@ impl<'a> Analyzer<'a> {
                             .map(|e| self.analyze_expr(e, env, can_be_tailstrict))
                             .transpose()?;
 
-                        state = State::Analyzed(Rc::new(ir::Expr::If {
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::If {
                             cond,
                             cond_span: cond_ast.span,
                             then_body,
@@ -338,7 +341,7 @@ impl<'a> Analyzer<'a> {
                         let lhs = self.analyze_expr(lhs_ast, env, false)?;
                         let rhs = self.analyze_objinside(rhs_ast, env)?;
 
-                        state = State::Analyzed(Rc::new(ir::Expr::Binary {
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::Binary {
                             op: ast::BinaryOp::Add,
                             lhs,
                             rhs,
@@ -352,11 +355,12 @@ impl<'a> Analyzer<'a> {
                         let assert = self.analyze_assert(assert_ast, env)?;
                         let inner = self.analyze_expr(inner_ast, env, can_be_tailstrict)?;
 
-                        state = State::Analyzed(Rc::new(ir::Expr::Assert { assert, inner }));
+                        state =
+                            State::Analyzed(ir::RcExpr::new(ir::Expr::Assert { assert, inner }));
                     }
                     ast::ExprKind::Import(ref path_ast) => match path_ast.kind {
                         ast::ExprKind::String(ref path) => {
-                            state = State::Analyzed(Rc::new(ir::Expr::Import {
+                            state = State::Analyzed(ir::RcExpr::new(ir::Expr::Import {
                                 path: (**path).into(),
                                 span: expr_ast.span,
                             }));
@@ -374,7 +378,7 @@ impl<'a> Analyzer<'a> {
                     },
                     ast::ExprKind::ImportStr(ref path_ast) => match path_ast.kind {
                         ast::ExprKind::String(ref path) => {
-                            state = State::Analyzed(Rc::new(ir::Expr::ImportStr {
+                            state = State::Analyzed(ir::RcExpr::new(ir::Expr::ImportStr {
                                 path: (**path).into(),
                                 span: expr_ast.span,
                             }));
@@ -392,7 +396,7 @@ impl<'a> Analyzer<'a> {
                     },
                     ast::ExprKind::ImportBin(ref path_ast) => match path_ast.kind {
                         ast::ExprKind::String(ref path) => {
-                            state = State::Analyzed(Rc::new(ir::Expr::ImportBin {
+                            state = State::Analyzed(ir::RcExpr::new(ir::Expr::ImportBin {
                                 path: (**path).into(),
                                 span: expr_ast.span,
                             }));
@@ -411,7 +415,7 @@ impl<'a> Analyzer<'a> {
                     ast::ExprKind::Error(ref msg_ast) => {
                         let msg = self.analyze_expr(msg_ast, env, false)?;
 
-                        state = State::Analyzed(Rc::new(ir::Expr::Error {
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::Error {
                             msg,
                             span: expr_ast.span,
                         }));
@@ -419,7 +423,7 @@ impl<'a> Analyzer<'a> {
                     ast::ExprKind::InSuper(ref lhs_ast, super_span) => {
                         if env.is_obj {
                             let lhs = self.analyze_expr(lhs_ast, env, false)?;
-                            state = State::Analyzed(Rc::new(ir::Expr::InSuper {
+                            state = State::Analyzed(ir::RcExpr::new(ir::Expr::InSuper {
                                 lhs,
                                 span: expr_ast.span,
                             }));
@@ -436,7 +440,7 @@ impl<'a> Analyzer<'a> {
         &mut self,
         obj_inside_ast: &ast::ObjInside,
         env: &Env,
-    ) -> Result<Rc<ir::Expr>, AnalyzeError> {
+    ) -> Result<ir::RcExpr, AnalyzeError> {
         match *obj_inside_ast {
             ast::ObjInside::Members(ref members_ast) => {
                 let mut inner_env = env.clone();
@@ -547,7 +551,7 @@ impl<'a> Analyzer<'a> {
                     }
                 }
 
-                Ok(Rc::new(ir::Expr::Object {
+                Ok(ir::RcExpr::new(ir::Expr::Object {
                     is_top: !env.is_obj,
                     locals: Rc::new(locals),
                     asserts,
@@ -599,7 +603,7 @@ impl<'a> Analyzer<'a> {
                 let field_name = self.analyze_expr(name_ast, &env, false)?;
                 let field_value = self.analyze_expr(body_ast, &inner_env, false)?;
 
-                Ok(Rc::new(ir::Expr::ObjectComp {
+                Ok(ir::RcExpr::new(ir::Expr::ObjectComp {
                     is_top: !env.is_obj,
                     locals: Rc::new(locals),
                     field_name,
@@ -616,7 +620,7 @@ impl<'a> Analyzer<'a> {
         params_ast: &[ast::Param],
         body_ast: &ast::Expr,
         env: &Env,
-    ) -> Result<Rc<ir::Expr>, AnalyzeError> {
+    ) -> Result<ir::RcExpr, AnalyzeError> {
         let mut inner_env = env.clone();
 
         let mut params_spans = FHashMap::default();
@@ -656,7 +660,7 @@ impl<'a> Analyzer<'a> {
 
         let body = self.analyze_expr(body_ast, &inner_env, true)?;
 
-        Ok(Rc::new(ir::Expr::Func {
+        Ok(ir::RcExpr::new(ir::Expr::Func {
             params: Rc::new(params),
             body,
         }))
