@@ -12,13 +12,13 @@ pub(super) enum Expr {
     String(Rc<str>),
     Object {
         is_top: bool,
-        locals: Rc<FHashMap<InternedStr, RcExpr>>,
+        locals: Rc<Vec<(InternedStr, RcExpr)>>,
         asserts: Vec<Assert>,
         fields: Vec<ObjectField>,
     },
     ObjectComp {
         is_top: bool,
-        locals: Rc<FHashMap<InternedStr, RcExpr>>,
+        locals: Rc<Vec<(InternedStr, RcExpr)>>,
         field_name: RcExpr,
         field_name_span: SpanId,
         field_value: RcExpr,
@@ -63,7 +63,7 @@ pub(super) enum Expr {
     SelfObj,
     TopObj,
     Local {
-        bindings: FHashMap<InternedStr, RcExpr>,
+        bindings: Vec<(InternedStr, RcExpr)>,
         inner: RcExpr,
     },
     If {

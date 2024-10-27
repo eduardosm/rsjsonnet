@@ -390,7 +390,7 @@ impl ObjectData {
         Self {
             self_core: ObjectCore {
                 is_top: false,
-                locals: Rc::new(FHashMap::default()),
+                locals: Rc::new(Vec::new()),
                 base_env: None,
                 env: OnceCell::new(),
                 fields,
@@ -487,7 +487,7 @@ impl ObjectData {
 
 pub(super) struct ObjectCore {
     pub(super) is_top: bool,
-    pub(super) locals: Rc<FHashMap<InternedStr, ir::RcExpr>>,
+    pub(super) locals: Rc<Vec<(InternedStr, ir::RcExpr)>>,
     pub(super) base_env: Option<Gc<ThunkEnv>>,
     pub(super) env: OnceCell<Gc<ThunkEnv>>,
     pub(super) fields: FHashMap<InternedStr, ObjectField>,
