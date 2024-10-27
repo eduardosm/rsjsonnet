@@ -183,124 +183,103 @@ impl Program {
         add_simple("native", BuiltInFunc::Native, &["name"]);
         add_simple("trace", BuiltInFunc::Trace, &["str", "rest"]);
 
-        add_builtin_func(
-            self.intern_str("manifestJsonEx"),
+        let mut add_with_defaults =
+            |name: &str, kind: BuiltInFunc, params: &[(&str, Option<Rc<ir::Expr>>)]| {
+                add_builtin_func(
+                    self.intern_str(name),
+                    kind,
+                    ir::FuncParams::create_with_defaults(&self.str_interner, params),
+                );
+            };
+
+        add_with_defaults(
+            "manifestJsonEx",
             BuiltInFunc::ManifestJsonEx,
-            ir::FuncParams::create_with_defaults(
-                &self.str_interner,
-                [
-                    ("value", None),
-                    ("indent", None),
-                    ("newline", Some(Rc::new(ir::Expr::String("\n".into())))),
-                    ("key_val_sep", Some(Rc::new(ir::Expr::String(": ".into())))),
-                ],
-            ),
+            &[
+                ("value", None),
+                ("indent", None),
+                ("newline", Some(Rc::new(ir::Expr::String("\n".into())))),
+                ("key_val_sep", Some(Rc::new(ir::Expr::String(": ".into())))),
+            ],
         );
-        add_builtin_func(
-            self.intern_str("manifestYamlDoc"),
+        add_with_defaults(
+            "manifestYamlDoc",
             BuiltInFunc::ManifestYamlDoc,
-            ir::FuncParams::create_with_defaults(
-                &self.str_interner,
-                [
-                    ("value", None),
-                    ("indent_array_in_object", Some(self.false_expr.clone())),
-                    ("quote_keys", Some(self.true_expr.clone())),
-                ],
-            ),
+            &[
+                ("value", None),
+                ("indent_array_in_object", Some(self.false_expr.clone())),
+                ("quote_keys", Some(self.true_expr.clone())),
+            ],
         );
-        add_builtin_func(
-            self.intern_str("manifestYamlStream"),
+        add_with_defaults(
+            "manifestYamlStream",
             BuiltInFunc::ManifestYamlStream,
-            ir::FuncParams::create_with_defaults(
-                &self.str_interner,
-                [
-                    ("value", None),
-                    ("indent_array_in_object", Some(self.false_expr.clone())),
-                    ("c_document_end", Some(self.true_expr.clone())),
-                    ("quote_keys", Some(self.true_expr.clone())),
-                ],
-            ),
+            &[
+                ("value", None),
+                ("indent_array_in_object", Some(self.false_expr.clone())),
+                ("c_document_end", Some(self.true_expr.clone())),
+                ("quote_keys", Some(self.true_expr.clone())),
+            ],
         );
-        add_builtin_func(
-            self.intern_str("sort"),
+        add_with_defaults(
+            "sort",
             BuiltInFunc::Sort,
-            ir::FuncParams::create_with_defaults(
-                &self.str_interner,
-                [
-                    ("arr", None),
-                    ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
-                ],
-            ),
+            &[
+                ("arr", None),
+                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+            ],
         );
-        add_builtin_func(
-            self.intern_str("uniq"),
+        add_with_defaults(
+            "uniq",
             BuiltInFunc::Uniq,
-            ir::FuncParams::create_with_defaults(
-                &self.str_interner,
-                [
-                    ("arr", None),
-                    ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
-                ],
-            ),
+            &[
+                ("arr", None),
+                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+            ],
         );
-        add_builtin_func(
-            self.intern_str("set"),
+        add_with_defaults(
+            "set",
             BuiltInFunc::Set,
-            ir::FuncParams::create_with_defaults(
-                &self.str_interner,
-                [
-                    ("arr", None),
-                    ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
-                ],
-            ),
+            &[
+                ("arr", None),
+                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+            ],
         );
-        add_builtin_func(
-            self.intern_str("setInter"),
+        add_with_defaults(
+            "setInter",
             BuiltInFunc::SetInter,
-            ir::FuncParams::create_with_defaults(
-                &self.str_interner,
-                [
-                    ("a", None),
-                    ("b", None),
-                    ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
-                ],
-            ),
+            &[
+                ("a", None),
+                ("b", None),
+                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+            ],
         );
-        add_builtin_func(
-            self.intern_str("setUnion"),
+        add_with_defaults(
+            "setUnion",
             BuiltInFunc::SetUnion,
-            ir::FuncParams::create_with_defaults(
-                &self.str_interner,
-                [
-                    ("a", None),
-                    ("b", None),
-                    ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
-                ],
-            ),
+            &[
+                ("a", None),
+                ("b", None),
+                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+            ],
         );
-        add_builtin_func(
-            self.intern_str("setDiff"),
+        add_with_defaults(
+            "setDiff",
             BuiltInFunc::SetDiff,
-            ir::FuncParams::create_with_defaults(
-                &self.str_interner,
-                [
-                    ("a", None),
-                    ("b", None),
-                    ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
-                ],
-            ),
+            &[
+                ("a", None),
+                ("b", None),
+                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+            ],
         );
-        add_builtin_func(
-            self.intern_str("setMember"),
+        add_with_defaults(
+            "setMember",
             BuiltInFunc::SetMember,
-            ir::FuncParams::create_with_defaults(
-                &self.str_interner,
-                [
-                    ("x", None),
-                    ("arr", None),
-                    ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
-                ],
-            ),
+            &[
+                ("x", None),
+                ("arr", None),
+                ("keyF", Some(Rc::new(ir::Expr::IdentityFunc))),
+            ],
         );
 
         ObjectData::new_simple(extra_fields)
