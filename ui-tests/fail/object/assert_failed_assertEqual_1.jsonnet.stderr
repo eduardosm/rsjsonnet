@@ -1,0 +1,13 @@
+error: assertion failed
+ --> assert_failed_assertEqual_1.jsonnet:1:25
+  |
+1 | std.assertEqual({ a: 1, assert false }, { a: 1 })
+  |                         ^^^^^^^^^^^^
+note: while comparing object field "a"
+note: while evaluating call to `assertEqual`
+ --> assert_failed_assertEqual_1.jsonnet:1:1
+  |
+1 | std.assertEqual({ a: 1, assert false }, { a: 1 })
+  | -------------------------------------------------
+note: during top-level value evaluation
+
