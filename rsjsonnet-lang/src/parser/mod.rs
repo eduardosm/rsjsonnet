@@ -28,7 +28,7 @@ use crate::token::{Number, STokenKind, Token, TokenKind};
 mod error;
 mod expr;
 
-pub use error::{ExpectedToken, ParseError};
+pub use error::{ActualToken, ExpectedToken, ParseError};
 
 pub struct Parser<'a> {
     str_interner: &'a StrInterner,
@@ -75,7 +75,7 @@ impl<'a> Parser<'a> {
         ParseError::Expected {
             span: self.curr_token.span,
             expected: self.expected_things.drain(..).collect(),
-            instead: self.curr_token.kind.clone(),
+            instead: ActualToken::from_token_kind(&self.curr_token.kind),
         }
     }
 
