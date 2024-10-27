@@ -4,8 +4,8 @@ use std::rc::Rc;
 
 use super::{
     ir, ArrayData, Callbacks, EvalError, EvalErrorKind, EvalErrorValueType, EvalStackTraceItem,
-    FuncData, ObjectCore, ObjectData, ObjectField, PendingThunk, Program, ThunkData, ThunkEnv,
-    ThunkEnvData, ThunkState, ValueData,
+    FuncData, FuncKind, ObjectCore, ObjectData, ObjectField, PendingThunk, Program, ThunkData,
+    ThunkEnv, ThunkEnvData, ThunkState, ValueData,
 };
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
@@ -1116,17 +1116,18 @@ impl<'a> Evaluator<'a> {
                         }));
                     };
                     let func = func.view();
-                    let (func_name, params, func_env) = self.get_func_info(&func);
+                    let (func_name, func_env) = self.get_func_info(&func);
                     let args_thunks = self.check_call_expr_args(
-                        &params,
+                        &func.params,
                         positional_args,
                         named_args,
                         call_env,
                         func_env,
                         call_span,
                     )?;
-                    match *func {
-                        FuncData::Normal { .. } if tailstrict => {
+                    match func.kind {
+                        FuncKind::Normal { .. } if tailstrict => {
+                            let params = func.params.clone();
                             self.state_stack.push(State::ExecTailstrictCall {
                                 func,
                                 args: args_thunks.clone(),

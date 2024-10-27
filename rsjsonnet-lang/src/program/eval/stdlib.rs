@@ -92,11 +92,7 @@ impl Evaluator<'_> {
                     .filter_map(|(name, visible)| visible.then_some(name))
                     .count()
             }
-            ValueData::Function(func) => match *func.view() {
-                FuncData::Normal { ref params, .. } => params.order.len(),
-                FuncData::BuiltIn { ref params, .. } => params.order.len(),
-                FuncData::Native { ref params, .. } => params.order.len(),
-            },
+            ValueData::Function(func) => func.view().params.order.len(),
             _ => {
                 return Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
                     func_name: "length".into(),
@@ -1044,7 +1040,6 @@ impl Evaluator<'_> {
 
         let length = self.expect_std_func_arg_number(sz_value, "makeArray", 0)?;
         let func = self.expect_std_func_arg_func(func_value, "makeArray", 1)?;
-        let (_, func_params, _) = self.get_func_info(&func);
 
         let Some(length) = float::try_to_i32_exact(length).and_then(|v| usize::try_from(v).ok())
         else {
@@ -1054,12 +1049,12 @@ impl Evaluator<'_> {
             }));
         };
 
-        if func_params.order.len() != 1 {
+        if func.params.order.len() != 1 {
             return Err(self.report_error(EvalErrorKind::Other {
                 span: None,
                 message: format!(
                     "function must have exactly 1 parameter, got {}",
-                    func_params.order.len(),
+                    func.params.order.len(),
                 ),
             }));
         }

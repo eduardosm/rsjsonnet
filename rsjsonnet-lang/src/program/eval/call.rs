@@ -1,6 +1,4 @@
-use std::rc::Rc;
-
-use super::super::{ir, BuiltInFunc, FuncData, ThunkData, ThunkEnv, ThunkEnvData};
+use super::super::{ir, BuiltInFunc, FuncData, FuncKind, ThunkData, ThunkEnv, ThunkEnvData};
 use super::{EvalError, EvalErrorKind, Evaluator, State, TraceItem};
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
@@ -11,17 +9,13 @@ impl Evaluator<'_> {
     pub(super) fn get_func_info(
         &self,
         func: &FuncData,
-    ) -> (
-        Option<InternedStr>,
-        Rc<ir::FuncParams>,
-        Option<Gc<ThunkEnv>>,
-    ) {
-        match func {
-            FuncData::Normal {
-                name, params, env, ..
-            } => (name.clone(), params.clone(), Some(env.clone())),
-            FuncData::BuiltIn { name, params, .. } => (Some(name.clone()), params.clone(), None),
-            FuncData::Native { params, .. } => (None, params.clone(), None),
+    ) -> (Option<InternedStr>, Option<Gc<ThunkEnv>>) {
+        match func.kind {
+            FuncKind::Normal {
+                ref name, ref env, ..
+            } => (name.clone(), Some(env.clone())),
+            FuncKind::BuiltIn { ref name, .. } => (Some(name.clone()), None),
+            FuncKind::Native { .. } => (None, None),
         }
     }
 
@@ -180,9 +174,9 @@ impl Evaluator<'_> {
         named_args: &[(InternedStr, GcView<ThunkData>)],
         call_span: Option<SpanId>,
     ) -> Result<(), Box<EvalError>> {
-        let (func_name, params, func_env) = self.get_func_info(func);
+        let (func_name, func_env) = self.get_func_info(func);
         let args_thunks =
-            self.check_call_thunk_args(&params, positional_args, named_args, func_env)?;
+            self.check_call_thunk_args(&func.params, positional_args, named_args, func_env)?;
         self.push_trace_item(TraceItem::Call {
             span: call_span,
             name: func_name,
@@ -192,16 +186,16 @@ impl Evaluator<'_> {
     }
 
     pub(super) fn execute_call(&mut self, func: &FuncData, args: Box<[Gc<ThunkData>]>) {
-        match func {
-            FuncData::Normal {
-                params, body, env, ..
+        match func.kind {
+            FuncKind::Normal {
+                ref body, ref env, ..
             } => {
-                self.execute_normal_call(params, body.clone(), env.clone(), args);
+                self.execute_normal_call(&func.params, body.clone(), env.clone(), args);
             }
-            FuncData::BuiltIn { kind, .. } => {
-                self.execute_built_in_call(*kind, &args);
+            FuncKind::BuiltIn { kind, .. } => {
+                self.execute_built_in_call(kind, &args);
             }
-            FuncData::Native { name, .. } => {
+            FuncKind::Native { ref name, .. } => {
                 self.execute_native_call(name, &args);
             }
         }
