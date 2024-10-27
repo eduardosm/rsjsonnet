@@ -6,13 +6,15 @@ mod trace;
 #[cfg(test)]
 mod tests;
 
-pub(crate) trait GcTrace: 'static {
-    fn trace(&self, ctx: &mut GcTraceCtx);
+pub(crate) trait GcTrace {
+    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    where
+        Self: 'a;
 }
 
-pub(crate) struct GcTraceCtx {
+pub(crate) struct GcTraceCtx<'a> {
     marking: bool,
-    queue: Vec<Rc<GcBox<dyn GcTrace>>>,
+    queue: Vec<Rc<GcBox<dyn GcTrace + 'a>>>,
 }
 
 pub(crate) struct Gc<T: GcTrace> {
@@ -29,7 +31,10 @@ impl<T: GcTrace> Clone for Gc<T> {
 }
 
 impl<T: GcTrace> GcTrace for Gc<T> {
-    fn trace(&self, ctx: &mut GcTraceCtx) {
+    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    where
+        Self: 'a,
+    {
         if let Some(inner) = self.inner.upgrade() {
             if !ctx.marking {
                 // Count
@@ -102,15 +107,15 @@ struct GcBox<T: ?Sized + GcTrace> {
     value: T,
 }
 
-pub(crate) struct GcContext {
-    inner: RefCell<GcContextInner>,
+pub(crate) struct GcContext<'a> {
+    inner: RefCell<GcContextInner<'a>>,
 }
 
-struct GcContextInner {
-    objs: Vec<Rc<GcBox<dyn GcTrace>>>,
+struct GcContextInner<'a> {
+    objs: Vec<Rc<GcBox<dyn GcTrace + 'a>>>,
 }
 
-impl GcContext {
+impl<'a> GcContext<'a> {
     #[inline]
     pub(crate) fn new() -> Self {
         Self {
@@ -119,7 +124,7 @@ impl GcContext {
     }
 
     #[must_use]
-    pub(crate) fn alloc<T: GcTrace>(&self, value: T) -> Gc<T> {
+    pub(crate) fn alloc<T: GcTrace + 'a>(&self, value: T) -> Gc<T> {
         let mut inner = self.inner.borrow_mut();
         let obj = Rc::new(GcBox {
             visits: Cell::new(0),
@@ -132,7 +137,7 @@ impl GcContext {
     }
 
     #[must_use]
-    pub(crate) fn alloc_view<T: GcTrace>(&self, value: T) -> GcView<T> {
+    pub(crate) fn alloc_view<T: GcTrace + 'a>(&self, value: T) -> GcView<T> {
         let mut inner = self.inner.borrow_mut();
         let obj = Rc::new(GcBox {
             visits: Cell::new(0),
