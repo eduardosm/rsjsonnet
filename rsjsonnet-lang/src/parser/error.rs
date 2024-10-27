@@ -15,11 +15,38 @@ pub enum ExpectedToken {
     BinaryOp,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ActualToken {
+    EndOfFile,
+    Simple(STokenKind),
+    OtherOp(String),
+    Ident(String),
+    Number,
+    String,
+    TextBlock,
+}
+
+impl ActualToken {
+    pub(super) fn from_token_kind(kind: &TokenKind) -> Self {
+        match *kind {
+            TokenKind::EndOfFile => Self::EndOfFile,
+            TokenKind::Whitespace => unreachable!(),
+            TokenKind::Comment => unreachable!(),
+            TokenKind::Simple(kind) => Self::Simple(kind),
+            TokenKind::OtherOp(ref op) => Self::OtherOp((**op).into()),
+            TokenKind::Ident(ref ident) => Self::Ident(ident.value().into()),
+            TokenKind::Number(_) => Self::Number,
+            TokenKind::String(_) => Self::String,
+            TokenKind::TextBlock(_) => Self::TextBlock,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParseError {
     Expected {
         span: SpanId,
         expected: BTreeSet<ExpectedToken>,
-        instead: TokenKind,
+        instead: ActualToken,
     },
 }

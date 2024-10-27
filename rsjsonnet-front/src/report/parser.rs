@@ -1,6 +1,6 @@
-use rsjsonnet_lang::parser::{ExpectedToken, ParseError};
+use rsjsonnet_lang::parser::{ActualToken, ExpectedToken, ParseError};
 use rsjsonnet_lang::span::SpanManager;
-use rsjsonnet_lang::token::{STokenKind, TokenKind};
+use rsjsonnet_lang::token::STokenKind;
 
 use super::message::{LabelKind, Message, MessageKind, MessageLabel};
 use super::TextPartKind;
@@ -35,12 +35,12 @@ pub(crate) fn render_error(
                 kind: MessageKind::Error,
                 message: format!(
                     "expected {expected_str} instead of {}",
-                    token_kind_to_string(instead),
+                    actual_to_string(instead),
                 ),
                 labels: vec![MessageLabel {
                     span,
                     kind: LabelKind::Error,
-                    text: if *instead == TokenKind::EndOfFile {
+                    text: if *instead == ActualToken::EndOfFile {
                         "unexpected end-of-file".into()
                     } else {
                         "unexpected token".into()
@@ -55,8 +55,8 @@ pub(crate) fn render_error(
     out
 }
 
-fn expected_to_string(expected_thing: ExpectedToken) -> String {
-    match expected_thing {
+fn expected_to_string(token: ExpectedToken) -> String {
+    match token {
         ExpectedToken::EndOfFile => "end-of-file".into(),
         ExpectedToken::Simple(kind) => format!("`{}`", simple_token_to_str(kind)),
         ExpectedToken::Ident => "identifier".into(),
@@ -68,18 +68,15 @@ fn expected_to_string(expected_thing: ExpectedToken) -> String {
     }
 }
 
-fn token_kind_to_string(kind: &TokenKind) -> String {
-    match kind {
-        TokenKind::EndOfFile => "end-of-file".into(),
-        TokenKind::Whitespace => unreachable!(),
-        TokenKind::Comment => unreachable!(),
-
-        TokenKind::Simple(kind) => format!("`{}`", simple_token_to_str(*kind)),
-        TokenKind::OtherOp(op) => format!("`{op}`"),
-        TokenKind::Ident(_) => "identifier".into(),
-        TokenKind::Number(_) => "number".into(),
-        TokenKind::String(_) => "string".into(),
-        TokenKind::TextBlock(_) => "text block".into(),
+fn actual_to_string(token: &ActualToken) -> String {
+    match token {
+        ActualToken::EndOfFile => "end-of-file".into(),
+        ActualToken::Simple(kind) => format!("`{}`", simple_token_to_str(*kind)),
+        ActualToken::OtherOp(op) => format!("`{op}`"),
+        ActualToken::Ident(_) => "identifier".into(),
+        ActualToken::Number => "number".into(),
+        ActualToken::String => "string".into(),
+        ActualToken::TextBlock => "text block".into(),
     }
 }
 

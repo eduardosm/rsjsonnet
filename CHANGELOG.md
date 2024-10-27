@@ -7,6 +7,8 @@
 - `EvalErrorKind::InvalidBuiltInFuncArgType` has been renamed to
   `EvalErrorKind::InvalidStdFuncArgType`.
 - New variants have been added to `EvalStackTraceItem`.
+- `ExpectedThing` as been renamed to `ExpectedToken`.
+- `ParseError::Expected` now uses `ActualToken` instead of `TokenKind`.
 
 ### Fixed
 
