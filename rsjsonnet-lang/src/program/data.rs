@@ -111,25 +111,21 @@ impl Program {
         name: &InternedStr,
     ) -> Option<GcView<ThunkData>> {
         let (core_i, field) = object.find_field(core_i, name)?;
-        let thunk = self.get_object_field_thunk(object, core_i, field).view();
-        Some(thunk)
-    }
-
-    pub(super) fn get_object_field_thunk<'a>(
-        &self,
-        object: &GcView<ObjectData>,
-        core_i: usize,
-        field: &'a ObjectField,
-    ) -> &'a Gc<ThunkData> {
-        field.thunk.get_or_init(|| {
-            let expr = field.expr.as_ref().unwrap();
+        let thunk = field.thunk.get_or_init(|| {
+            let (expr, plus) = field.expr.as_ref().unwrap();
             let env = if let Some(base_env) = field.base_env.as_ref() {
                 self.init_object_env(object, core_i, base_env)
             } else {
                 self.get_object_core_env(object, core_i)
             };
-            self.gc_alloc(ThunkData::new_pending_expr(expr.clone(), env))
-        })
+            let thunk = if *plus {
+                ThunkData::new_pending_field_plus(expr.clone(), name.clone(), env)
+            } else {
+                ThunkData::new_pending_expr(expr.clone(), env)
+            };
+            self.gc_alloc(thunk)
+        });
+        Some(thunk.view())
     }
 
     pub(super) fn get_object_assert_env(
@@ -228,6 +224,21 @@ impl ThunkData {
     }
 
     #[inline]
+    pub(super) fn new_pending_field_plus(
+        expr: ir::RcExpr,
+        field: InternedStr,
+        env: Gc<ThunkEnv>,
+    ) -> Self {
+        Self {
+            state: RefCell::new(ThunkState::Pending(PendingThunk::FieldPlus {
+                expr,
+                field,
+                env,
+            })),
+        }
+    }
+
+    #[inline]
     pub(super) fn new_pending_call(func: Gc<FuncData>, args: Box<[Gc<Self>]>) -> Self {
         Self {
             state: RefCell::new(ThunkState::Pending(PendingThunk::Call { func, args })),
@@ -281,6 +292,11 @@ pub(super) enum PendingThunk {
         expr: ir::RcExpr,
         env: Gc<ThunkEnv>,
     },
+    FieldPlus {
+        expr: ir::RcExpr,
+        field: InternedStr,
+        env: Gc<ThunkEnv>,
+    },
     Call {
         func: Gc<FuncData>,
         args: Box<[Gc<ThunkData>]>,
@@ -294,6 +310,7 @@ impl GcTrace for PendingThunk {
     {
         match self {
             Self::Expr { env, .. } => env.trace(ctx),
+            Self::FieldPlus { env, .. } => env.trace(ctx),
             Self::Call { func, args } => {
                 func.trace(ctx);
                 args.trace(ctx);
@@ -494,7 +511,7 @@ impl GcTrace for ObjectCore {
 pub(super) struct ObjectField {
     pub(super) base_env: Option<Gc<ThunkEnv>>,
     pub(super) visibility: ast::Visibility,
-    pub(super) expr: Option<ir::RcExpr>,
+    pub(super) expr: Option<(ir::RcExpr, bool)>,
     pub(super) thunk: OnceCell<Gc<ThunkData>>,
 }
 

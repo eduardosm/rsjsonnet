@@ -97,36 +97,6 @@ impl Evaluator<'_> {
                 });
                 self.want_comp_spec(comp_spec, env);
             }
-            ir::Expr::FieldPlus {
-                ref field_name,
-                ref field_expr,
-            } => {
-                let (object, core_i) = env.get_object();
-                let object = object.view();
-                if let Some(super_field) =
-                    self.program
-                        .find_object_field_thunk(&object, core_i + 1, field_name)
-                {
-                    self.state_stack.push(State::BinaryOp {
-                        span: None,
-                        op: ast::BinaryOp::Add,
-                    });
-                    self.state_stack.push(State::Expr {
-                        expr: field_expr.clone(),
-                        env,
-                    });
-                    self.push_trace_item(TraceItem::ObjectField {
-                        span: None,
-                        name: field_name.clone(),
-                    });
-                    self.state_stack.push(State::DoThunk(super_field));
-                } else {
-                    self.state_stack.push(State::Expr {
-                        expr: field_expr.clone(),
-                        env,
-                    });
-                }
-            }
             ir::Expr::Array(ref items_exprs) => {
                 if items_exprs.is_empty() {
                     self.value_stack
