@@ -194,6 +194,29 @@ impl<'a> Evaluator<'a> {
                                     env: env.view(),
                                 });
                             }
+                            PendingThunk::FieldPlus { expr, field, env } => {
+                                let env = env.view();
+                                let (object, core_i) = env.get_object();
+                                let object = object.view();
+                                if let Some(super_field) = self.program.find_object_field_thunk(
+                                    &object,
+                                    core_i + 1,
+                                    &field,
+                                ) {
+                                    self.state_stack.push(State::BinaryOp {
+                                        span: None,
+                                        op: ast::BinaryOp::Add,
+                                    });
+                                    self.state_stack.push(State::Expr { expr, env });
+                                    self.push_trace_item(TraceItem::ObjectField {
+                                        span: None,
+                                        name: field,
+                                    });
+                                    self.state_stack.push(State::DoThunk(super_field));
+                                } else {
+                                    self.state_stack.push(State::Expr { expr, env });
+                                }
+                            }
                             PendingThunk::Call { func, args } => {
                                 self.execute_call(&func.view(), args);
                             }
@@ -1509,16 +1532,13 @@ impl<'a> Evaluator<'a> {
                 let actual_expr;
                 let thunk;
                 if plus {
-                    actual_expr = Some(ir::RcExpr::new(ir::Expr::FieldPlus {
-                        field_name: name,
-                        field_expr: value,
-                    }));
+                    actual_expr = Some((value, true));
                     thunk = OnceCell::new();
                 } else if let Some(value) = Self::try_value_from_expr(self.program, &value) {
                     actual_expr = None;
                     thunk = OnceCell::from(self.program.gc_alloc(ThunkData::new_done(value)));
                 } else {
-                    actual_expr = Some(value.clone());
+                    actual_expr = Some((value, false));
                     thunk = OnceCell::new();
                 }
 

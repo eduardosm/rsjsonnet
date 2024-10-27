@@ -24,10 +24,6 @@ pub(super) enum Expr {
         field_value: RcExpr,
         comp_spec: Vec<CompSpecPart>,
     },
-    FieldPlus {
-        field_name: InternedStr,
-        field_expr: RcExpr,
-    },
     Array(Vec<RcExpr>),
     ArrayComp {
         value: RcExpr,
@@ -179,12 +175,6 @@ impl Expr {
                         }
                     }
                 }
-            }
-            Self::FieldPlus {
-                field_name: _,
-                field_expr,
-            } => {
-                out.push(field_expr);
             }
             Self::Array(items) => {
                 for item in items {
