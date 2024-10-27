@@ -21,5 +21,6 @@ rsjsonnet-lang = { path = "rsjsonnet-lang", version = "0.3.0-pre" }
 
 [profile.release]
 strip = "debuginfo"
+lto = true
 panic = "abort"
 codegen-units = 1
