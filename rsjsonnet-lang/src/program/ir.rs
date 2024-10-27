@@ -171,15 +171,15 @@ impl FuncParams {
         Self { by_name, order }
     }
 
-    pub(super) fn create_with_defaults<const N: usize>(
+    pub(super) fn create_with_defaults(
         str_interner: &StrInterner,
-        params: [(&str, Option<Rc<Expr>>); N],
+        params: &[(&str, Option<Rc<Expr>>)],
     ) -> Self {
         let order: Vec<_> = params.iter().map(|(s, _)| str_interner.intern(s)).collect();
         let by_name = params
-            .into_iter()
+            .iter()
             .enumerate()
-            .map(|(i, (name, default))| (str_interner.intern(name), (i, default)))
+            .map(|(i, (name, default))| (str_interner.intern(name), (i, default.clone())))
             .collect();
         Self { by_name, order }
     }
