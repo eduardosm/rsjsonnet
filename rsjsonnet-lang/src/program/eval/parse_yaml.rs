@@ -205,7 +205,7 @@ fn parse_yaml_document(
                                 return Err(ParseError::AnchorContainsItself);
                             }
                             AnchorValue::Scalar { value, .. } => {
-                                let key = program.str_interner.intern(value);
+                                let key = program.intern_str(value);
                                 stack.push(StackItem::Object {
                                     anchor_id,
                                     fields: FHashMap::default(),
@@ -238,7 +238,7 @@ fn parse_yaml_document(
                             return Err(ParseError::Tag);
                         }
 
-                        let key = program.str_interner.intern(&value);
+                        let key = program.intern_str(&value);
                         anchors.insert(key_anchor_id, AnchorValue::Scalar { style, value });
                         stack.push(StackItem::Object {
                             anchor_id,
@@ -306,7 +306,7 @@ fn parse_yaml_document(
                                         return Err(ParseError::AnchorContainsItself);
                                     }
                                     AnchorValue::Scalar { value, .. } => {
-                                        let key = program.str_interner.intern(value);
+                                        let key = program.intern_str(value);
                                         stack.push(StackItem::Object {
                                             anchor_id,
                                             fields,
@@ -341,7 +341,7 @@ fn parse_yaml_document(
                                     return Err(ParseError::Tag);
                                 }
 
-                                let key = program.str_interner.intern(&value);
+                                let key = program.intern_str(&value);
                                 anchors.insert(key_anchor_id, AnchorValue::Scalar { style, value });
                                 stack.push(StackItem::Object {
                                     anchor_id,

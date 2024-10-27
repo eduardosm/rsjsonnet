@@ -265,6 +265,11 @@ impl Program {
     }
 
     #[inline]
+    pub fn intern_str(&self, value: &str) -> InternedStr {
+        self.str_interner.intern(value)
+    }
+
+    #[inline]
     pub fn span_manager(&self) -> &SpanManager {
         &self.span_mgr
     }
@@ -423,7 +428,7 @@ impl Program {
                 self.gc_alloc_view(ThunkData::new_done(ValueData::Object(stdlib_obj)));
 
             let mut env = FHashMap::default();
-            env.insert(self.str_interner.intern("std"), Thunk::new(stdlib_thunk));
+            env.insert(self.intern_str("std"), Thunk::new(stdlib_thunk));
 
             Some(env)
         } else {

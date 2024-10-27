@@ -59,7 +59,7 @@ impl Program {
 
         let mut add_simple = |name: &str, kind: BuiltInFunc, params: &[&str]| {
             add_builtin_func(
-                self.str_interner.intern(name),
+                self.intern_str(name),
                 kind,
                 ir::FuncParams::create_simple(&self.str_interner, params),
             );
@@ -184,7 +184,7 @@ impl Program {
         add_simple("trace", BuiltInFunc::Trace, &["str", "rest"]);
 
         add_builtin_func(
-            self.str_interner.intern("manifestJsonEx"),
+            self.intern_str("manifestJsonEx"),
             BuiltInFunc::ManifestJsonEx,
             ir::FuncParams::create_with_defaults(
                 &self.str_interner,
@@ -197,7 +197,7 @@ impl Program {
             ),
         );
         add_builtin_func(
-            self.str_interner.intern("manifestYamlDoc"),
+            self.intern_str("manifestYamlDoc"),
             BuiltInFunc::ManifestYamlDoc,
             ir::FuncParams::create_with_defaults(
                 &self.str_interner,
@@ -209,7 +209,7 @@ impl Program {
             ),
         );
         add_builtin_func(
-            self.str_interner.intern("manifestYamlStream"),
+            self.intern_str("manifestYamlStream"),
             BuiltInFunc::ManifestYamlStream,
             ir::FuncParams::create_with_defaults(
                 &self.str_interner,
@@ -222,7 +222,7 @@ impl Program {
             ),
         );
         add_builtin_func(
-            self.str_interner.intern("sort"),
+            self.intern_str("sort"),
             BuiltInFunc::Sort,
             ir::FuncParams::create_with_defaults(
                 &self.str_interner,
@@ -233,7 +233,7 @@ impl Program {
             ),
         );
         add_builtin_func(
-            self.str_interner.intern("uniq"),
+            self.intern_str("uniq"),
             BuiltInFunc::Uniq,
             ir::FuncParams::create_with_defaults(
                 &self.str_interner,
@@ -244,7 +244,7 @@ impl Program {
             ),
         );
         add_builtin_func(
-            self.str_interner.intern("set"),
+            self.intern_str("set"),
             BuiltInFunc::Set,
             ir::FuncParams::create_with_defaults(
                 &self.str_interner,
@@ -255,7 +255,7 @@ impl Program {
             ),
         );
         add_builtin_func(
-            self.str_interner.intern("setInter"),
+            self.intern_str("setInter"),
             BuiltInFunc::SetInter,
             ir::FuncParams::create_with_defaults(
                 &self.str_interner,
@@ -267,7 +267,7 @@ impl Program {
             ),
         );
         add_builtin_func(
-            self.str_interner.intern("setUnion"),
+            self.intern_str("setUnion"),
             BuiltInFunc::SetUnion,
             ir::FuncParams::create_with_defaults(
                 &self.str_interner,
@@ -279,7 +279,7 @@ impl Program {
             ),
         );
         add_builtin_func(
-            self.str_interner.intern("setDiff"),
+            self.intern_str("setDiff"),
             BuiltInFunc::SetDiff,
             ir::FuncParams::create_with_defaults(
                 &self.str_interner,
@@ -291,7 +291,7 @@ impl Program {
             ),
         );
         add_builtin_func(
-            self.str_interner.intern("setMember"),
+            self.intern_str("setMember"),
             BuiltInFunc::SetMember,
             ir::FuncParams::create_with_defaults(
                 &self.str_interner,
@@ -311,7 +311,7 @@ impl Program {
 
         let mut extra_fields = FHashMap::default();
         extra_fields.insert(
-            self.str_interner.intern("thisFile"),
+            self.intern_str("thisFile"),
             ObjectField {
                 base_env: None,
                 visibility: ast::Visibility::Hidden,

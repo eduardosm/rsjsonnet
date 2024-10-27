@@ -21,16 +21,16 @@ impl TestCallbacks {
     }
 
     pub(crate) fn init_native_funcs(&mut self, program: &mut Program) {
-        program.register_native_func(program.str_interner().intern("returnNum"), &[]);
+        program.register_native_func(program.intern_str("returnNum"), &[]);
         program.register_native_func(
-            program.str_interner().intern("isString"),
-            &[program.str_interner().intern("value")],
+            program.intern_str("isString"),
+            &[program.intern_str("value")],
         );
         program.register_native_func(
-            program.str_interner().intern("lastItemOfFirst"),
-            &[program.str_interner().intern("array")],
+            program.intern_str("lastItemOfFirst"),
+            &[program.intern_str("array")],
         );
-        program.register_native_func(program.str_interner().intern("failure"), &[]);
+        program.register_native_func(program.intern_str("failure"), &[]);
     }
 }
 

@@ -112,7 +112,7 @@ pub(super) fn parse_json(program: &mut Program, s: &str) -> Result<ValueData, Pa
                 lexer.skip_spaces();
                 stack.push(StackItem::Object(
                     FHashMap::default(),
-                    program.str_interner.intern(&first_key),
+                    program.intern_str(&first_key),
                 ));
                 continue;
             }
@@ -169,10 +169,7 @@ pub(super) fn parse_json(program: &mut Program, s: &str) -> Result<ValueData, Pa
                                 return Err(lexer.get_error(ParseErrorKind::Expected1(':')));
                             }
                             lexer.skip_spaces();
-                            stack.push(StackItem::Object(
-                                fields,
-                                program.str_interner.intern(&next_key),
-                            ));
+                            stack.push(StackItem::Object(fields, program.intern_str(&next_key)));
                             break;
                         } else {
                             return Err(lexer.get_error(ParseErrorKind::Expected2('}', ',')));

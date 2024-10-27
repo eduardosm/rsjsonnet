@@ -71,7 +71,7 @@ impl<'a> Analyzer<'a> {
                         let bin_expr_ir = match op {
                             ast::BinaryOp::Rem => Rc::new(ir::Expr::Call {
                                 callee: Rc::new(ir::Expr::StdField {
-                                    field_name: self.program.str_interner.intern("mod"),
+                                    field_name: self.program.intern_str("mod"),
                                 }),
                                 positional_args: vec![lhs, rhs],
                                 named_args: Vec::new(),
@@ -196,7 +196,7 @@ impl<'a> Analyzer<'a> {
 
                         state = State::Analyzed(Rc::new(ir::Expr::Call {
                             callee: Rc::new(ir::Expr::StdField {
-                                field_name: self.program.str_interner.intern("slice"),
+                                field_name: self.program.intern_str("slice"),
                             }),
                             positional_args: vec![object, start_index, end_index, step],
                             named_args: Vec::new(),

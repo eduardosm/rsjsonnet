@@ -419,7 +419,7 @@ impl<'a> Evaluator<'a> {
                 } => {
                     let name_value = self.value_stack.pop().unwrap();
                     if let ValueData::String(name) = name_value {
-                        let name = self.program.str_interner.intern(&name);
+                        let name = self.program.intern_str(&name);
                         self.add_object_field(name, name_span, plus, visibility, value, base_env)?;
                     } else if !matches!(name_value, ValueData::Null) {
                         return Err(self.report_error(EvalErrorKind::FieldNameIsNotString {
