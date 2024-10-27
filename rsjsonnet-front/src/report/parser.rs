@@ -1,4 +1,4 @@
-use rsjsonnet_lang::parser::{ExpectedThing, ParseError};
+use rsjsonnet_lang::parser::{ExpectedToken, ParseError};
 use rsjsonnet_lang::span::SpanManager;
 use rsjsonnet_lang::token::{STokenKind, TokenKind};
 
@@ -55,16 +55,16 @@ pub(crate) fn render_error(
     out
 }
 
-fn expected_to_string(expected_thing: ExpectedThing) -> String {
+fn expected_to_string(expected_thing: ExpectedToken) -> String {
     match expected_thing {
-        ExpectedThing::EndOfFile => "end-of-file".into(),
-        ExpectedThing::Simple(kind) => format!("`{}`", simple_token_to_str(kind)),
-        ExpectedThing::Ident => "identifier".into(),
-        ExpectedThing::Number => "number".into(),
-        ExpectedThing::String => "string".into(),
-        ExpectedThing::TextBlock => "text block".into(),
-        ExpectedThing::Expr => "expression".into(),
-        ExpectedThing::BinaryOp => "binary operator".into(),
+        ExpectedToken::EndOfFile => "end-of-file".into(),
+        ExpectedToken::Simple(kind) => format!("`{}`", simple_token_to_str(kind)),
+        ExpectedToken::Ident => "identifier".into(),
+        ExpectedToken::Number => "number".into(),
+        ExpectedToken::String => "string".into(),
+        ExpectedToken::TextBlock => "text block".into(),
+        ExpectedToken::Expr => "expression".into(),
+        ExpectedToken::BinaryOp => "binary operator".into(),
     }
 }
 
