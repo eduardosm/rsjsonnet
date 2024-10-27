@@ -208,11 +208,12 @@ impl<'a> Evaluator<'a> {
                                         op: ast::BinaryOp::Add,
                                     });
                                     self.state_stack.push(State::Expr { expr, env });
-                                    self.push_trace_item(TraceItem::ObjectField {
-                                        span: None,
-                                        name: field,
+                                    self.want_thunk_direct(super_field, || {
+                                        TraceItem::ObjectField {
+                                            span: None,
+                                            name: field,
+                                        }
                                     });
-                                    self.state_stack.push(State::DoThunk(super_field));
                                 } else {
                                     self.state_stack.push(State::Expr { expr, env });
                                 }
@@ -718,11 +719,10 @@ impl<'a> Evaluator<'a> {
                                 ));
                             };
                             if let Some(item) = array.get(index_usize) {
-                                self.push_trace_item(TraceItem::ArrayItem {
+                                self.want_thunk_direct(item.view(), || TraceItem::ArrayItem {
                                     span: Some(span),
                                     index: index_usize,
                                 });
-                                self.state_stack.push(State::DoThunk(item.view()));
                             } else {
                                 return Err(self.report_error(
                                     EvalErrorKind::NumericIndexOutOfRange {
@@ -1512,6 +1512,20 @@ impl<'a> Evaluator<'a> {
             ThunkData::new_pending_expr(expr, env)
         };
         self.program.gc_alloc(thunk)
+    }
+
+    #[inline]
+    fn want_thunk_direct(
+        &mut self,
+        thunk: GcView<ThunkData>,
+        trace_item: impl FnOnce() -> TraceItem,
+    ) {
+        if let Some(value) = thunk.get_value() {
+            self.value_stack.push(value);
+        } else {
+            self.push_trace_item(trace_item());
+            self.state_stack.push(State::DoThunk(thunk));
+        }
     }
 
     fn add_object_field(

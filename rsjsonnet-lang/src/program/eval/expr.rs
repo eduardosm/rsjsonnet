@@ -187,12 +187,11 @@ impl Evaluator<'_> {
                 });
             }
             ir::Expr::Var(ref var_name, span) => {
-                self.push_trace_item(TraceItem::Variable {
+                let thunk = env.get_var(var_name).view();
+                self.want_thunk_direct(thunk, || TraceItem::Variable {
                     span,
                     name: var_name.clone(),
                 });
-                self.state_stack
-                    .push(State::DoThunk(env.get_var(var_name).view()));
             }
             ir::Expr::TopObj => {
                 let object = env.get_top_object();
@@ -537,12 +536,19 @@ impl Evaluator<'_> {
         expr_span: SpanId,
     ) -> Result<(), Box<EvalError>> {
         if let Some(field_thunk) = self.program.find_object_field_thunk(object, 0, field_name) {
-            self.push_trace_item(TraceItem::ObjectField {
-                span: Some(expr_span),
-                name: field_name.clone(),
-            });
-            self.state_stack.push(State::DoThunk(field_thunk));
-            self.check_object_asserts(object);
+            if object.asserts_checked.get() {
+                self.want_thunk_direct(field_thunk, || TraceItem::ObjectField {
+                    span: Some(expr_span),
+                    name: field_name.clone(),
+                });
+            } else {
+                self.push_trace_item(TraceItem::ObjectField {
+                    span: Some(expr_span),
+                    name: field_name.clone(),
+                });
+                self.state_stack.push(State::DoThunk(field_thunk));
+                self.check_object_asserts(object);
+            }
             Ok(())
         } else {
             Err(self.report_error(EvalErrorKind::UnknownObjectField {
@@ -570,11 +576,10 @@ impl Evaluator<'_> {
             self.program
                 .find_object_field_thunk(&object, core_i + 1, field_name)
         {
-            self.push_trace_item(TraceItem::ObjectField {
+            self.want_thunk_direct(field_thunk, || TraceItem::ObjectField {
                 span: Some(expr_span),
                 name: field_name.clone(),
             });
-            self.state_stack.push(State::DoThunk(field_thunk));
             Ok(())
         } else {
             Err(self.report_error(EvalErrorKind::UnknownObjectField {
