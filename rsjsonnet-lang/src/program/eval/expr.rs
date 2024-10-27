@@ -387,14 +387,14 @@ impl Evaluator<'_> {
                 ref body,
             } => {
                 self.value_stack
-                    .push(ValueData::Function(self.program.gc_alloc(FuncData {
-                        params: params.clone(),
-                        kind: FuncKind::Normal {
+                    .push(ValueData::Function(self.program.gc_alloc(FuncData::new(
+                        params.clone(),
+                        FuncKind::Normal {
                             name: None, // TODO: Function name
                             body: body.clone(),
                             env: Gc::from(&env),
                         },
-                    })));
+                    ))));
             }
             ir::Expr::Error { ref msg, span } => {
                 self.state_stack.push(State::Error { span });

@@ -542,7 +542,7 @@ impl GcTrace for ObjectAssert {
 }
 
 pub(super) struct FuncData {
-    pub(super) params: Rc<ir::FuncParams>,
+    pub(super) params: FuncParams,
     pub(super) kind: FuncKind,
 }
 
@@ -554,6 +554,31 @@ impl GcTrace for FuncData {
     {
         self.kind.trace(ctx);
     }
+}
+
+impl FuncData {
+    pub(super) fn new(
+        params_order: Rc<Vec<(InternedStr, Option<ir::RcExpr>)>>,
+        kind: FuncKind,
+    ) -> Self {
+        let mut params_by_name = FHashMap::default();
+        for (i, (name, _)) in params_order.iter().enumerate() {
+            let prev = params_by_name.insert(name.clone(), i);
+            assert!(prev.is_none(), "repeat parameter name: {name:?}");
+        }
+        Self {
+            params: FuncParams {
+                order: params_order,
+                by_name: params_by_name,
+            },
+            kind,
+        }
+    }
+}
+
+pub(super) struct FuncParams {
+    pub(super) order: Rc<Vec<(InternedStr, Option<ir::RcExpr>)>>,
+    pub(super) by_name: FHashMap<InternedStr, usize>,
 }
 
 pub(super) enum FuncKind {

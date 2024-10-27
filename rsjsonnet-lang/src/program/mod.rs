@@ -90,8 +90,8 @@ mod ir;
 mod stdlib;
 
 use data::{
-    ArrayData, BuiltInFunc, FuncData, FuncKind, ObjectAssert, ObjectCore, ObjectData, ObjectField,
-    PendingThunk, ThunkData, ThunkEnv, ThunkEnvData, ThunkState, ValueData,
+    ArrayData, BuiltInFunc, FuncData, FuncKind, FuncParams, ObjectAssert, ObjectCore, ObjectData,
+    ObjectField, PendingThunk, ThunkData, ThunkEnv, ThunkEnvData, ThunkState, ValueData,
 };
 pub use error::{AnalyzeError, EvalError, EvalErrorKind, EvalErrorValueType, LoadError};
 
@@ -230,13 +230,13 @@ impl Program {
         let (stdlib_span_ctx, stdlib_src_id) = span_mgr.insert_source_context(stdlib_data.len());
 
         let empty_array: GcView<ArrayData> = gc_ctx.alloc_view(Box::new([]));
-        let identity_func = gc_ctx.alloc_view(FuncData {
-            params: Rc::new(ir::FuncParams::create_simple(&str_interner, &["x"])),
-            kind: FuncKind::BuiltIn {
+        let identity_func = gc_ctx.alloc_view(FuncData::new(
+            Rc::new(vec![(str_interner.intern("x"), None)]),
+            FuncKind::BuiltIn {
                 name: str_interner.intern("id"),
                 kind: BuiltInFunc::Identity,
             },
-        });
+        ));
 
         let mut this = Self {
             str_interner,
@@ -337,24 +337,11 @@ impl Program {
                 panic!("native function {:?} already registered", entry.key());
             }
             std::collections::hash_map::Entry::Vacant(entry) => {
-                let mut params_by_name = FHashMap::default();
-                let mut params_order = Vec::new();
-                for (param_i, param) in params.iter().enumerate() {
-                    let prev = params_by_name.insert(param.clone(), (param_i, None));
-                    assert!(
-                        prev.is_none(),
-                        "repeated native function parameter name {param:?}"
-                    );
-                    params_order.push(param.clone());
-                }
-
-                entry.insert(self.gc_ctx.alloc_view(FuncData {
-                    params: Rc::new(ir::FuncParams {
-                        by_name: params_by_name,
-                        order: params_order,
-                    }),
-                    kind: FuncKind::Native { name },
-                }));
+                let params_order = params.iter().map(|name| (name.clone(), None)).collect();
+                entry.insert(self.gc_ctx.alloc_view(FuncData::new(
+                    Rc::new(params_order),
+                    FuncKind::Native { name },
+                )));
             }
         }
     }
