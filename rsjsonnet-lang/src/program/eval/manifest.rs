@@ -3,6 +3,7 @@ use std::rc::Rc;
 
 use super::super::ValueData;
 use super::{EvalError, EvalErrorKind, Evaluator, State, TraceItem};
+use crate::interner::InternedStr;
 
 pub(super) struct ManifestJsonFormat {
     indent: Box<str>,
@@ -49,6 +50,61 @@ impl ManifestJsonFormat {
 }
 
 impl Evaluator<'_> {
+    pub(super) fn do_manifest_ini_section(&mut self) -> Result<(), Box<EvalError>> {
+        let ValueData::Object(object) = self.value_stack.pop().unwrap() else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: "ini section must be an object".into(),
+            }));
+        };
+        let object = object.view();
+
+        let visible_fields: Vec<_> = object
+            .get_fields_order()
+            .iter()
+            .filter_map(|(name, visible)| visible.then_some(name))
+            .collect();
+        for &field_name in visible_fields.iter().rev() {
+            let field_thunk = self
+                .program
+                .find_object_field_thunk(&object, 0, field_name)
+                .unwrap();
+
+            self.state_stack.push(State::ManifestIniSectionItem {
+                name: field_name.clone(),
+            });
+            self.state_stack.push(State::DoThunk(field_thunk));
+        }
+        self.check_object_asserts(&object);
+
+        Ok(())
+    }
+
+    pub(super) fn do_manifest_ini_section_item(
+        &mut self,
+        name: InternedStr,
+    ) -> Result<(), Box<EvalError>> {
+        let value = self.value_stack.pop().unwrap();
+        if let ValueData::Array(array) = value {
+            let array = array.view();
+            for item in array.iter().rev() {
+                self.state_stack.push(State::AppendToString('\n'.into()));
+                self.state_stack.push(State::CoerceAppendToString);
+                self.state_stack.push(State::DoThunk(item.view()));
+                self.state_stack
+                    .push(State::AppendToString(format!("{} = ", name.value())));
+            }
+        } else {
+            self.value_stack.push(value);
+            self.state_stack.push(State::AppendToString('\n'.into()));
+            self.state_stack.push(State::CoerceAppendToString);
+            self.state_stack
+                .push(State::AppendToString(format!("{} = ", name.value())));
+        }
+
+        Ok(())
+    }
+
     pub(super) fn do_manifest_python(&mut self) -> Result<(), Box<EvalError>> {
         let value = self.value_stack.pop().unwrap();
         let result = self.string_stack.last_mut().unwrap();

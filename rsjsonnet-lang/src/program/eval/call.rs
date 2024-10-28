@@ -546,6 +546,11 @@ impl Evaluator<'_> {
                 self.state_stack.push(State::StdDecodeUtf8);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
+            BuiltInFunc::ManifestIni => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::StdManifestIni);
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
             BuiltInFunc::ManifestPython => {
                 let [arg] = check_num_args(args);
                 self.state_stack.push(State::StdManifestPython);

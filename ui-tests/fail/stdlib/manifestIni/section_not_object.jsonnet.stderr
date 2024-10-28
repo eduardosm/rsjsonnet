@@ -1,0 +1,8 @@
+error: ini section must be an object
+note: while evaluating call to `manifestIni`
+ --> section_not_object.jsonnet:1:1
+  |
+1 | std.manifestIni({ sections: { sec: null } })
+  | --------------------------------------------
+note: during top-level value evaluation
+

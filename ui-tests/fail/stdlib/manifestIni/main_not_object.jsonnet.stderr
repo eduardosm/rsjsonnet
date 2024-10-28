@@ -1,38 +1,5 @@
-error: first argument of `std.objectFieldsEx` is expected to be object, got null
-note: while evaluating call to `objectFieldsEx`
-   --> <stdlib>:312:5
-    |
-312 |     std.objectFieldsEx(o, false),
-    |     ----------------------------
-note: while evaluating call to function
-   --> <stdlib>:166:18
-    |
-166 |         for k in std.objectFields(body)
-    |                  ----------------------
-note: while evaluating call to `join`
-   --> <stdlib>:159:7
-    |
-159 |         std.join([], [
-    |  _______-
-    : | 
-167 | |       ]);
-    | |________- 
-note: while evaluating call to function
-   --> <stdlib>:170:58
-    |
-170 |           main_body = if std.objectHas(ini, 'main') then body_lines(ini.main) else [],
-    |                                                          --------------------
-note: while evaluating variable `main_body`
-   --> <stdlib>:175:20
-    |
-175 |     std.join('\n', main_body + std.flattenArrays(all_sections) + ['']),
-    |                    ---------
-note: while evaluating call to `join`
-   --> <stdlib>:175:5
-    |
-175 |     std.join('\n', main_body + std.flattenArrays(all_sections) + ['']),
-    |     ------------------------------------------------------------------
-note: while evaluating call to function
+error: ini section must be an object
+note: while evaluating call to `manifestIni`
  --> main_not_object.jsonnet:1:1
   |
 1 | std.manifestIni({ main: null, sections: {} })
