@@ -68,19 +68,12 @@ impl<'a> Analyzer<'a> {
                     }
                     Some(StackItem::BinaryRhs(span, op, lhs)) => {
                         let rhs = expr_ir;
-                        let bin_expr_ir = match op {
-                            ast::BinaryOp::Rem => ir::RcExpr::new(ir::Expr::Call {
-                                callee: ir::RcExpr::new(ir::Expr::StdField {
-                                    field_name: self.program.intern_str("mod"),
-                                }),
-                                positional_args: vec![lhs, rhs],
-                                named_args: Vec::new(),
-                                tailstrict: false,
-                                span,
-                            }),
-                            _ => ir::RcExpr::new(ir::Expr::Binary { op, lhs, rhs, span }),
-                        };
-                        state = State::Analyzed(bin_expr_ir);
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::Binary {
+                            op,
+                            lhs,
+                            rhs,
+                            span,
+                        }));
                     }
                     Some(StackItem::UnaryRhs(span, op)) => {
                         let rhs = expr_ir;
