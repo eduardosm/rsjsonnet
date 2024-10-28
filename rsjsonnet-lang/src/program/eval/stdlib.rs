@@ -912,6 +912,69 @@ impl Evaluator<'_> {
         self.value_stack.push(ValueData::String(s.into()));
     }
 
+    pub(super) fn do_std_manifest_ini(&mut self) -> Result<(), Box<EvalError>> {
+        let ini = self.value_stack.pop().unwrap();
+        let ini = self.expect_std_func_arg_object(ini, "manifestIni", 0)?;
+
+        let main_name = self.program.intern_str("main");
+        let sections_name = self.program.intern_str("sections");
+
+        let Some(sections_thunk) = self
+            .program
+            .find_object_field_thunk(&ini, 0, &sections_name)
+        else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: "missing \"sections\" field".into(),
+            }));
+        };
+
+        let main_thunk = self.program.find_object_field_thunk(&ini, 0, &main_name);
+
+        self.string_stack.push(String::new());
+        self.state_stack.push(State::StringToValue);
+        self.state_stack.push(State::StdManifestIniSections);
+        self.state_stack.push(State::DoThunk(sections_thunk));
+        if let Some(main_thunk) = main_thunk {
+            self.state_stack.push(State::ManifestIniSection);
+            self.state_stack.push(State::DoThunk(main_thunk));
+        }
+        self.check_object_asserts(&ini);
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_manifest_ini_sections(&mut self) -> Result<(), Box<EvalError>> {
+        let ValueData::Object(object) = self.value_stack.pop().unwrap() else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: "\"sections\" field must be an object".into(),
+            }));
+        };
+        let object = object.view();
+
+        let visible_fields: Vec<_> = object
+            .get_fields_order()
+            .iter()
+            .filter_map(|(name, visible)| visible.then_some(name))
+            .collect();
+        for field_name in visible_fields.iter().rev() {
+            let field_thunk = self
+                .program
+                .find_object_field_thunk(&object, 0, field_name)
+                .unwrap();
+
+            self.state_stack.push(State::ManifestIniSection);
+            self.state_stack.push(State::DoThunk(field_thunk));
+
+            self.state_stack
+                .push(State::AppendToString(format!("[{}]\n", field_name.value())));
+        }
+        self.check_object_asserts(&object);
+
+        Ok(())
+    }
+
     pub(super) fn do_std_manifest_python(&mut self) {
         self.string_stack.push(String::new());
         self.state_stack.push(State::StringToValue);

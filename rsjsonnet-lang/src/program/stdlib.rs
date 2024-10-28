@@ -152,6 +152,7 @@ impl Program {
         add_simple("parseYaml", BuiltInFunc::ParseYaml, &["str"]);
         add_simple("encodeUTF8", BuiltInFunc::EncodeUtf8, &["str"]);
         add_simple("decodeUTF8", BuiltInFunc::DecodeUtf8, &["arr"]);
+        add_simple("manifestIni", BuiltInFunc::ManifestIni, &["ini"]);
         add_simple("manifestPython", BuiltInFunc::ManifestPython, &["v"]);
         add_simple(
             "manifestPythonVars",

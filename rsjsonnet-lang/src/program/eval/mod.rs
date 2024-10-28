@@ -297,6 +297,17 @@ impl<'a> Evaluator<'a> {
                         self.string_stack.push(String::new());
                     }
                 }
+                State::CoerceAppendToString => {
+                    if let ValueData::String(s) = self.value_stack.last().unwrap() {
+                        self.string_stack.last_mut().unwrap().push_str(s);
+                        self.value_stack.pop().unwrap();
+                    } else {
+                        self.state_stack.push(State::ManifestJson {
+                            format: ManifestJsonFormat::default_to_string(),
+                            depth: 0,
+                        });
+                    }
+                }
                 State::CoerceToStringValue => {
                     if !matches!(self.value_stack.last().unwrap(), ValueData::String(_)) {
                         self.state_stack.push(State::StringToValue);
@@ -365,6 +376,10 @@ impl<'a> Evaluator<'a> {
                     self.value_stack.push(ValueData::Array(
                         self.program.gc_alloc(array.into_boxed_slice()),
                     ));
+                }
+                State::ManifestIniSection => self.do_manifest_ini_section()?,
+                State::ManifestIniSectionItem { name } => {
+                    self.do_manifest_ini_section_item(name)?
                 }
                 State::ManifestPython => self.do_manifest_python()?,
                 State::ManifestJson { format, depth } => self.do_manifest_json(format, depth)?,
@@ -1316,6 +1331,8 @@ impl<'a> Evaluator<'a> {
                 State::StdDecodeUtf8 => self.do_std_decode_utf8()?,
                 State::StdDecodeUtf8CheckItem => self.do_std_decode_utf8_check_item()?,
                 State::StdDecodeUtf8Finish => self.do_std_decode_utf8_finish(),
+                State::StdManifestIni => self.do_std_manifest_ini()?,
+                State::StdManifestIniSections => self.do_std_manifest_ini_sections()?,
                 State::StdManifestPython => self.do_std_manifest_python(),
                 State::StdManifestPythonVars => self.do_std_manifest_python_vars()?,
                 State::StdManifestJsonEx => self.do_std_manifest_json_ex()?,

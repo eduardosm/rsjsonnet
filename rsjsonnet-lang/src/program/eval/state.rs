@@ -21,6 +21,7 @@ pub(super) enum State {
     DeepValue,
     SwapLastValues,
     CoerceToString,
+    CoerceAppendToString,
     CoerceToStringValue,
     BoolToValue,
     StringToValue,
@@ -35,6 +36,10 @@ pub(super) enum State {
     OutputValue,
     OutputString,
     ArrayToValue,
+    ManifestIniSection,
+    ManifestIniSectionItem {
+        name: InternedStr,
+    },
     ManifestPython,
     ManifestJson {
         format: Rc<ManifestJsonFormat>,
@@ -283,6 +288,8 @@ pub(super) enum State {
     StdDecodeUtf8,
     StdDecodeUtf8CheckItem,
     StdDecodeUtf8Finish,
+    StdManifestIni,
+    StdManifestIniSections,
     StdManifestPython,
     StdManifestPythonVars,
     StdManifestJsonEx,

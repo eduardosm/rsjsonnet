@@ -1,0 +1,12 @@
+error: assertion failed: assert msg
+ --> object_assert_failed_main_with_msg.jsonnet:1:27
+  |
+1 | std.manifestIni({ main: { assert false : "assert msg" }, sections: {} })
+  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: while evaluating call to `manifestIni`
+ --> object_assert_failed_main_with_msg.jsonnet:1:1
+  |
+1 | std.manifestIni({ main: { assert false : "assert msg" }, sections: {} })
+  | ------------------------------------------------------------------------
+note: during top-level value evaluation
+
