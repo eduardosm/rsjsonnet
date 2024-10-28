@@ -1,0 +1,28 @@
+error: first argument of `std.objectHasEx` is expected to be object, got null
+note: while evaluating call to `objectHasEx`
+   --> <stdlib>:318:5
+    |
+318 |     std.objectHasEx(o, f, false),
+    |     ----------------------------
+note: while evaluating call to function
+   --> <stdlib>:170:26
+    |
+170 |           main_body = if std.objectHas(ini, 'main') then body_lines(ini.main) else [],
+    |                          --------------------------
+note: while evaluating variable `main_body`
+   --> <stdlib>:175:20
+    |
+175 |     std.join('\n', main_body + std.flattenArrays(all_sections) + ['']),
+    |                    ---------
+note: while evaluating call to `join`
+   --> <stdlib>:175:5
+    |
+175 |     std.join('\n', main_body + std.flattenArrays(all_sections) + ['']),
+    |     ------------------------------------------------------------------
+note: while evaluating call to function
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.manifestIni(null)
+  | ---------------------
+note: during top-level value evaluation
+
