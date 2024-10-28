@@ -149,6 +149,42 @@ impl Evaluator<'_> {
                     env,
                 });
             }
+            ir::Expr::Slice {
+                ref array,
+                ref start_index,
+                ref end_index,
+                ref step,
+                expr_span,
+            } => {
+                self.state_stack.push(State::Slice {
+                    span: expr_span,
+                    has_start: start_index.is_some(),
+                    has_end: end_index.is_some(),
+                    has_step: step.is_some(),
+                });
+                if let Some(step) = step {
+                    self.state_stack.push(State::Expr {
+                        expr: step.clone(),
+                        env: env.clone(),
+                    });
+                }
+                if let Some(end_index) = end_index {
+                    self.state_stack.push(State::Expr {
+                        expr: end_index.clone(),
+                        env: env.clone(),
+                    });
+                }
+                if let Some(start_index) = start_index {
+                    self.state_stack.push(State::Expr {
+                        expr: start_index.clone(),
+                        env: env.clone(),
+                    });
+                }
+                self.state_stack.push(State::Expr {
+                    expr: array.clone(),
+                    env,
+                });
+            }
             ir::Expr::SuperField {
                 super_span,
                 ref field_name,
@@ -170,10 +206,6 @@ impl Evaluator<'_> {
                     expr: index.clone(),
                     env,
                 });
-            }
-            ir::Expr::StdField { ref field_name } => {
-                let field = self.get_stdlib_field(field_name);
-                self.state_stack.push(State::DoThunk(field));
             }
             ir::Expr::Call { ref callee, .. } => {
                 let callee = callee.clone();
@@ -586,6 +618,84 @@ impl Evaluator<'_> {
                 span: expr_span,
                 field_name: field_name.value().into(),
             }))
+        }
+    }
+
+    pub(super) fn do_slice(
+        &mut self,
+        indexable: ValueData,
+        start: Option<f64>,
+        end: Option<f64>,
+        step: Option<f64>,
+        is_func: bool,
+        span: Option<SpanId>,
+    ) -> Result<(), Box<EvalError>> {
+        let start = if let Some(start) = start {
+            if !start.is_finite() || start.trunc() != start || start < 0.0 {
+                return Err(self.report_error(EvalErrorKind::Other {
+                    span,
+                    message: format!("slice start {start} is not a non-negative integer"),
+                }));
+            }
+            start as usize
+        } else {
+            0
+        };
+        let end = if let Some(end) = end {
+            if !end.is_finite() || end.trunc() != end || end < 0.0 {
+                return Err(self.report_error(EvalErrorKind::Other {
+                    span,
+                    message: format!("slice end {end} is not a non-negative integer"),
+                }));
+            }
+            (end as usize).max(start)
+        } else {
+            usize::MAX
+        };
+        let step = if let Some(step) = step {
+            if !step.is_finite() || step.trunc() != step || step < 1.0 {
+                return Err(self.report_error(EvalErrorKind::Other {
+                    span,
+                    message: format!("slice step {step} is not a positive integer"),
+                }));
+            }
+            step as usize
+        } else {
+            1
+        };
+
+        match indexable {
+            ValueData::String(s) => {
+                let r: String = s
+                    .chars()
+                    .skip(start)
+                    .take(end - start)
+                    .step_by(step)
+                    .collect();
+                self.value_stack.push(ValueData::String(r.into()));
+                Ok(())
+            }
+            ValueData::Array(array) => {
+                let array = array.view();
+                let result = self.program.slice_array(&array, start, end, step);
+                self.value_stack.push(ValueData::Array(result));
+                Ok(())
+            }
+            _ => {
+                if is_func {
+                    Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
+                        func_name: "slice".into(),
+                        arg_index: 0,
+                        expected_types: vec![EvalErrorValueType::String, EvalErrorValueType::Array],
+                        got_type: EvalErrorValueType::from_value(&indexable),
+                    }))
+                } else {
+                    Err(self.report_error(EvalErrorKind::InvalidSlicedType {
+                        span: span.unwrap(),
+                        got_type: EvalErrorValueType::from_value(&indexable),
+                    }))
+                }
+            }
         }
     }
 

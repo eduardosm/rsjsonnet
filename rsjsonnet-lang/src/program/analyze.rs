@@ -167,36 +167,31 @@ impl<'a> Analyzer<'a> {
                         }));
                     }
                     ast::ExprKind::Slice(
-                        ref object_ast,
+                        ref array_ast,
                         ref start_index_ast,
                         ref end_index_ast,
                         ref step_ast,
                     ) => {
-                        let object = self.analyze_expr(object_ast, env, false)?;
+                        let array = self.analyze_expr(array_ast, env, false)?;
                         let start_index = start_index_ast
                             .as_ref()
                             .map(|e| self.analyze_expr(e, env, false))
-                            .transpose()?
-                            .unwrap_or_else(|| ir::RcExpr::new(ir::Expr::Null));
+                            .transpose()?;
                         let end_index = end_index_ast
                             .as_ref()
                             .map(|e| self.analyze_expr(e, env, false))
-                            .transpose()?
-                            .unwrap_or_else(|| ir::RcExpr::new(ir::Expr::Null));
+                            .transpose()?;
                         let step = step_ast
                             .as_ref()
                             .map(|e| self.analyze_expr(e, env, false))
-                            .transpose()?
-                            .unwrap_or_else(|| ir::RcExpr::new(ir::Expr::Null));
+                            .transpose()?;
 
-                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::Call {
-                            callee: ir::RcExpr::new(ir::Expr::StdField {
-                                field_name: self.program.intern_str("slice"),
-                            }),
-                            positional_args: vec![object, start_index, end_index, step],
-                            named_args: Vec::new(),
-                            tailstrict: false,
-                            span: expr_ast.span,
+                        state = State::Analyzed(ir::RcExpr::new(ir::Expr::Slice {
+                            array,
+                            start_index,
+                            end_index,
+                            step,
+                            expr_span: expr_ast.span,
                         }));
                     }
                     ast::ExprKind::SuperField(super_span, ref field_name_ast) => {

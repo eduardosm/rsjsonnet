@@ -1405,64 +1405,7 @@ impl Evaluator<'_> {
         let end = self.expect_std_func_arg_null_or_number(end, "slice", 2)?;
         let step = self.expect_std_func_arg_null_or_number(step, "slice", 3)?;
 
-        let start = if let Some(start) = start {
-            if !start.is_finite() || start.trunc() != start || start < 0.0 {
-                return Err(self.report_error(EvalErrorKind::Other {
-                    span: None,
-                    message: format!("slice start {start} is not a non-negative integer"),
-                }));
-            }
-            start as usize
-        } else {
-            0
-        };
-        let end = if let Some(end) = end {
-            if !end.is_finite() || end.trunc() != end || end < 0.0 {
-                return Err(self.report_error(EvalErrorKind::Other {
-                    span: None,
-                    message: format!("slice end {end} is not a non-negative integer"),
-                }));
-            }
-            (end as usize).max(start)
-        } else {
-            usize::MAX
-        };
-        let step = if let Some(step) = step {
-            if !step.is_finite() || step.trunc() != step || step < 1.0 {
-                return Err(self.report_error(EvalErrorKind::Other {
-                    span: None,
-                    message: format!("slice step {step} is not a positive integer"),
-                }));
-            }
-            step as usize
-        } else {
-            1
-        };
-
-        match indexable {
-            ValueData::String(s) => {
-                let r: String = s
-                    .chars()
-                    .skip(start)
-                    .take(end - start)
-                    .step_by(step)
-                    .collect();
-                self.value_stack.push(ValueData::String(r.into()));
-                Ok(())
-            }
-            ValueData::Array(array) => {
-                let array = array.view();
-                let result = self.program.slice_array(&array, start, end, step);
-                self.value_stack.push(ValueData::Array(result));
-                Ok(())
-            }
-            _ => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
-                func_name: "slice".into(),
-                arg_index: 0,
-                expected_types: vec![EvalErrorValueType::String, EvalErrorValueType::Array],
-                got_type: EvalErrorValueType::from_value(&indexable),
-            })),
-        }
+        self.do_slice(indexable, start, end, step, true, None)
     }
 
     pub(super) fn do_std_join(&mut self) -> Result<(), Box<EvalError>> {
