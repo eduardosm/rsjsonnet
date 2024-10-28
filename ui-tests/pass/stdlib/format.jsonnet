@@ -135,5 +135,7 @@ std.assertEqual(std.format("", {}), "") &&
 std.assertEqual(std.format("%(a)d", {a: 10}), "10") &&
 
 std.assertEqual("%d" % [10], "10") &&
+std.assertEqual("%d" % 10, "10") &&
+std.assertEqual("%(a)d" % { a: 10 }, "10") &&
 
 true

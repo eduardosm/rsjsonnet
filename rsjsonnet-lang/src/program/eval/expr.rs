@@ -597,9 +597,6 @@ impl Evaluator<'_> {
         let rhs = self.value_stack.pop().unwrap();
         let lhs = self.value_stack.pop().unwrap();
         match (op, lhs, rhs) {
-            (ast::BinaryOp::Rem, _, _) => {
-                unreachable!("'%' operator should have been desugared");
-            }
             // Handled in a different path.
             (
                 ast::BinaryOp::Lt
@@ -645,6 +642,14 @@ impl Evaluator<'_> {
                     return Err(self.report_error(EvalErrorKind::DivByZero { span }));
                 }
                 let r = lhs / rhs;
+                self.check_number_value(r, span)?;
+                self.value_stack.push(ValueData::Number(r));
+            }
+            (ast::BinaryOp::Rem, ValueData::Number(lhs), ValueData::Number(rhs)) => {
+                if rhs == 0.0 {
+                    return Err(self.report_error(EvalErrorKind::DivByZero { span }));
+                }
+                let r = lhs % rhs;
                 self.check_number_value(r, span)?;
                 self.value_stack.push(ValueData::Number(r));
             }
@@ -728,6 +733,14 @@ impl Evaluator<'_> {
                     self.push_trace_item(TraceItem::Expr { span });
                 }
                 self.state_stack.push(State::CoerceToStringValue);
+            }
+            (ast::BinaryOp::Rem, lhs @ ValueData::String(_), rhs) => {
+                self.value_stack.push(lhs);
+                self.value_stack.push(rhs);
+                if let Some(span) = span {
+                    self.push_trace_item(TraceItem::Expr { span });
+                }
+                self.state_stack.push(State::StdFormat);
             }
             (ast::BinaryOp::In, ValueData::String(lhs), ValueData::Object(rhs)) => {
                 let field_name = self.program.intern_str(&lhs);
