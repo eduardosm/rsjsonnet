@@ -59,6 +59,14 @@ pub enum EvalErrorKind {
         span: SpanId,
         got_type: EvalErrorValueType,
     },
+    InvalidSlicedType {
+        span: SpanId,
+        got_type: EvalErrorValueType,
+    },
+    SliceIndexOrStepIsNotNumber {
+        span: SpanId,
+        got_type: EvalErrorValueType,
+    },
     StringIndexIsNotNumber {
         span: SpanId,
         got_type: EvalErrorValueType,

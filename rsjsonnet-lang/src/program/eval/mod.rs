@@ -377,6 +377,68 @@ impl<'a> Evaluator<'a> {
                         self.program.gc_alloc(array.into_boxed_slice()),
                     ));
                 }
+                State::Slice {
+                    span,
+                    has_start,
+                    has_end,
+                    has_step,
+                } => {
+                    let step = if has_step {
+                        self.value_stack.pop().unwrap()
+                    } else {
+                        ValueData::Null
+                    };
+                    let end = if has_end {
+                        self.value_stack.pop().unwrap()
+                    } else {
+                        ValueData::Null
+                    };
+                    let start = if has_start {
+                        self.value_stack.pop().unwrap()
+                    } else {
+                        ValueData::Null
+                    };
+                    let indexable = self.value_stack.pop().unwrap();
+
+                    let start = match start {
+                        ValueData::Null => None,
+                        ValueData::Number(start) => Some(start),
+                        _ => {
+                            return Err(self.report_error(
+                                EvalErrorKind::SliceIndexOrStepIsNotNumber {
+                                    span,
+                                    got_type: EvalErrorValueType::from_value(&start),
+                                },
+                            ));
+                        }
+                    };
+                    let end = match end {
+                        ValueData::Null => None,
+                        ValueData::Number(end) => Some(end),
+                        _ => {
+                            return Err(self.report_error(
+                                EvalErrorKind::SliceIndexOrStepIsNotNumber {
+                                    span,
+                                    got_type: EvalErrorValueType::from_value(&end),
+                                },
+                            ));
+                        }
+                    };
+                    let step = match step {
+                        ValueData::Null => None,
+                        ValueData::Number(step) => Some(step),
+                        _ => {
+                            return Err(self.report_error(
+                                EvalErrorKind::SliceIndexOrStepIsNotNumber {
+                                    span,
+                                    got_type: EvalErrorValueType::from_value(&step),
+                                },
+                            ));
+                        }
+                    };
+
+                    self.do_slice(indexable, start, end, step, false, Some(span))?;
+                }
                 State::ManifestIniSection => self.do_manifest_ini_section()?,
                 State::ManifestIniSectionItem { name } => {
                     self.do_manifest_ini_section_item(name)?
@@ -1500,13 +1562,6 @@ impl<'a> Evaluator<'a> {
     #[inline]
     fn dec_trace_len(&mut self) {
         self.stack_trace_len = self.stack_trace_len.checked_sub(1).unwrap();
-    }
-
-    fn get_stdlib_field(&self, name: &InternedStr) -> GcView<ThunkData> {
-        let stdlib_obj = self.program.stdlib_obj.as_ref().unwrap();
-        self.program
-            .find_object_field_thunk(stdlib_obj, 0, name)
-            .unwrap()
     }
 
     fn try_value_from_expr(program: &Program, expr: &ir::Expr) -> Option<ValueData> {

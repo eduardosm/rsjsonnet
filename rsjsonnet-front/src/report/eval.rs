@@ -43,6 +43,33 @@ pub(crate) fn render_error_kind(
             }
             .render(span_mgr, src_mgr, &mut out);
         }
+        EvalErrorKind::InvalidSlicedType { span, got_type } => {
+            Message {
+                kind: MessageKind::Error,
+                message: format!("cannot slice value of type {}", type_to_string(got_type)),
+                labels: vec![MessageLabel {
+                    kind: LabelKind::Error,
+                    span,
+                    text: String::new(),
+                }],
+            }
+            .render(span_mgr, src_mgr, &mut out);
+        }
+        EvalErrorKind::SliceIndexOrStepIsNotNumber { span, got_type } => {
+            Message {
+                kind: MessageKind::Error,
+                message: format!(
+                    "slice index or step must be a number, got {}",
+                    type_to_string(got_type),
+                ),
+                labels: vec![MessageLabel {
+                    kind: LabelKind::Error,
+                    span,
+                    text: String::new(),
+                }],
+            }
+            .render(span_mgr, src_mgr, &mut out);
+        }
         EvalErrorKind::StringIndexIsNotNumber { span, got_type } => {
             Message {
                 kind: MessageKind::Error,

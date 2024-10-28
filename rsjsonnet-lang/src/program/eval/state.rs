@@ -127,6 +127,12 @@ pub(super) enum State {
     Index {
         span: SpanId,
     },
+    Slice {
+        span: SpanId,
+        has_start: bool,
+        has_end: bool,
+        has_step: bool,
+    },
     SuperIndex {
         span: SpanId,
         super_span: SpanId,

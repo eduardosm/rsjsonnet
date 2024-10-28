@@ -39,6 +39,13 @@ pub(super) enum Expr {
         index: RcExpr,
         expr_span: SpanId,
     },
+    Slice {
+        array: RcExpr,
+        start_index: Option<RcExpr>,
+        end_index: Option<RcExpr>,
+        step: Option<RcExpr>,
+        expr_span: SpanId,
+    },
     SuperField {
         super_span: SpanId,
         field_name: InternedStr,
@@ -48,9 +55,6 @@ pub(super) enum Expr {
         super_span: SpanId,
         index: RcExpr,
         expr_span: SpanId,
-    },
-    StdField {
-        field_name: InternedStr,
     },
     Call {
         callee: RcExpr,
@@ -213,6 +217,24 @@ impl Expr {
                 out.push(object);
                 out.push(index);
             }
+            Self::Slice {
+                array,
+                start_index,
+                end_index,
+                step,
+                expr_span: _,
+            } => {
+                out.push(array);
+                if let Some(start_index) = start_index {
+                    out.push(start_index);
+                }
+                if let Some(end_index) = end_index {
+                    out.push(end_index);
+                }
+                if let Some(step) = step {
+                    out.push(step);
+                }
+            }
             Self::SuperField {
                 super_span: _,
                 field_name: _,
@@ -225,7 +247,6 @@ impl Expr {
             } => {
                 out.push(index);
             }
-            Self::StdField { field_name: _ } => {}
             Self::Call {
                 callee,
                 positional_args,
