@@ -31,11 +31,11 @@ impl<'a> Analyzer<'a> {
         &mut self,
         root_expr_ast: &ast::Expr,
         env: &Env,
-        can_be_tailstrict: bool,
+        root_can_be_tailstrict: bool,
     ) -> Result<ir::RcExpr, AnalyzeError> {
         enum State<'a> {
             Analyzed(ir::RcExpr),
-            Expr(&'a ast::Expr),
+            Expr(&'a ast::Expr, bool),
         }
 
         enum StackItem<'a> {
@@ -46,7 +46,7 @@ impl<'a> Analyzer<'a> {
         }
 
         let mut stack = Vec::new();
-        let mut state = State::Expr(root_expr_ast);
+        let mut state = State::Expr(root_expr_ast, root_can_be_tailstrict);
 
         loop {
             match state {
@@ -57,14 +57,14 @@ impl<'a> Analyzer<'a> {
 
                         if let Some((next_item_ast, rem_items_ast)) = rem_items_ast.split_first() {
                             stack.push(StackItem::ArrayItem(span, items_ir, rem_items_ast));
-                            state = State::Expr(next_item_ast);
+                            state = State::Expr(next_item_ast, false);
                         } else {
                             state = State::Analyzed(ir::RcExpr::new(ir::Expr::Array(items_ir)));
                         }
                     }
                     Some(StackItem::BinaryLhs(span, op, rhs_ast)) => {
                         stack.push(StackItem::BinaryRhs(span, op, expr_ir));
-                        state = State::Expr(rhs_ast);
+                        state = State::Expr(rhs_ast, false);
                     }
                     Some(StackItem::BinaryRhs(span, op, lhs)) => {
                         let rhs = expr_ir;
@@ -80,7 +80,7 @@ impl<'a> Analyzer<'a> {
                         state = State::Analyzed(ir::RcExpr::new(ir::Expr::Unary { op, rhs, span }));
                     }
                 },
-                State::Expr(expr_ast) => match expr_ast.kind {
+                State::Expr(expr_ast, can_be_tailstrict) => match expr_ast.kind {
                     ast::ExprKind::Null => {
                         state = State::Analyzed(self.program.null_expr.clone());
                     }
@@ -124,7 +124,7 @@ impl<'a> Analyzer<'a> {
                         )));
                     }
                     ast::ExprKind::Paren(ref inner) => {
-                        state = State::Expr(inner);
+                        state = State::Expr(inner, false);
                     }
                     ast::ExprKind::Object(ref inside) => {
                         state = State::Analyzed(self.analyze_objinside(inside, env)?);
@@ -136,7 +136,7 @@ impl<'a> Analyzer<'a> {
                                 Vec::new(),
                                 rem_items_ast,
                             ));
-                            state = State::Expr(first_item_ast);
+                            state = State::Expr(first_item_ast, false);
                         } else {
                             state = State::Analyzed(ir::RcExpr::new(ir::Expr::Array(Vec::new())));
                         }
@@ -317,11 +317,11 @@ impl<'a> Analyzer<'a> {
                     }
                     ast::ExprKind::Binary(ref lhs_ast, op, ref rhs_ast) => {
                         stack.push(StackItem::BinaryLhs(expr_ast.span, op, rhs_ast));
-                        state = State::Expr(lhs_ast);
+                        state = State::Expr(lhs_ast, false);
                     }
                     ast::ExprKind::Unary(op, ref rhs_ast) => {
                         stack.push(StackItem::UnaryRhs(expr_ast.span, op));
-                        state = State::Expr(rhs_ast);
+                        state = State::Expr(rhs_ast, false);
                     }
                     ast::ExprKind::ObjExt(ref lhs_ast, ref rhs_ast, _) => {
                         let lhs = self.analyze_expr(lhs_ast, env, false)?;
