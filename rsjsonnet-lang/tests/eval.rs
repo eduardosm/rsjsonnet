@@ -293,3 +293,22 @@ fn test_native() {
 
     test_fail(b"std.native(\"failure\")()");
 }
+
+#[test]
+#[should_panic(expected = "already registered")]
+fn test_native_panic_repeated_func() {
+    let mut program = Program::new();
+    let func_name = program.intern_str("nativeFunc");
+    let param_name = program.intern_str("param");
+    program.register_native_func(func_name.clone(), &[param_name.clone()]);
+    program.register_native_func(func_name, &[param_name]);
+}
+
+#[test]
+#[should_panic(expected = "repeated parameter name")]
+fn test_native_panic_repeated_param() {
+    let mut program = Program::new();
+    let func_name = program.intern_str("nativeFunc");
+    let param_name = program.intern_str("param");
+    program.register_native_func(func_name, &[param_name.clone(), param_name]);
+}

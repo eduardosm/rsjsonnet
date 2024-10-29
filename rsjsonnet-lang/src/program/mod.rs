@@ -331,6 +331,11 @@ impl Program {
     ///
     /// The actual behavior of the native function should be implemented
     /// in [`Callbacks::native_call`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if a native function with the same name is already registered
+    /// or if a parameter name is repeated.
     pub fn register_native_func(&mut self, name: InternedStr, params: &[InternedStr]) {
         match self.native_funcs.entry(name.clone()) {
             std::collections::hash_map::Entry::Occupied(entry) => {
