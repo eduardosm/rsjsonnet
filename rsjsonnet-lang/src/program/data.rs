@@ -609,7 +609,7 @@ impl FuncData {
         let mut params_by_name = FHashMap::default();
         for (i, (name, _)) in params_order.iter().enumerate() {
             let prev = params_by_name.insert(name.clone(), i);
-            assert!(prev.is_none(), "repeat parameter name: {name:?}");
+            assert!(prev.is_none(), "repeated parameter name: {name:?}");
         }
         Self {
             params: FuncParams {
