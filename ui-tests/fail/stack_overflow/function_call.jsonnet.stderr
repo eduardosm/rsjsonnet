@@ -1,55 +1,55 @@
 error: stack overflow
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> function_call.jsonnet:1:13
   |
 1 | local f() = f();
   |             ---
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> function_call.jsonnet:1:13
   |
 1 | local f() = f();
   |             ---
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> function_call.jsonnet:1:13
   |
 1 | local f() = f();
   |             ---
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> function_call.jsonnet:1:13
   |
 1 | local f() = f();
   |             ---
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> function_call.jsonnet:1:13
   |
 1 | local f() = f();
   |             ---
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> function_call.jsonnet:1:13
   |
 1 | local f() = f();
   |             ---
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> function_call.jsonnet:1:13
   |
 1 | local f() = f();
   |             ---
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> function_call.jsonnet:1:13
   |
 1 | local f() = f();
   |             ---
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> function_call.jsonnet:1:13
   |
 1 | local f() = f();
   |             ---
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> function_call.jsonnet:1:13
   |
 1 | local f() = f();
   |             ---
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> function_call.jsonnet:2:1
   |
 2 | f()

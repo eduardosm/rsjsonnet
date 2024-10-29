@@ -33,11 +33,17 @@ impl Evaluator<'_> {
         self.check_call_args_generic(
             params,
             positional_args,
-            |this, expr| this.new_pending_expr_thunk(expr.clone(), Gc::from(&call_env)),
+            |this, expr| {
+                this.program
+                    .new_pending_expr_thunk(expr.clone(), Gc::from(&call_env), None)
+            },
             named_args,
             |(name, _, _)| name,
             |(_, name_span, _)| Some(*name_span),
-            |this, (_, _, expr)| this.new_pending_expr_thunk(expr.clone(), Gc::from(&call_env)),
+            |this, (_, _, expr)| {
+                this.program
+                    .new_pending_expr_thunk(expr.clone(), Gc::from(&call_env), None)
+            },
             func_env,
             Some(call_span),
         )
@@ -152,8 +158,11 @@ impl Evaluator<'_> {
                         param_name: param_name.value().into(),
                     }));
                 };
-                args_thunks
-                    .push(self.new_pending_expr_thunk(default_arg.clone(), Gc::from(&args_env)));
+                args_thunks.push(self.program.new_pending_expr_thunk(
+                    default_arg.clone(),
+                    Gc::from(&args_env),
+                    None,
+                ));
             }
         }
 

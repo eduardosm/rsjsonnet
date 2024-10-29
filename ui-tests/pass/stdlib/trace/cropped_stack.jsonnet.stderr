@@ -4,23 +4,23 @@ note: while evaluating call to `trace`
   |
 3 |     std.trace("some trace", true)
   |     -----------------------------
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> cropped_stack.jsonnet:4:8
   |
 4 |   else f(x - 1);
   |        --------
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> cropped_stack.jsonnet:4:8
   |
 4 |   else f(x - 1);
   |        --------
 note: ... 7 items hidden ...
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> cropped_stack.jsonnet:4:8
   |
 4 |   else f(x - 1);
   |        --------
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> cropped_stack.jsonnet:6:1
   |
 6 | f(10)

@@ -4,7 +4,7 @@ note: while evaluating call to `trace`
   |
 1 | local f(x) = std.trace("some trace", x);
   |              --------------------------
-note: while evaluating call to function
+note: while evaluating call to `f`
  --> in_call.jsonnet:3:1
   |
 3 | f("some value")

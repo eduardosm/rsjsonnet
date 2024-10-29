@@ -672,7 +672,11 @@ impl<'a> Evaluator<'a> {
                                 item_env_data.set_var(var_name.clone(), Gc::from(var_value));
                             }
                             let item_env = self.program.gc_alloc(ThunkEnv::from(item_env_data));
-                            array.push(self.new_pending_expr_thunk(item.clone(), item_env));
+                            array.push(self.program.new_pending_expr_thunk(
+                                item.clone(),
+                                item_env,
+                                None,
+                            ));
                         }
                         self.value_stack.push(ValueData::Array(
                             self.program.gc_alloc(array.into_boxed_slice()),
@@ -1564,28 +1568,6 @@ impl<'a> Evaluator<'a> {
         self.stack_trace_len = self.stack_trace_len.checked_sub(1).unwrap();
     }
 
-    fn try_value_from_expr(program: &Program, expr: &ir::Expr) -> Option<ValueData> {
-        match *expr {
-            ir::Expr::Null => Some(ValueData::Null),
-            ir::Expr::Bool(value) => Some(ValueData::Bool(value)),
-            ir::Expr::Number(value, _) if value.is_finite() => Some(ValueData::Number(value)),
-            ir::Expr::String(ref s) => Some(ValueData::String(s.clone())),
-            ir::Expr::Array(ref items) if items.is_empty() => {
-                Some(ValueData::Array(Gc::from(&program.empty_array)))
-            }
-            _ => None,
-        }
-    }
-
-    fn new_pending_expr_thunk(&self, expr: ir::RcExpr, env: Gc<ThunkEnv>) -> Gc<ThunkData> {
-        let thunk = if let Some(value) = Self::try_value_from_expr(self.program, &expr) {
-            ThunkData::new_done(value)
-        } else {
-            ThunkData::new_pending_expr(expr, env)
-        };
-        self.program.gc_alloc(thunk)
-    }
-
     #[inline]
     fn want_thunk_direct(
         &mut self,
@@ -1621,7 +1603,7 @@ impl<'a> Evaluator<'a> {
                 if plus {
                     actual_expr = Some((value, true));
                     thunk = OnceCell::new();
-                } else if let Some(value) = Self::try_value_from_expr(self.program, &value) {
+                } else if let Some(value) = self.program.try_value_from_expr(&value) {
                     actual_expr = None;
                     thunk = OnceCell::from(self.program.gc_alloc(ThunkData::new_done(value)));
                 } else {
