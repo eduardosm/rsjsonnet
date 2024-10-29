@@ -104,7 +104,10 @@ impl Evaluator<'_> {
                 } else {
                     let items = items_exprs
                         .iter()
-                        .map(|item| self.new_pending_expr_thunk(item.clone(), Gc::from(&env)))
+                        .map(|item| {
+                            self.program
+                                .new_pending_expr_thunk(item.clone(), Gc::from(&env), None)
+                        })
                         .collect();
                     self.value_stack
                         .push(ValueData::Array(self.program.gc_alloc(items)));
@@ -240,8 +243,11 @@ impl Evaluator<'_> {
                 let new_env = self.program.gc_alloc_view(ThunkEnv::new());
                 let mut new_env_data = ThunkEnvData::new(Some(Gc::from(&env)));
                 for (var_name, value_expr) in bindings.iter() {
-                    let var_thunk =
-                        self.new_pending_expr_thunk(value_expr.clone(), Gc::from(&new_env));
+                    let var_thunk = self.program.new_pending_expr_thunk(
+                        value_expr.clone(),
+                        Gc::from(&new_env),
+                        Some(var_name),
+                    );
                     new_env_data.set_var(var_name.clone(), var_thunk);
                 }
                 new_env.set_data(new_env_data);
@@ -421,7 +427,7 @@ impl Evaluator<'_> {
                     .push(ValueData::Function(self.program.gc_alloc(FuncData::new(
                         params.clone(),
                         FuncKind::Normal {
-                            name: None, // TODO: Function name
+                            name: None,
                             body: body.clone(),
                             env: Gc::from(&env),
                         },

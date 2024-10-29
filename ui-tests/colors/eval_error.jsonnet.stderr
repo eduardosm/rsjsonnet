@@ -3,7 +3,7 @@
   [38;5;12m[1m|[0m
 [38;5;12m[1m1[0m [38;5;12m[1m|[0m local div(x, y) = [38;5;9mx / y[0m; div(1, 0)
   [38;5;12m[1m|[0m                   [38;5;9m[1m^^^^^[0m
-[38;5;2m[1mnote[38;5;15m[1m: while evaluating call to function[0m
+[38;5;2m[1mnote[38;5;15m[1m: while evaluating call to `div`[0m
  [38;5;12m[1m-->[0m eval_error.jsonnet:1:26
   [38;5;12m[1m|[0m
 [38;5;12m[1m1[0m [38;5;12m[1m|[0m local div(x, y) = x / y; div(1, 0)

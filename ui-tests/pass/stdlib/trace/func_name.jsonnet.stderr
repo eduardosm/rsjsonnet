@@ -1,0 +1,47 @@
+TRACE: trace 1
+note: while evaluating call to `trace`
+ --> func_name.jsonnet:1:15
+  |
+1 | local f1(x) = std.trace("trace 1", x);
+  |               -----------------------
+note: while evaluating call to `f1`
+ --> func_name.jsonnet:6:5
+  |
+6 |     f1(1),
+  |     -----
+note: while evaluating array item 0
+note: during top-level value evaluation
+
+TRACE: trace 2
+note: while evaluating call to `trace`
+ --> func_name.jsonnet:2:26
+  |
+2 | local f2 = [ function(x) std.trace("trace 2", x) ];
+  |                          -----------------------
+note: while evaluating call to function
+ --> func_name.jsonnet:7:5
+  |
+7 |     f2[0](2),
+  |     --------
+note: while evaluating array item 1
+note: during top-level value evaluation
+
+TRACE: trace 3
+note: while evaluating call to `trace`
+ --> func_name.jsonnet:3:29
+  |
+3 | local obj = { local f3(x) = std.trace("trace 3", x), field: f3(3) };
+  |                             -----------------------
+note: while evaluating call to `f3`
+ --> func_name.jsonnet:3:61
+  |
+3 | local obj = { local f3(x) = std.trace("trace 3", x), field: f3(3) };
+  |                                                             -----
+note: while evaluating object field "field"
+ --> func_name.jsonnet:8:5
+  |
+8 |     obj.field,
+  |     ---------
+note: while evaluating array item 2
+note: during top-level value evaluation
+

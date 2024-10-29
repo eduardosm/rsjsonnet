@@ -9,6 +9,46 @@ use crate::span::SpanId;
 use crate::{ast, FHashMap};
 
 impl Program {
+    pub(super) fn try_value_from_expr(&self, expr: &ir::Expr) -> Option<ValueData> {
+        match *expr {
+            ir::Expr::Null => Some(ValueData::Null),
+            ir::Expr::Bool(value) => Some(ValueData::Bool(value)),
+            ir::Expr::Number(value, _) if value.is_finite() => Some(ValueData::Number(value)),
+            ir::Expr::String(ref s) => Some(ValueData::String(s.clone())),
+            ir::Expr::Array(ref items) if items.is_empty() => {
+                Some(ValueData::Array(Gc::from(&self.empty_array)))
+            }
+            _ => None,
+        }
+    }
+
+    pub(super) fn new_pending_expr_thunk(
+        &self,
+        expr: ir::RcExpr,
+        env: Gc<ThunkEnv>,
+        func_name: Option<&InternedStr>,
+    ) -> Gc<ThunkData> {
+        let thunk = if let ir::Expr::Func {
+            ref params,
+            ref body,
+        } = *expr
+        {
+            ThunkData::new_done(ValueData::Function(self.gc_alloc(FuncData::new(
+                params.clone(),
+                FuncKind::Normal {
+                    name: func_name.cloned(),
+                    body: body.clone(),
+                    env,
+                },
+            ))))
+        } else if let Some(value) = self.try_value_from_expr(&expr) {
+            ThunkData::new_done(value)
+        } else {
+            ThunkData::new_pending_expr(expr, env)
+        };
+        self.gc_alloc(thunk)
+    }
+
     #[inline]
     pub(super) fn make_value_array(
         &mut self,
@@ -77,10 +117,7 @@ impl Program {
         for (local_name, local_value) in core.locals.iter() {
             env_data.set_var(
                 local_name.clone(),
-                self.gc_alloc(ThunkData::new_pending_expr(
-                    local_value.clone(),
-                    Gc::from(&env),
-                )),
+                self.new_pending_expr_thunk(local_value.clone(), Gc::from(&env), Some(local_name)),
             );
         }
         let top_obj = if core.is_top {
