@@ -1,0 +1,37 @@
+error: explicit error: Tried to manifest "null" at ["x"]
+   --> <stdlib>:173:11
+    |
+173 |           error 'Tried to manifest "null" at ' + indexedPath
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: while evaluating call to `renderValue`
+   --> <stdlib>:206:49
+    |
+206 |           [cindent + escapeKeyToml(k) + ' = ' + renderValue(v[k], indexedPath + [k], false, cindent)]
+    |                                                 ----------------------------------------------------
+note: while evaluating call to `join`
+   --> <stdlib>:210:27
+    |
+210 |         local sections = [std.join('\n', kvp)] + [
+    |                           -------------------
+note: while evaluating call to `join`
+   --> <stdlib>:220:9
+    |
+220 |         std.join('\n\n', sections),
+    |         --------------------------
+note: while evaluating call to `renderTableInternal`
+   --> <stdlib>:235:7
+    |
+235 |       renderTableInternal(value, [], [], '')
+    |       --------------------------------------
+note: while evaluating call to function
+   --> <stdlib>:157:25
+    |
+157 |   manifestToml(value):: std.manifestTomlEx(value, '  '),
+    |                         -------------------------------
+note: while evaluating call to function
+ --> manifest_null.jsonnet:1:1
+  |
+1 | std.manifestToml({ x: null })
+  | -----------------------------
+note: during top-level value evaluation
+
