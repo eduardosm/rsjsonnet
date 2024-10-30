@@ -1,8 +1,9 @@
 use std::fmt::Write as _;
 use std::rc::Rc;
 
-use super::super::ValueData;
+use super::super::{ArrayData, ObjectData, ValueData};
 use super::{EvalError, EvalErrorKind, Evaluator, State, TraceItem};
+use crate::gc::GcView;
 use crate::interner::InternedStr;
 
 pub(super) struct ManifestJsonFormat {
@@ -500,6 +501,348 @@ impl Evaluator<'_> {
 
         Ok(())
     }
+
+    pub(super) fn do_manifest_toml_peek_sub_table(&mut self) {
+        if let ValueData::Array(array) = self.value_stack.pop().unwrap() {
+            let array = array.view();
+            if let Some(item0) = array.first() {
+                let item0 = item0.view();
+                self.state_stack
+                    .push(State::ManifestTomlPeekSubTableArrayItem { array, index: 0 });
+                self.state_stack.push(State::DoThunk(item0));
+            }
+        }
+    }
+
+    pub(super) fn do_manifest_toml_peek_sub_table_array_item(
+        &mut self,
+        array: GcView<ArrayData>,
+        index: usize,
+    ) {
+        let value = self.value_stack.pop().unwrap();
+        if matches!(value, ValueData::Object(_)) {
+            let next_index = index + 1;
+            if let Some(item) = array.get(next_index) {
+                let item = item.view();
+                self.state_stack
+                    .push(State::ManifestTomlPeekSubTableArrayItem {
+                        array,
+                        index: next_index,
+                    });
+                self.state_stack.push(State::DoThunk(item));
+            }
+        }
+    }
+
+    pub(super) fn prepare_manifest_toml_table(
+        &mut self,
+        object: GcView<ObjectData>,
+        has_header: bool,
+        path: Rc<[InternedStr]>,
+        indent: Rc<str>,
+    ) {
+        self.state_stack.push(State::ManifestTomlTable {
+            object: object.clone(),
+            has_header,
+            path,
+            indent,
+        });
+
+        let visible_fields: Vec<_> = object
+            .get_fields_order()
+            .iter()
+            .filter_map(|(name, visible)| visible.then_some(name))
+            .collect();
+        for field_name in visible_fields.iter().rev() {
+            let field_thunk = self
+                .program
+                .find_object_field_thunk(&object, 0, field_name)
+                .unwrap();
+
+            self.state_stack.push(State::ManifestTomlPeekSubTable);
+            self.state_stack.push(State::DoThunk(field_thunk));
+        }
+        self.check_object_asserts(&object);
+    }
+
+    pub(super) fn do_manifest_toml_table(
+        &mut self,
+        object: GcView<ObjectData>,
+        has_header: bool,
+        path: Rc<[InternedStr]>,
+        indent: Rc<str>,
+    ) {
+        let visible_fields: Vec<_> = object
+            .get_fields_order()
+            .iter()
+            .filter(|&&(_, visible)| visible)
+            .map(|(name, _)| {
+                // Check if the field is an object or an array of objects
+                let (_, field) = object.find_field(0, name).unwrap();
+                let field_value = field.thunk.get().unwrap().view().get_value().unwrap();
+                let is_sub_table = match field_value {
+                    ValueData::Array(array) => {
+                        let array = array.view();
+                        !array.is_empty()
+                            && array.iter().all(|item| {
+                                matches!(item.view().get_value().unwrap(), ValueData::Object(_))
+                            })
+                    }
+                    ValueData::Object(_) => true,
+                    _ => false,
+                };
+                (name, is_sub_table)
+            })
+            .collect();
+
+        let mut has_sub_tables = false;
+        for (i, &(field_name, _)) in visible_fields
+            .iter()
+            .rev()
+            .filter(|&&(_, is_sub_table)| is_sub_table)
+            .enumerate()
+        {
+            if i != 0 {
+                self.state_stack.push(State::AppendToString('\n'.into()));
+            }
+
+            has_sub_tables = true;
+
+            let (_, field) = object.find_field(0, field_name).unwrap();
+            let field_value = field.thunk.get().unwrap().view().get_value().unwrap();
+
+            let sub_path: Rc<[_]> = path
+                .iter()
+                .chain(std::iter::once(field_name))
+                .cloned()
+                .collect();
+
+            self.push_trace_item(TraceItem::ManifestObjectField {
+                name: field_name.clone(),
+            });
+
+            match field_value {
+                ValueData::Array(array) => {
+                    let array = array.view();
+
+                    let mut header = String::new();
+                    header.push('\n');
+                    for _ in 0..path.len() {
+                        header.push_str(&indent);
+                    }
+                    header.push_str("[[");
+                    for part in path.iter() {
+                        header.push_str(&escape_key_toml(part.value()));
+                        header.push('.');
+                    }
+                    header.push_str(&escape_key_toml(field_name.value()));
+                    header.push_str("]]");
+
+                    for (i, item) in array.iter().enumerate().rev() {
+                        if i != array.len() - 1 {
+                            self.state_stack.push(State::AppendToString('\n'.into()));
+                        }
+
+                        let ValueData::Object(sub_object) = item.view().get_value().unwrap() else {
+                            unreachable!();
+                        };
+                        let sub_object = sub_object.view();
+
+                        self.push_trace_item(TraceItem::ManifestArrayItem { index: i });
+                        self.prepare_manifest_toml_table(
+                            sub_object,
+                            true,
+                            sub_path.clone(),
+                            indent.clone(),
+                        );
+                        self.delay_trace_item();
+                        self.state_stack.push(State::AppendToString(header.clone()));
+                    }
+                }
+                ValueData::Object(sub_object) => {
+                    let sub_object = sub_object.view();
+                    self.prepare_manifest_toml_table(sub_object, true, sub_path, indent.clone());
+
+                    let mut header = String::new();
+                    header.push('\n');
+                    for _ in 0..path.len() {
+                        header.push_str(&indent);
+                    }
+                    header.push('[');
+                    for part in path.iter() {
+                        header.push_str(&escape_key_toml(part.value()));
+                        header.push('.');
+                    }
+                    header.push_str(&escape_key_toml(field_name.value()));
+                    header.push(']');
+                    self.state_stack.push(State::AppendToString(header));
+                }
+                _ => unreachable!(),
+            }
+
+            self.delay_trace_item();
+        }
+
+        if has_sub_tables {
+            self.state_stack.push(State::AppendToString('\n'.into()));
+        }
+
+        for (i, &(field_name, _)) in visible_fields
+            .iter()
+            .rev()
+            .filter(|&&(_, is_sub_table)| !is_sub_table)
+            .enumerate()
+        {
+            if i != 0 {
+                self.state_stack.push(State::AppendToString('\n'.into()));
+            }
+
+            let field_thunk = self
+                .program
+                .find_object_field_thunk(&object, 0, field_name)
+                .unwrap();
+
+            self.push_trace_item(TraceItem::ManifestObjectField {
+                name: field_name.clone(),
+            });
+            self.state_stack.push(State::ManifestTomlValue {
+                indent: indent.clone(),
+                depth: path.len(),
+                single_line: false,
+            });
+            self.state_stack.push(State::DoThunk(field_thunk));
+            self.delay_trace_item();
+
+            let mut tmp = String::new();
+            for _ in 0..path.len() {
+                tmp.push_str(&indent);
+            }
+            tmp.push_str(&escape_key_toml(field_name.value()));
+            tmp.push_str(" = ");
+            self.state_stack.push(State::AppendToString(tmp));
+        }
+
+        if has_header && !visible_fields.is_empty() {
+            self.state_stack.push(State::AppendToString('\n'.into()));
+        }
+    }
+
+    pub(super) fn do_manifest_toml_value(
+        &mut self,
+        indent: Rc<str>,
+        depth: usize,
+        single_line: bool,
+    ) -> Result<(), Box<EvalError>> {
+        let value = self.value_stack.pop().unwrap();
+        let result = self.string_stack.last_mut().unwrap();
+        match value {
+            ValueData::Null => {
+                return Err(self.report_error(EvalErrorKind::Other {
+                    span: None,
+                    message: "cannot manifest null in TOML".into(),
+                }));
+            }
+            ValueData::Bool(b) => {
+                result.push_str(if b { "true" } else { "false" });
+            }
+            ValueData::Number(n) => {
+                write!(result, "{n}").unwrap();
+            }
+            ValueData::String(s) => {
+                escape_string_toml(&s, result);
+            }
+            ValueData::Array(array) => {
+                let array = array.view();
+                if array.is_empty() {
+                    result.push_str("[]");
+                } else {
+                    if single_line {
+                        result.push_str("[ ");
+                        self.state_stack.push(State::AppendToString(" ]".into()));
+                    } else {
+                        result.push_str("[\n");
+
+                        let mut tmp = String::new();
+                        tmp.push('\n');
+                        for _ in 0..depth {
+                            tmp.push_str(&indent);
+                        }
+                        tmp.push(']');
+                        self.state_stack.push(State::AppendToString(tmp));
+                    }
+
+                    for (i, item) in array.iter().enumerate().rev() {
+                        if i != array.len() - 1 {
+                            let mut tmp = String::new();
+                            if single_line {
+                                tmp.push_str(", ");
+                            } else {
+                                tmp.push_str(",\n");
+                            }
+                            self.state_stack.push(State::AppendToString(tmp));
+                        }
+
+                        self.push_trace_item(TraceItem::ManifestArrayItem { index: i });
+                        self.state_stack.push(State::ManifestTomlValue {
+                            indent: indent.clone(),
+                            depth: depth + 1,
+                            single_line: true,
+                        });
+                        self.state_stack.push(State::DoThunk(item.view()));
+                        self.delay_trace_item();
+                        if !single_line && !indent.is_empty() {
+                            self.state_stack
+                                .push(State::AppendToString(indent.repeat(depth + 1)));
+                        }
+                    }
+                }
+            }
+            ValueData::Object(object) => {
+                let object = object.view();
+                let visible_fields: Vec<_> = object
+                    .get_fields_order()
+                    .iter()
+                    .filter_map(|(name, visible)| visible.then_some(name))
+                    .collect();
+                if visible_fields.is_empty() {
+                    result.push_str("{  }");
+                } else {
+                    result.push_str("{ ");
+                    self.state_stack.push(State::AppendToString(" }".into()));
+
+                    for (i, &field_name) in visible_fields.iter().rev().enumerate() {
+                        if i != 0 {
+                            self.state_stack.push(State::AppendToString(", ".into()));
+                        }
+
+                        self.push_trace_item(TraceItem::ManifestObjectField {
+                            name: field_name.clone(),
+                        });
+                        self.state_stack.push(State::ManifestTomlValue {
+                            indent: indent.clone(),
+                            depth: depth + 1,
+                            single_line: true,
+                        });
+                        let field_thunk = self
+                            .program
+                            .find_object_field_thunk(&object, 0, field_name)
+                            .unwrap();
+                        self.state_stack.push(State::DoThunk(field_thunk));
+                        self.delay_trace_item();
+                        self.state_stack.push(State::AppendToString(" = ".into()));
+                        self.state_stack
+                            .push(State::AppendToString(escape_key_toml(field_name.value())));
+                    }
+                }
+                self.check_object_asserts(&object);
+            }
+            ValueData::Function(_) => {
+                return Err(self.report_error(EvalErrorKind::ManifestFunction));
+            }
+        }
+
+        Ok(())
+    }
 }
 
 fn is_safe_yaml_plain(s: &str) -> bool {
@@ -572,6 +915,22 @@ fn is_safe_yaml_plain(s: &str) -> bool {
     true
 }
 
+fn is_safe_toml_plain(s: &str) -> bool {
+    !s.is_empty()
+        && s.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+}
+
+fn escape_key_toml(s: &str) -> String {
+    if is_safe_toml_plain(s) {
+        s.into()
+    } else {
+        let mut escaped = String::new();
+        escape_string_toml(s, &mut escaped);
+        escaped
+    }
+}
+
 pub(super) fn escape_string_json(s: &str, result: &mut String) {
     result.push('"');
     for chr in s.chars() {
@@ -593,5 +952,9 @@ pub(super) fn escape_string_json(s: &str, result: &mut String) {
 }
 
 fn escape_string_python(s: &str, result: &mut String) {
+    escape_string_json(s, result);
+}
+
+fn escape_string_toml(s: &str, result: &mut String) {
     escape_string_json(s, result);
 }

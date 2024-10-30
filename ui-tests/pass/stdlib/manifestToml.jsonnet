@@ -41,7 +41,7 @@ std.assertEqual(
 
 std.assertEqual(
   std.manifestToml({
-    array: [1, 2, 3, { a: 4, b: 5, c: [6, 7] }],
+    array: [1, 2, 3, [4, 5], { a: 6, b: 7, c: [8, 9], d: {} }],
     object1: {
       field1: "a",
       field2: "b",
@@ -50,7 +50,7 @@ std.assertEqual(
       value: 1,
       array: [
         { a: 1, b: 2 },
-        { a: 3, b: 4 },
+        { object3: { a: 3, b: 4 } },
       ]
     }
   }) + "\n",
@@ -59,7 +59,8 @@ std.assertEqual(
       1,
       2,
       3,
-      { a = 4, b = 5, c = [ 6, 7 ] }
+      [ 4, 5 ],
+      { a = 6, b = 7, c = [ 8, 9 ], d = {  } }
     ]
 
     [object1]
@@ -74,14 +75,17 @@ std.assertEqual(
         b = 2
 
       [[object2.array]]
-        a = 3
-        b = 4
+
+
+        [object2.array.object3]
+          a = 3
+          b = 4
   |||,
 ) &&
 
 std.assertEqual(
   std.manifestTomlEx({
-    array: [1, 2, 3, { a: 4, b: 5, c: [6, 7] }],
+    array: [1, 2, 3, [4, 5], { a: 6, b: 7, c: [8, 9], d: {} }],
     object1: {
       field1: "a",
       field2: "b",
@@ -90,7 +94,7 @@ std.assertEqual(
       value: 1,
       array: [
         { a: 1, b: 2 },
-        { a: 3, b: 4 },
+        { object3: { a: 3, b: 4 } },
       ]
     }
   }, "    ") + "\n",
@@ -99,7 +103,8 @@ std.assertEqual(
         1,
         2,
         3,
-        { a = 4, b = 5, c = [ 6, 7 ] }
+        [ 4, 5 ],
+        { a = 6, b = 7, c = [ 8, 9 ], d = {  } }
     ]
 
     [object1]
@@ -114,13 +119,17 @@ std.assertEqual(
             b = 2
 
         [[object2.array]]
-            a = 3
-            b = 4
+
+
+            [object2.array.object3]
+                a = 3
+                b = 4
   |||,
 ) &&
 
 std.assertEqual(
   std.manifestToml({
+    "": "empty key",
     "some\"key": "some\"string",
     "some\"object": {
       "some\"array": [
@@ -130,6 +139,7 @@ std.assertEqual(
     }
   }) + "\n",
   |||
+    "" = "empty key"
     "some\"key" = "some\"string"
 
     ["some\"object"]

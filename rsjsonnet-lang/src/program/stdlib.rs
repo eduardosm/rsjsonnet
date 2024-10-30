@@ -155,6 +155,11 @@ impl Program {
         add_simple("manifestIni", BuiltInFunc::ManifestIni, &["ini"]);
         add_simple("manifestPython", BuiltInFunc::ManifestPython, &["v"]);
         add_simple(
+            "manifestTomlEx",
+            BuiltInFunc::ManifestTomlEx,
+            &["value", "indent"],
+        );
+        add_simple(
             "manifestPythonVars",
             BuiltInFunc::ManifestPythonVars,
             &["conf"],

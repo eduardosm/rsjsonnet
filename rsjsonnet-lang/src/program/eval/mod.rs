@@ -458,6 +458,21 @@ impl<'a> Evaluator<'a> {
                     parent_is_array,
                     parent_is_object,
                 )?,
+                State::ManifestTomlPeekSubTable => self.do_manifest_toml_peek_sub_table(),
+                State::ManifestTomlPeekSubTableArrayItem { array, index } => {
+                    self.do_manifest_toml_peek_sub_table_array_item(array, index)
+                }
+                State::ManifestTomlTable {
+                    object,
+                    has_header,
+                    path,
+                    indent,
+                } => self.do_manifest_toml_table(object, has_header, path, indent),
+                State::ManifestTomlValue {
+                    indent,
+                    depth,
+                    single_line,
+                } => self.do_manifest_toml_value(indent, depth, single_line)?,
                 State::Expr { expr, env } => self.do_expr(expr, env)?,
                 State::Error { span } => {
                     let msg = self.string_stack.pop().unwrap();
@@ -1404,6 +1419,7 @@ impl<'a> Evaluator<'a> {
                 State::StdManifestJsonEx => self.do_std_manifest_json_ex()?,
                 State::StdManifestYamlDoc => self.do_std_manifest_yaml_doc()?,
                 State::StdManifestYamlStream => self.do_std_manifest_yaml_stream()?,
+                State::StdManifestTomlEx => self.do_std_manifest_toml_ex()?,
                 State::StdMakeArray => self.do_std_make_array()?,
                 State::StdCount { value } => self.do_std_count(value)?,
                 State::StdCountInner { array } => self.do_std_count_inner(array),

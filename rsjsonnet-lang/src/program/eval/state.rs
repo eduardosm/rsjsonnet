@@ -52,6 +52,22 @@ pub(super) enum State {
         parent_is_array: bool,
         parent_is_object: bool,
     },
+    ManifestTomlPeekSubTable,
+    ManifestTomlPeekSubTableArrayItem {
+        array: GcView<ArrayData>,
+        index: usize,
+    },
+    ManifestTomlTable {
+        object: GcView<ObjectData>,
+        has_header: bool,
+        path: Rc<[InternedStr]>,
+        indent: Rc<str>,
+    },
+    ManifestTomlValue {
+        indent: Rc<str>,
+        depth: usize,
+        single_line: bool,
+    },
     Expr {
         expr: ir::RcExpr,
         env: GcView<ThunkEnv>,
@@ -301,6 +317,7 @@ pub(super) enum State {
     StdManifestJsonEx,
     StdManifestYamlDoc,
     StdManifestYamlStream,
+    StdManifestTomlEx,
     StdMakeArray,
     StdCount {
         value: GcView<ThunkData>,
