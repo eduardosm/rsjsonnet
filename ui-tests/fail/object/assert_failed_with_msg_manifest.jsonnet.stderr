@@ -4,9 +4,9 @@ error: assertion failed: assert msg
 1 | std.manifestJson({ assert false : "assert msg" })
   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: while evaluating call to `manifestJsonEx`
-   --> <stdlib>:242:25
+   --> <stdlib>:162:25
     |
-242 |   manifestJson(value):: std.manifestJsonEx(value, '    '),
+162 |   manifestJson(value):: std.manifestJsonEx(value, '    '),
     |                         ---------------------------------
 note: while evaluating call to function
  --> assert_failed_with_msg_manifest.jsonnet:1:1

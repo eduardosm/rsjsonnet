@@ -1,0 +1,8 @@
+error: second argument of `std.manifestTomlEx` is expected to be string, got null
+note: while evaluating call to `manifestTomlEx`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.manifestTomlEx({}, null)
+  | ----------------------------
+note: during top-level value evaluation
+

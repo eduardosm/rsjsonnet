@@ -1,0 +1,8 @@
+error: first argument of `std.manifestTomlEx` is expected to be object, got null
+note: while evaluating call to `manifestTomlEx`
+ --> invalid_arg_1.jsonnet:1:1
+  |
+1 | std.manifestTomlEx(null, "  ")
+  | ------------------------------
+note: during top-level value evaluation
+

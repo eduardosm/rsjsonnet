@@ -1097,6 +1097,21 @@ impl Evaluator<'_> {
         Ok(())
     }
 
+    pub(super) fn do_std_manifest_toml_ex(&mut self) -> Result<(), Box<EvalError>> {
+        let indent = self.value_stack.pop().unwrap();
+        let value = self.value_stack.pop().unwrap();
+
+        let object = self.expect_std_func_arg_object(value, "manifestTomlEx", 0)?;
+        let indent = self.expect_std_func_arg_string(indent, "manifestTomlEx", 1)?;
+
+        self.string_stack.push(String::new());
+        self.state_stack.push(State::StringToValue);
+
+        self.prepare_manifest_toml_table(object, false, Rc::new([]), indent);
+
+        Ok(())
+    }
+
     pub(super) fn do_std_make_array(&mut self) -> Result<(), Box<EvalError>> {
         let func_value = self.value_stack.pop().unwrap();
         let sz_value = self.value_stack.pop().unwrap();
