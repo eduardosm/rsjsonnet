@@ -2600,6 +2600,36 @@ impl Evaluator<'_> {
 
         Ok(())
     }
+
+    pub(super) fn do_std_mod(&mut self) -> Result<(), Box<EvalError>> {
+        let rhs = self.value_stack.pop().unwrap();
+        let lhs = self.value_stack.pop().unwrap();
+
+        match lhs {
+            ValueData::Number(lhs) => {
+                let rhs = self.expect_std_func_arg_number(rhs, "mod", 1)?;
+                if rhs == 0.0 {
+                    return Err(self.report_error(EvalErrorKind::DivByZero { span: None }));
+                }
+                let r = lhs % rhs;
+                self.check_number_value(r, None)?;
+                self.value_stack.push(ValueData::Number(r));
+                Ok(())
+            }
+            lhs @ ValueData::String(_) => {
+                self.value_stack.push(lhs);
+                self.value_stack.push(rhs);
+                self.state_stack.push(State::StdFormat);
+                Ok(())
+            }
+            _ => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
+                func_name: "mod".into(),
+                arg_index: 0,
+                expected_types: vec![EvalErrorValueType::Number, EvalErrorValueType::String],
+                got_type: EvalErrorValueType::from_value(&lhs),
+            })),
+        }
+    }
 }
 
 fn encode_base64<I>(input: I) -> Result<String, Box<EvalError>>

@@ -138,4 +138,8 @@ std.assertEqual("%d" % [10], "10") &&
 std.assertEqual("%d" % 10, "10") &&
 std.assertEqual("%(a)d" % { a: 10 }, "10") &&
 
+std.assertEqual(std.mod("%d", [10]), "10") &&
+std.assertEqual(std.mod("%d", 10), "10") &&
+std.assertEqual(std.mod("%(a)d", { a: 10 }), "10") &&
+
 true

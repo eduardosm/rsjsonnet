@@ -1553,6 +1553,7 @@ impl<'a> Evaluator<'a> {
                 State::StdMd5 => self.do_std_md5()?,
                 State::StdNative => self.do_std_native()?,
                 State::StdTrace => self.do_std_trace()?,
+                State::StdMod => self.do_std_mod()?,
             }
 
             if self.stack_trace_len > self.program.max_stack {

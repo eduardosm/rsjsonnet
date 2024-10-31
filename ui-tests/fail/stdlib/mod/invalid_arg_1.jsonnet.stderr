@@ -1,0 +1,8 @@
+error: first argument of `std.mod` is expected to be number or string, got null
+note: while evaluating call to `mod`
+ --> invalid_arg_1.jsonnet:1:1
+  |
+1 | std.mod(null, 0)
+  | ----------------
+note: during top-level value evaluation
+
