@@ -1,0 +1,12 @@
+error: explicit error: std.member first argument must be an array or a string
+  --> <stdlib>:53:10
+   |
+53 |     else error 'std.member first argument must be an array or a string',
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: while evaluating call to function
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.member(null, 0)
+  | -------------------
+note: during top-level value evaluation
+
