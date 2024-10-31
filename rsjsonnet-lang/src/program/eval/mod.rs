@@ -1421,6 +1421,9 @@ impl<'a> Evaluator<'a> {
                 State::StdManifestYamlStream => self.do_std_manifest_yaml_stream()?,
                 State::StdManifestTomlEx => self.do_std_manifest_toml_ex()?,
                 State::StdMakeArray => self.do_std_make_array()?,
+                State::StdMember { value } => self.do_std_member(value)?,
+                State::StdMemberString { string } => self.do_std_member_string(string)?,
+                State::StdMemberArray { array, index } => self.do_std_member_array(array, index),
                 State::StdCount { value } => self.do_std_count(value)?,
                 State::StdCountInner { array } => self.do_std_count_inner(array),
                 State::StdCountCheckItem {

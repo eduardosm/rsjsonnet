@@ -1,0 +1,8 @@
+error: second argument of `std.member` is expected to be string, got number
+note: while evaluating call to `member`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.member("", 0)
+  | -----------------
+note: during top-level value evaluation
+

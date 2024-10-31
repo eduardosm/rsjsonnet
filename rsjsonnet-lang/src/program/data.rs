@@ -729,6 +729,7 @@ pub(super) enum BuiltInFunc {
     ManifestTomlEx,
     // Arrays
     MakeArray,
+    Member,
     Count,
     Find,
     Filter,

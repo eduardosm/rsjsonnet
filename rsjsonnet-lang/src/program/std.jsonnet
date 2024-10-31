@@ -45,13 +45,6 @@ limitations under the License.
       else error 'std.repeat first argument must be an array or a string';
     std.join(joiner, std.makeArray(count, function(i) what)),
 
-  member(arr, x)::
-    if std.isArray(arr) then
-      std.count(arr, x) > 0
-    else if std.isString(arr) then
-      std.length(std.findSubstr(x, arr)) > 0
-    else error 'std.member first argument must be an array or a string',
-
   mod(a, b)::
     if std.isNumber(a) && std.isNumber(b) then
       std.modulo(a, b)
