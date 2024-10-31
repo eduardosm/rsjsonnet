@@ -7,14 +7,13 @@ mod trace;
 mod tests;
 
 pub(crate) trait GcTrace {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a;
 }
 
-pub(crate) struct GcTraceCtx<'a> {
-    marking: bool,
-    queue: Vec<Rc<GcBox<dyn GcTrace + 'a>>>,
+pub(crate) trait GcTraceCtx<'a> {
+    fn visit_obj<T: GcTrace + 'a>(&mut self, obj: &Gc<T>);
 }
 
 pub(crate) struct Gc<T: GcTrace> {
@@ -31,20 +30,12 @@ impl<T: GcTrace> Clone for Gc<T> {
 }
 
 impl<T: GcTrace> GcTrace for Gc<T> {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    #[inline]
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
-        Self: 'a,
+        Self: Sized + 'a,
     {
-        if let Some(inner) = self.inner.upgrade() {
-            if !ctx.marking {
-                // Count
-                inner.visits.set(inner.visits.get() + 1);
-            } else if !inner.mark.get() {
-                // Mark
-                inner.mark.set(true);
-                ctx.queue.push(inner);
-            }
-        }
+        ctx.visit_obj(self);
     }
 }
 
@@ -101,10 +92,31 @@ impl<T: GcTrace> std::ops::Deref for GcView<T> {
     }
 }
 
-struct GcBox<T: ?Sized + GcTrace> {
+struct GcBox<T: ?Sized> {
     visits: Cell<usize>,
     mark: Cell<bool>,
     value: T,
+}
+
+trait GcTraceDyn {
+    fn trace_count(&self);
+
+    fn trace_mark<'a>(&self, ctx: &mut GcMarkCtx<'a>)
+    where
+        Self: 'a;
+}
+
+impl<T: GcTrace> GcTraceDyn for T {
+    fn trace_count(&self) {
+        self.trace(&mut GcCountCtx);
+    }
+
+    fn trace_mark<'a>(&self, ctx: &mut GcMarkCtx<'a>)
+    where
+        Self: 'a,
+    {
+        self.trace(ctx);
+    }
 }
 
 pub(crate) struct GcContext<'a> {
@@ -112,7 +124,7 @@ pub(crate) struct GcContext<'a> {
 }
 
 struct GcContextInner<'a> {
-    objs: Vec<Rc<GcBox<dyn GcTrace + 'a>>>,
+    objs: Vec<Rc<GcBox<dyn GcTraceDyn + 'a>>>,
 }
 
 impl<'a> GcContext<'a> {
@@ -155,10 +167,7 @@ impl<'a> GcContext<'a> {
 
     pub(crate) fn gc(&self) {
         let mut inner = self.inner.borrow_mut();
-        let mut trace_ctx = GcTraceCtx {
-            marking: false,
-            queue: Vec::new(),
-        };
+        let mut mark_ctx = GcMarkCtx { queue: Vec::new() };
 
         // Count (to identify roots)
         let mut known_with_view = 0;
@@ -168,12 +177,11 @@ impl<'a> GcContext<'a> {
             if Rc::strong_count(obj) > 1 {
                 // There is at least one `GcView`, mark directly
                 if !obj.mark.get() {
-                    trace_ctx.marking = true;
                     obj.mark.set(true);
-                    obj.value.trace(&mut trace_ctx);
-                    while let Some(sub_obj) = trace_ctx.queue.pop() {
+                    obj.value.trace_mark(&mut mark_ctx);
+                    while let Some(sub_obj) = mark_ctx.queue.pop() {
                         debug_assert!(sub_obj.mark.get());
-                        sub_obj.value.trace(&mut trace_ctx);
+                        sub_obj.value.trace_mark(&mut mark_ctx);
                     }
                 }
                 if i > known_with_view {
@@ -188,8 +196,7 @@ impl<'a> GcContext<'a> {
                 inner.objs.swap_remove(i);
             } else if !obj.mark.get() {
                 // There is at least one `Gc`, count
-                trace_ctx.marking = false;
-                obj.value.trace(&mut trace_ctx);
+                obj.value.trace_count();
                 i += 1;
             } else {
                 // There is at least one `Gc`, but it is already marked
@@ -198,14 +205,13 @@ impl<'a> GcContext<'a> {
         }
 
         // Mark
-        trace_ctx.marking = true;
         for obj in inner.objs.iter() {
             if !obj.mark.get() && Rc::weak_count(obj) > obj.visits.get() {
                 obj.mark.set(true);
-                obj.value.trace(&mut trace_ctx);
-                while let Some(sub_obj) = trace_ctx.queue.pop() {
+                obj.value.trace_mark(&mut mark_ctx);
+                while let Some(sub_obj) = mark_ctx.queue.pop() {
                     debug_assert!(sub_obj.mark.get());
-                    sub_obj.value.trace(&mut trace_ctx);
+                    sub_obj.value.trace_mark(&mut mark_ctx);
                 }
             }
         }
@@ -220,6 +226,33 @@ impl<'a> GcContext<'a> {
                 i += 1;
             } else {
                 inner.objs.swap_remove(i);
+            }
+        }
+    }
+}
+
+struct GcCountCtx;
+
+impl<'a> GcTraceCtx<'a> for GcCountCtx {
+    #[inline]
+    fn visit_obj<T: GcTrace + 'a>(&mut self, obj: &Gc<T>) {
+        if let Some(inner) = obj.inner.upgrade() {
+            inner.visits.set(inner.visits.get() + 1);
+        }
+    }
+}
+
+struct GcMarkCtx<'a> {
+    queue: Vec<Rc<GcBox<dyn GcTraceDyn + 'a>>>,
+}
+
+impl<'a> GcTraceCtx<'a> for GcMarkCtx<'a> {
+    #[inline]
+    fn visit_obj<T: GcTrace + 'a>(&mut self, obj: &Gc<T>) {
+        if let Some(inner) = obj.inner.upgrade() {
+            if !inner.mark.get() {
+                inner.mark.set(true);
+                self.queue.push(inner);
             }
         }
     }

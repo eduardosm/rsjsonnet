@@ -225,7 +225,7 @@ pub(super) struct ThunkData {
 }
 
 impl GcTrace for ThunkData {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -308,7 +308,7 @@ pub(super) enum ThunkState {
 }
 
 impl GcTrace for ThunkState {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -337,7 +337,7 @@ pub(super) enum PendingThunk {
 }
 
 impl GcTrace for PendingThunk {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -364,7 +364,7 @@ pub(super) enum ValueData {
 }
 
 impl GcTrace for ValueData {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -408,7 +408,7 @@ pub(super) struct ObjectData {
 }
 
 impl GcTrace for ObjectData {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -528,7 +528,7 @@ pub(super) struct ObjectCore {
 }
 
 impl GcTrace for ObjectCore {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -548,7 +548,7 @@ pub(super) struct ObjectField {
 }
 
 impl GcTrace for ObjectField {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -564,7 +564,7 @@ pub(super) struct FuncData {
 
 impl GcTrace for FuncData {
     #[inline]
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -614,7 +614,7 @@ pub(super) enum FuncKind {
 
 impl GcTrace for FuncKind {
     #[inline]
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -738,7 +738,7 @@ pub(super) struct ThunkEnv {
 }
 
 impl GcTrace for ThunkEnv {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -811,7 +811,7 @@ pub(super) struct ThunkEnvData {
 
 impl GcTrace for ThunkEnvData {
     #[inline]
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -832,7 +832,7 @@ pub(super) struct ThunkEnvObject {
 
 impl GcTrace for ThunkEnvObject {
     #[inline]
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
