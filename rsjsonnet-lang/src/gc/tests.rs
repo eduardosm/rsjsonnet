@@ -66,7 +66,7 @@ struct TestObj<'a> {
 }
 
 impl GcTrace for TestObj<'_> {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {

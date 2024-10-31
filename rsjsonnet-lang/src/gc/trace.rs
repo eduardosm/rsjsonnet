@@ -2,7 +2,7 @@ use super::{GcTrace, GcTraceCtx};
 
 impl<T: GcTrace> GcTrace for Option<T> {
     #[inline]
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -14,7 +14,7 @@ impl<T: GcTrace> GcTrace for Option<T> {
 
 impl<T: ?Sized + GcTrace> GcTrace for std::cell::RefCell<T> {
     #[inline]
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -24,7 +24,7 @@ impl<T: ?Sized + GcTrace> GcTrace for std::cell::RefCell<T> {
 
 impl<T: GcTrace> GcTrace for std::cell::OnceCell<T> {
     #[inline]
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -36,7 +36,7 @@ impl<T: GcTrace> GcTrace for std::cell::OnceCell<T> {
 
 impl<T: ?Sized + GcTrace> GcTrace for Box<T> {
     #[inline]
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -45,7 +45,7 @@ impl<T: ?Sized + GcTrace> GcTrace for Box<T> {
 }
 
 impl<T: GcTrace> GcTrace for [T] {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
@@ -56,7 +56,7 @@ impl<T: GcTrace> GcTrace for [T] {
 }
 
 impl<T: GcTrace> GcTrace for Vec<T> {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
     {
