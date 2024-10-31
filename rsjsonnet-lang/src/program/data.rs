@@ -5,7 +5,6 @@ use std::rc::Rc;
 use super::{ir, Program};
 use crate::gc::{Gc, GcTrace, GcTraceCtx, GcView};
 use crate::interner::{InternedStr, SortedInternedStr};
-use crate::span::SpanId;
 use crate::{ast, FHashMap};
 
 impl Program {
@@ -195,24 +194,13 @@ impl Program {
                 })
                 .collect();
 
-            let new_asserts = core
-                .asserts
-                .iter()
-                .map(|assert| ObjectAssert {
-                    cond: assert.cond.clone(),
-                    cond_span: assert.cond_span,
-                    msg: assert.msg.clone(),
-                    assert_span: assert.assert_span,
-                })
-                .collect();
-
             ObjectCore {
                 is_top: core.is_top,
                 locals: core.locals.clone(),
                 base_env: core.base_env.clone(),
                 env: OnceCell::new(),
                 fields: new_fields,
-                asserts: new_asserts,
+                asserts: core.asserts.clone(),
             }
         };
 
@@ -439,7 +427,7 @@ impl ObjectData {
                 base_env: None,
                 env: OnceCell::new(),
                 fields,
-                asserts: Vec::new(),
+                asserts: Rc::new(Vec::new()),
             },
             super_cores: Vec::new(),
             fields_order: OnceCell::new(),
@@ -536,7 +524,7 @@ pub(super) struct ObjectCore {
     pub(super) base_env: Option<Gc<ThunkEnv>>,
     pub(super) env: OnceCell<Gc<ThunkEnv>>,
     pub(super) fields: FHashMap<InternedStr, ObjectField>,
-    pub(super) asserts: Vec<ObjectAssert>,
+    pub(super) asserts: Rc<Vec<ir::Assert>>,
 }
 
 impl GcTrace for ObjectCore {
@@ -549,7 +537,6 @@ impl GcTrace for ObjectCore {
         for field in self.fields.values() {
             field.trace(ctx);
         }
-        self.asserts.trace(ctx);
     }
 }
 
@@ -567,22 +554,6 @@ impl GcTrace for ObjectField {
     {
         self.base_env.trace(ctx);
         self.thunk.trace(ctx);
-    }
-}
-
-pub(super) struct ObjectAssert {
-    pub(super) cond: ir::RcExpr,
-    pub(super) cond_span: SpanId,
-    pub(super) msg: Option<ir::RcExpr>,
-    pub(super) assert_span: SpanId,
-}
-
-impl GcTrace for ObjectAssert {
-    fn trace<'a>(&self, ctx: &mut GcTraceCtx<'a>)
-    where
-        Self: 'a,
-    {
-        let _ = ctx;
     }
 }
 

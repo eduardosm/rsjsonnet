@@ -720,7 +720,7 @@ impl<'a> Evaluator<'a> {
                             base_env: None,
                             env: OnceCell::new(),
                             fields: FHashMap::default(),
-                            asserts: Vec::new(),
+                            asserts: Rc::new(Vec::new()),
                         },
                         super_cores: Vec::new(),
                         fields_order: OnceCell::new(),
@@ -1658,7 +1658,7 @@ impl<'a> Evaluator<'a> {
                         assert_i,
                     );
                     self.state_stack.push(State::Assert {
-                        assert_span: assert.assert_span,
+                        assert_span: assert.span,
                         cond_span: assert.cond_span,
                         msg_expr: assert.msg.as_ref().map(|e| (e.clone(), env.clone())),
                     });

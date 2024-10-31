@@ -13,7 +13,7 @@ pub(super) enum Expr {
     Object {
         is_top: bool,
         locals: Rc<Vec<(InternedStr, RcExpr)>>,
-        asserts: Vec<Assert>,
+        asserts: Rc<Vec<Assert>>,
         fields: Vec<ObjectField>,
     },
     ObjectComp {
@@ -141,10 +141,12 @@ impl Expr {
                         out.push(v);
                     }
                 }
-                for assert in asserts {
-                    out.push(assert.cond.clone());
-                    if let Some(msg) = assert.msg {
-                        out.push(msg);
+                if let Some(asserts) = Rc::into_inner(asserts) {
+                    for assert in asserts {
+                        out.push(assert.cond.clone());
+                        if let Some(msg) = assert.msg {
+                            out.push(msg);
+                        }
                     }
                 }
                 for field in fields {
