@@ -19,6 +19,9 @@ use rsjsonnet_lang::program::{Program, Thunk, Value};
 
 mod cli;
 
+#[global_allocator]
+static GLOBAL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 fn main() -> ExitCode {
     match main_inner() {
         Ok(()) => ExitCode::SUCCESS,

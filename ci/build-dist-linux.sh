@@ -31,5 +31,7 @@ build_and_compress() {
   end_group
 }
 
+export CC_i686_unknown_linux_gnu="gcc -m32"
+
 build_and_compress linux-x86_64 x86_64-unknown-linux-gnu
 build_and_compress linux-i686 i686-unknown-linux-gnu
