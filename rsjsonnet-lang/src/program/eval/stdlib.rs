@@ -1156,6 +1156,70 @@ impl Evaluator<'_> {
         Ok(())
     }
 
+    pub(super) fn do_std_member(&mut self, value: GcView<ThunkData>) -> Result<(), Box<EvalError>> {
+        let arr_or_str = self.value_stack.pop().unwrap();
+        match arr_or_str {
+            ValueData::String(s) => {
+                self.state_stack.push(State::StdMemberString { string: s });
+                self.state_stack.push(State::DoThunk(value));
+                Ok(())
+            }
+            ValueData::Array(array) => {
+                let array = array.view();
+                if let Some(item0) = array.first() {
+                    let item0 = item0.view();
+                    self.state_stack
+                        .push(State::StdMemberArray { array, index: 0 });
+                    self.state_stack.push(State::EqualsValue);
+                    self.state_stack.push(State::DoThunk(item0));
+                    self.state_stack.push(State::DoThunk(value.clone()));
+                    self.state_stack.push(State::DoThunk(value));
+                } else {
+                    self.value_stack.push(ValueData::Bool(false));
+                }
+                Ok(())
+            }
+            _ => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
+                func_name: "member".into(),
+                arg_index: 0,
+                expected_types: vec![EvalErrorValueType::String, EvalErrorValueType::Array],
+                got_type: EvalErrorValueType::from_value(&arr_or_str),
+            })),
+        }
+    }
+
+    pub(super) fn do_std_member_string(&mut self, string: Rc<str>) -> Result<(), Box<EvalError>> {
+        let needle = self.value_stack.pop().unwrap();
+        let needle = self.expect_std_func_arg_string(needle, "member", 1)?;
+
+        let found = string.find(&*needle).is_some();
+        self.value_stack.push(ValueData::Bool(found));
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_member_array(&mut self, array: GcView<ArrayData>, index: usize) {
+        let equal = self.bool_stack.pop().unwrap();
+        if equal {
+            *self.value_stack.last_mut().unwrap() = ValueData::Bool(true);
+        } else {
+            let next_index = index + 1;
+            if let Some(next_item) = array.get(next_index) {
+                let next_item = next_item.view();
+                self.value_stack
+                    .push(self.value_stack.last().unwrap().clone());
+                self.state_stack.push(State::StdMemberArray {
+                    array,
+                    index: next_index,
+                });
+                self.state_stack.push(State::EqualsValue);
+                self.state_stack.push(State::DoThunk(next_item));
+            } else {
+                *self.value_stack.last_mut().unwrap() = ValueData::Bool(false);
+            }
+        }
+    }
+
     pub(super) fn do_std_count(&mut self, value: GcView<ThunkData>) -> Result<(), Box<EvalError>> {
         let array = self.value_stack.pop().unwrap();
         let array = self.expect_std_func_arg_array(array, "count", 0)?;

@@ -319,6 +319,16 @@ pub(super) enum State {
     StdManifestYamlStream,
     StdManifestTomlEx,
     StdMakeArray,
+    StdMember {
+        value: GcView<ThunkData>,
+    },
+    StdMemberString {
+        string: Rc<str>,
+    },
+    StdMemberArray {
+        array: GcView<ArrayData>,
+        index: usize,
+    },
     StdCount {
         value: GcView<ThunkData>,
     },

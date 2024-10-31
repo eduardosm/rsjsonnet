@@ -165,6 +165,7 @@ impl Program {
             &["conf"],
         );
         add_simple("makeArray", BuiltInFunc::MakeArray, &["sz", "func"]);
+        add_simple("member", BuiltInFunc::Member, &["arr", "x"]);
         add_simple("count", BuiltInFunc::Count, &["arr", "x"]);
         add_simple("find", BuiltInFunc::Find, &["value", "find"]);
         add_simple("filter", BuiltInFunc::Filter, &["func", "arr"]);
