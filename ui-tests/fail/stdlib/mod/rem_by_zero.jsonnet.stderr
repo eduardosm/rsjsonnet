@@ -1,0 +1,8 @@
+error: division by zero
+note: while evaluating call to `mod`
+ --> rem_by_zero.jsonnet:1:1
+  |
+1 | std.mod(1, 0)
+  | -------------
+note: during top-level value evaluation
+

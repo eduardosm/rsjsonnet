@@ -10,6 +10,11 @@ std.assertEqual(5.5 % (-2), 1.5) &&
 std.assertEqual((-5.5) % 2, -1.5) &&
 std.assertEqual((-5.5) % (-2), -1.5) &&
 
+std.assertEqual(std.mod(5.5, 2), 1.5) &&
+std.assertEqual(std.mod(5.5, -2), 1.5) &&
+std.assertEqual(std.mod(-5.5, 2), -1.5) &&
+std.assertEqual(std.mod(-5.5, -2), -1.5) &&
+
 std.assertEqual(5 << 4, 80) &&
 std.assertEqual(5 >> 2, 1) &&
 

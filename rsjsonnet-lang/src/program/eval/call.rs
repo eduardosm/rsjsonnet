@@ -752,6 +752,12 @@ impl Evaluator<'_> {
                 self.state_stack.push(State::DoThunk(arg0.view()));
                 self.state_stack.push(State::DoThunk(arg1.view()));
             }
+            BuiltInFunc::Mod => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack.push(State::StdMod);
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
         }
     }
 

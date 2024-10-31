@@ -191,6 +191,7 @@ impl Program {
         add_simple("md5", BuiltInFunc::Md5, &["str"]);
         add_simple("native", BuiltInFunc::Native, &["name"]);
         add_simple("trace", BuiltInFunc::Trace, &["str", "rest"]);
+        add_simple("mod", BuiltInFunc::Mod, &["a", "b"]);
 
         let mut add_with_defaults =
             |name: &str, kind: BuiltInFunc, params: &[(&str, Option<ir::RcExpr>)]| {

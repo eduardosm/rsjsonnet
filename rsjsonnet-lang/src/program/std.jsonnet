@@ -45,14 +45,6 @@ limitations under the License.
       else error 'std.repeat first argument must be an array or a string';
     std.join(joiner, std.makeArray(count, function(i) what)),
 
-  mod(a, b)::
-    if std.isNumber(a) && std.isNumber(b) then
-      std.modulo(a, b)
-    else if std.isString(a) then
-      std.format(a, b)
-    else
-      error 'Operator % cannot be used on types ' + std.type(a) + ' and ' + std.type(b) + '.',
-
   map(func, arr)::
     if !std.isFunction(func) then
       error ('std.map first param must be function, got ' + std.type(func))

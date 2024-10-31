@@ -758,6 +758,8 @@ pub(super) enum BuiltInFunc {
     Native,
     // Debugging
     Trace,
+    // Other
+    Mod,
 }
 
 pub(super) struct ThunkEnv {

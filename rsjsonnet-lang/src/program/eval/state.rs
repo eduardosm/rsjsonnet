@@ -514,4 +514,5 @@ pub(super) enum State {
     StdMd5,
     StdNative,
     StdTrace,
+    StdMod,
 }
