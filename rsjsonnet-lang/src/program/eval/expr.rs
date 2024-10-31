@@ -1,8 +1,7 @@
 use std::cell::{Cell, OnceCell};
 
 use super::super::{
-    ir, FuncData, FuncKind, ImportError, ObjectAssert, ObjectCore, ObjectData, ThunkEnv,
-    ThunkEnvData, ValueData,
+    ir, FuncData, FuncKind, ImportError, ObjectCore, ObjectData, ThunkEnv, ThunkEnvData, ValueData,
 };
 use super::{EvalError, EvalErrorKind, EvalErrorValueType, Evaluator, State, TraceItem};
 use crate::gc::{Gc, GcView};
@@ -36,16 +35,6 @@ impl Evaluator<'_> {
                 asserts: ref ir_asserts,
                 fields: ref ir_fields,
             } => {
-                let mut asserts = Vec::with_capacity(ir_asserts.len());
-                for assert in ir_asserts.iter().rev() {
-                    asserts.push(ObjectAssert {
-                        cond: assert.cond.clone(),
-                        cond_span: assert.cond_span,
-                        msg: assert.msg.clone(),
-                        assert_span: assert.span,
-                    });
-                }
-
                 self.object_stack.push(ObjectData {
                     self_core: ObjectCore {
                         is_top,
@@ -53,7 +42,7 @@ impl Evaluator<'_> {
                         base_env: Some(Gc::from(&env)),
                         env: OnceCell::new(),
                         fields: FHashMap::default(),
-                        asserts,
+                        asserts: ir_asserts.clone(),
                     },
                     super_cores: Vec::new(),
                     fields_order: OnceCell::new(),

@@ -534,7 +534,7 @@ impl<'a> Analyzer<'a> {
                 Ok(ir::RcExpr::new(ir::Expr::Object {
                     is_top: !env.is_obj,
                     locals: Rc::new(locals),
-                    asserts,
+                    asserts: Rc::new(asserts),
                     fields,
                 }))
             }
