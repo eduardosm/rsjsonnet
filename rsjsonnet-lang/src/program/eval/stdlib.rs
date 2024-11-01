@@ -3,7 +3,7 @@ use std::fmt::Write as _;
 use std::rc::Rc;
 
 use super::super::{ArrayData, FuncData, ThunkData, ValueData};
-use super::manifest::escape_string_json;
+use super::manifest::{escape_string_json, escape_string_python};
 use super::{
     float, parse_num_radix, EvalError, EvalErrorKind, EvalErrorValueType, Evaluator,
     ManifestJsonFormat, ParseNumRadixError, State, TraceItem,
@@ -712,6 +712,13 @@ impl Evaluator<'_> {
         let s = self.string_stack.pop().unwrap();
         let mut escaped = String::new();
         escape_string_json(&s, &mut escaped);
+        self.value_stack.push(ValueData::String(escaped.into()));
+    }
+
+    pub(super) fn do_std_escape_string_python(&mut self) {
+        let s = self.string_stack.pop().unwrap();
+        let mut escaped = String::new();
+        escape_string_python(&s, &mut escaped);
         self.value_stack.push(ValueData::String(escaped.into()));
     }
 

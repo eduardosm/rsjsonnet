@@ -298,6 +298,7 @@ pub(super) enum State {
         prec: u32,
     },
     StdEscapeStringJson,
+    StdEscapeStringPython,
     StdEscapeStringBash,
     StdEscapeStringDollars,
     StdEscapeStringXml,

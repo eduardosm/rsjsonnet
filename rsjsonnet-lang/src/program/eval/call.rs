@@ -503,6 +503,12 @@ impl Evaluator<'_> {
                 self.state_stack.push(State::CoerceToString);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
+            BuiltInFunc::EscapeStringPython => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::StdEscapeStringPython);
+                self.state_stack.push(State::CoerceToString);
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
             BuiltInFunc::EscapeStringBash => {
                 let [arg] = check_num_args(args);
                 self.state_stack.push(State::StdEscapeStringBash);

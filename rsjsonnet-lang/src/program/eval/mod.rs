@@ -1400,6 +1400,7 @@ impl<'a> Evaluator<'a> {
                     prec,
                 } => self.do_std_format_code(&parts, part_i, fw, prec)?,
                 State::StdEscapeStringJson => self.do_std_escape_string_json(),
+                State::StdEscapeStringPython => self.do_std_escape_string_python(),
                 State::StdEscapeStringBash => self.do_std_escape_string_bash(),
                 State::StdEscapeStringDollars => self.do_std_escape_string_dollars(),
                 State::StdEscapeStringXml => self.do_std_escape_string_xml(),

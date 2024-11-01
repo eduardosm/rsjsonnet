@@ -141,9 +141,6 @@ limitations under the License.
 
   manifestToml(value):: std.manifestTomlEx(value, '  '),
 
-  escapeStringPython(str)::
-    std.escapeStringJson(str),
-
   manifestJson(value):: std.manifestJsonEx(value, '    '),
 
   manifestJsonMinified(value):: std.manifestJsonEx(value, '', '', ':'),

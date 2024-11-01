@@ -138,6 +138,11 @@ impl Program {
         add_simple("stringChars", BuiltInFunc::StringChars, &["str"]);
         add_simple("format", BuiltInFunc::Format, &["str", "vals"]);
         add_simple("escapeStringJson", BuiltInFunc::EscapeStringJson, &["str"]);
+        add_simple(
+            "escapeStringPython",
+            BuiltInFunc::EscapeStringPython,
+            &["str"],
+        );
         add_simple("escapeStringBash", BuiltInFunc::EscapeStringBash, &["str"]);
         add_simple(
             "escapeStringDollars",
