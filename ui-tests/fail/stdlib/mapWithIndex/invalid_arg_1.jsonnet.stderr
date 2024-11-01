@@ -1,9 +1,5 @@
-error: explicit error: std.mapWithIndex first param must be function, got null
-  --> <stdlib>:50:7
-   |
-50 |       error ('std.mapWithIndex first param must be function, got ' + std.type(func))
-   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: while evaluating call to function
+error: first argument of `std.mapWithIndex` is expected to be function, got null
+note: while evaluating call to `mapWithIndex`
  --> invalid_arg_1.jsonnet:1:1
   |
 1 | std.mapWithIndex(null, [])

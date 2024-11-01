@@ -1,9 +1,5 @@
-error: explicit error: std.mapWithIndex second param must be array, got null
-  --> <stdlib>:52:7
-   |
-52 |       error ('std.mapWithIndex second param must be array, got ' + std.type(arr))
-   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: while evaluating call to function
+error: second argument of `std.mapWithIndex` is expected to be string or array, got null
+note: while evaluating call to `mapWithIndex`
  --> invalid_arg_2.jsonnet:1:1
   |
 1 | std.mapWithIndex(function(i, x) null, null)

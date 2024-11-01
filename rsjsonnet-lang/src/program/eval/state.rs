@@ -352,6 +352,7 @@ pub(super) enum State {
         index: usize,
     },
     StdMap,
+    StdMapWithIndex,
     StdFilter,
     StdFilterCheck {
         item: GcView<ThunkData>,

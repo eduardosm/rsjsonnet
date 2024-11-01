@@ -1440,6 +1440,7 @@ impl<'a> Evaluator<'a> {
                 State::StdFind { value } => self.do_std_find(value)?,
                 State::StdFindInner { array, index } => self.do_std_find_inner(array, index),
                 State::StdMap => self.do_std_map()?,
+                State::StdMapWithIndex => self.do_std_map_with_index()?,
                 State::StdFilter => self.do_std_filter()?,
                 State::StdFilterCheck { item } => self.do_std_filter_check(item)?,
                 State::StdFoldl { init } => self.do_std_foldl(init)?,
