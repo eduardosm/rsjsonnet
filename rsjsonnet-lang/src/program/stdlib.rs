@@ -238,8 +238,8 @@ impl Program {
             BuiltInFunc::ManifestYamlDoc,
             &[
                 ("value", None),
-                ("indent_array_in_object", Some(self.false_expr.clone())),
-                ("quote_keys", Some(self.true_expr.clone())),
+                ("indent_array_in_object", Some(self.exprs.false_.clone())),
+                ("quote_keys", Some(self.exprs.true_.clone())),
             ],
         );
         add_with_defaults(
@@ -247,9 +247,9 @@ impl Program {
             BuiltInFunc::ManifestYamlStream,
             &[
                 ("value", None),
-                ("indent_array_in_object", Some(self.false_expr.clone())),
-                ("c_document_end", Some(self.true_expr.clone())),
-                ("quote_keys", Some(self.true_expr.clone())),
+                ("indent_array_in_object", Some(self.exprs.false_.clone())),
+                ("c_document_end", Some(self.exprs.true_.clone())),
+                ("quote_keys", Some(self.exprs.true_.clone())),
             ],
         );
         add_with_defaults(
