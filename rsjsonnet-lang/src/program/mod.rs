@@ -468,15 +468,19 @@ impl Program {
             eval::EvalInput::Value(thunk.data.clone()),
         )
         .map_err(|e| *e)?;
-        assert!(matches!(output, eval::EvalOutput::Nothing));
-        Ok(Value::from_thunk(&thunk.data))
+        let eval::EvalOutput::Value(value) = output else {
+            unreachable!();
+        };
+        Ok(Value::from_value(value))
     }
 
-    fn eval_value_internal(&mut self, thunk: &Thunk) -> Result<(), EvalError> {
+    fn eval_value_internal(&mut self, thunk: &Thunk) -> Result<ValueData, EvalError> {
         let output = eval::Evaluator::eval(self, None, eval::EvalInput::Value(thunk.data.clone()))
             .map_err(|e| *e)?;
-        assert!(matches!(output, eval::EvalOutput::Nothing));
-        Ok(())
+        let eval::EvalOutput::Value(value) = output else {
+            unreachable!();
+        };
+        Ok(value)
     }
 
     /// Evaluates a function call.

@@ -2,8 +2,7 @@ use std::cell::OnceCell;
 use std::rc::Rc;
 
 use super::{
-    ir, BuiltInFunc, FuncData, FuncKind, ObjectData, ObjectField, Program, ThunkData, ThunkState,
-    ValueData,
+    ir, BuiltInFunc, FuncData, FuncKind, ObjectData, ObjectField, Program, ThunkData, ValueData,
 };
 use crate::gc::Gc;
 use crate::interner::InternedStr;
@@ -19,13 +18,14 @@ impl Program {
         let stdlib_thunk = self
             .load_source(span_ctx, stdlib_data, false, "std.jsonnet")
             .expect("failed to load stdlib");
-        self.eval_value_internal(&stdlib_thunk)
+        let stdlib_value = self
+            .eval_value_internal(&stdlib_thunk)
             .expect("failed to evaluate stdlib");
 
-        let stdlib_obj = match *stdlib_thunk.data.state() {
-            ThunkState::Done(ValueData::Object(ref obj)) => obj.view(),
-            _ => panic!("stdlib is not an object"),
+        let ValueData::Object(stdlib_obj) = stdlib_value else {
+            panic!("stdlib is not an object");
         };
+        let stdlib_obj = stdlib_obj.view();
         let stdlib_extra_obj = self.build_stdlib_extra();
 
         let ext_stdlib_obj = self.extend_object(&stdlib_obj, &stdlib_extra_obj);
