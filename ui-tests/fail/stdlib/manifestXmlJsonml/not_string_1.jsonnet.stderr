@@ -1,0 +1,32 @@
+error: explicit error: Expected string or array, got null
+  --> <stdlib>:90:7
+   |
+90 |       error 'Expected string or array, got %s' % std.type(arr),
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: while evaluating call to function
+  --> <stdlib>:88:21
+   |
+88 |       std.join('', [std.deepJoin(x) for x in arr])
+   |                     ---------------
+note: while evaluating call to `join`
+  --> <stdlib>:88:7
+   |
+88 |       std.join('', [std.deepJoin(x) for x in arr])
+   |       --------------------------------------------
+note: while evaluating call to function
+   --> <stdlib>:165:11
+    |
+165 |           std.deepJoin(['<', tag, attrs_str, '>', [aux(x) for x in children], '</', tag, '>']);
+    |           ------------------------------------------------------------------------------------
+note: while evaluating call to `aux`
+   --> <stdlib>:167:7
+    |
+167 |       aux(value),
+    |       ----------
+note: while evaluating call to function
+ --> not_string_1.jsonnet:1:1
+  |
+1 | std.manifestXmlJsonml([null, "a"])
+  | ----------------------------------
+note: during top-level value evaluation
+

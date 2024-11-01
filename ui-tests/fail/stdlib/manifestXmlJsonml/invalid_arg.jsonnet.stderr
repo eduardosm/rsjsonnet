@@ -1,0 +1,12 @@
+error: explicit error: Expected a JSONML value (an array), got null
+   --> <stdlib>:153:7
+    |
+153 |       error 'Expected a JSONML value (an array), got %s' % std.type(value)
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: while evaluating call to function
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.manifestXmlJsonml(null)
+  | ---------------------------
+note: during top-level value evaluation
+
