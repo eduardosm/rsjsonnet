@@ -4,8 +4,8 @@ use std::rc::Rc;
 use super::{
     ir, BuiltInFunc, FuncData, FuncKind, ObjectData, ObjectField, Program, ThunkData, ValueData,
 };
-use crate::gc::Gc;
-use crate::interner::InternedStr;
+use crate::gc::{Gc, GcContext, GcView};
+use crate::interner::{InternedStr, StrInterner};
 use crate::span::SpanContextId;
 use crate::{ast, FHashMap};
 
@@ -26,16 +26,18 @@ impl Program {
             panic!("stdlib is not an object");
         };
         let stdlib_obj = stdlib_obj.view();
-        let stdlib_extra_obj = self.build_stdlib_extra();
 
-        let ext_stdlib_obj = self.extend_object(&stdlib_obj, &stdlib_extra_obj);
-        assert!(self.stdlib_obj.is_none());
-        self.stdlib_obj = Some(ext_stdlib_obj.view());
+        assert!(self.stdlib_base_obj.is_none());
+        self.stdlib_base_obj = Some(stdlib_obj);
 
         self.maybe_gc();
     }
 
-    fn build_stdlib_extra(&mut self) -> ObjectData {
+    pub(super) fn build_stdlib_extra(
+        str_interner: &StrInterner,
+        gc_ctx: &GcContext<'static>,
+        exprs: &super::Exprs,
+    ) -> FHashMap<InternedStr, GcView<ThunkData>> {
         let mut extra_fields = FHashMap::default();
 
         let mut add_builtin_func =
@@ -44,26 +46,21 @@ impl Program {
              params: Vec<(InternedStr, Option<ir::RcExpr>)>| {
                 let prev = extra_fields.insert(
                     name.clone(),
-                    ObjectField {
-                        base_env: None,
-                        visibility: ast::Visibility::Hidden,
-                        expr: None,
-                        thunk: OnceCell::from(self.gc_alloc(ThunkData::new_done(
-                            ValueData::Function(self.gc_alloc(FuncData::new(
-                                Rc::new(params),
-                                FuncKind::BuiltIn { name, kind },
-                            ))),
-                        ))),
-                    },
+                    gc_ctx.alloc_view(ThunkData::new_done(ValueData::Function(gc_ctx.alloc(
+                        FuncData::new(Rc::new(params), FuncKind::BuiltIn { name, kind }),
+                    )))),
                 );
                 assert!(prev.is_none());
             };
 
         let mut add_simple = |name: &str, kind: BuiltInFunc, params: &[&str]| {
             add_builtin_func(
-                self.intern_str(name),
+                str_interner.intern(name),
                 kind,
-                params.iter().map(|&s| (self.intern_str(s), None)).collect(),
+                params
+                    .iter()
+                    .map(|&s| (str_interner.intern(s), None))
+                    .collect(),
             );
         };
 
@@ -206,11 +203,11 @@ impl Program {
         let mut add_with_defaults =
             |name: &str, kind: BuiltInFunc, params: &[(&str, Option<ir::RcExpr>)]| {
                 add_builtin_func(
-                    self.intern_str(name),
+                    str_interner.intern(name),
                     kind,
                     params
                         .iter()
-                        .map(|(s, e)| (self.intern_str(s), e.clone()))
+                        .map(|(s, e)| (str_interner.intern(s), e.clone()))
                         .collect(),
                 );
             };
@@ -238,8 +235,8 @@ impl Program {
             BuiltInFunc::ManifestYamlDoc,
             &[
                 ("value", None),
-                ("indent_array_in_object", Some(self.exprs.false_.clone())),
-                ("quote_keys", Some(self.exprs.true_.clone())),
+                ("indent_array_in_object", Some(exprs.false_.clone())),
+                ("quote_keys", Some(exprs.true_.clone())),
             ],
         );
         add_with_defaults(
@@ -247,9 +244,9 @@ impl Program {
             BuiltInFunc::ManifestYamlStream,
             &[
                 ("value", None),
-                ("indent_array_in_object", Some(self.exprs.false_.clone())),
-                ("c_document_end", Some(self.exprs.true_.clone())),
-                ("quote_keys", Some(self.exprs.true_.clone())),
+                ("indent_array_in_object", Some(exprs.false_.clone())),
+                ("c_document_end", Some(exprs.true_.clone())),
+                ("quote_keys", Some(exprs.true_.clone())),
             ],
         );
         add_with_defaults(
@@ -300,13 +297,28 @@ impl Program {
             &[("x", None), ("arr", None), ("keyF", Some(identity_func))],
         );
 
-        ObjectData::new_simple(extra_fields)
+        extra_fields
     }
 
     pub(super) fn make_custom_stdlib(&mut self, this_file: &str) -> Gc<ObjectData> {
-        let stdlib_obj = self.stdlib_obj.as_ref().unwrap().clone();
+        let stdlib_base_obj = self.stdlib_base_obj.as_ref().unwrap().clone();
 
-        let mut extra_fields = FHashMap::default();
+        let mut extra_fields: FHashMap<_, _> = self
+            .stdlib_extra
+            .iter()
+            .map(|(name, thunk)| {
+                (
+                    name.clone(),
+                    ObjectField {
+                        base_env: None,
+                        visibility: ast::Visibility::Hidden,
+                        expr: None,
+                        thunk: OnceCell::from(Gc::from(thunk)),
+                    },
+                )
+            })
+            .collect();
+
         extra_fields.insert(
             self.intern_str("thisFile"),
             ObjectField {
@@ -321,6 +333,6 @@ impl Program {
 
         let extra_obj = ObjectData::new_simple(extra_fields);
 
-        self.extend_object(&stdlib_obj, &extra_obj)
+        self.extend_object(&stdlib_base_obj, &extra_obj)
     }
 }
