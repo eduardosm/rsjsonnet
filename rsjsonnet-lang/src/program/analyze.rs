@@ -82,18 +82,18 @@ impl<'a> Analyzer<'a> {
                 },
                 State::Expr(expr_ast, can_be_tailstrict) => match expr_ast.kind {
                     ast::ExprKind::Null => {
-                        state = State::Analyzed(self.program.null_expr.clone());
+                        state = State::Analyzed(self.program.exprs.null.clone());
                     }
                     ast::ExprKind::Bool(value) => {
                         state = State::Analyzed(if value {
-                            self.program.true_expr.clone()
+                            self.program.exprs.true_.clone()
                         } else {
-                            self.program.false_expr.clone()
+                            self.program.exprs.false_.clone()
                         });
                     }
                     ast::ExprKind::SelfObj => {
                         if env.is_obj {
-                            state = State::Analyzed(self.program.self_obj_expr.clone());
+                            state = State::Analyzed(self.program.exprs.self_obj.clone());
                         } else {
                             return Err(AnalyzeError::SelfOutsideObject {
                                 self_span: expr_ast.span,
@@ -102,7 +102,7 @@ impl<'a> Analyzer<'a> {
                     }
                     ast::ExprKind::Dollar => {
                         if env.is_obj {
-                            state = State::Analyzed(self.program.top_obj_expr.clone())
+                            state = State::Analyzed(self.program.exprs.top_obj.clone())
                         } else {
                             return Err(AnalyzeError::DollarOutsideObject {
                                 dollar_span: expr_ast.span,

@@ -199,11 +199,7 @@ pub struct Program {
     gc_ctx: GcContext<'static>,
     objs_after_last_gc: usize,
     max_stack: usize,
-    null_expr: ir::RcExpr,
-    false_expr: ir::RcExpr,
-    true_expr: ir::RcExpr,
-    self_obj_expr: ir::RcExpr,
-    top_obj_expr: ir::RcExpr,
+    exprs: Exprs,
     stdlib_src_id: SourceId,
     stdlib_data: &'static [u8],
     stdlib_obj: Option<GcView<ObjectData>>,
@@ -211,6 +207,14 @@ pub struct Program {
     identity_func: GcView<FuncData>,
     ext_vars: FHashMap<InternedStr, GcView<ThunkData>>,
     native_funcs: FHashMap<InternedStr, GcView<FuncData>>,
+}
+
+struct Exprs {
+    null: ir::RcExpr,
+    false_: ir::RcExpr,
+    true_: ir::RcExpr,
+    self_obj: ir::RcExpr,
+    top_obj: ir::RcExpr,
 }
 
 impl Default for Program {
@@ -224,6 +228,13 @@ impl Program {
     pub fn new() -> Self {
         let str_interner = StrInterner::new();
         let gc_ctx = GcContext::new();
+        let exprs = Exprs {
+            null: ir::RcExpr::new(ir::Expr::Null),
+            false_: ir::RcExpr::new(ir::Expr::Bool(false)),
+            true_: ir::RcExpr::new(ir::Expr::Bool(true)),
+            self_obj: ir::RcExpr::new(ir::Expr::SelfObj),
+            top_obj: ir::RcExpr::new(ir::Expr::TopObj),
+        };
 
         let stdlib_data = stdlib::STDLIB_DATA;
         let mut span_mgr = SpanManager::new();
@@ -244,11 +255,7 @@ impl Program {
             gc_ctx,
             objs_after_last_gc: 0,
             max_stack: 500,
-            null_expr: ir::RcExpr::new(ir::Expr::Null),
-            false_expr: ir::RcExpr::new(ir::Expr::Bool(false)),
-            true_expr: ir::RcExpr::new(ir::Expr::Bool(true)),
-            self_obj_expr: ir::RcExpr::new(ir::Expr::SelfObj),
-            top_obj_expr: ir::RcExpr::new(ir::Expr::TopObj),
+            exprs,
             stdlib_src_id,
             stdlib_data,
             stdlib_obj: None,
