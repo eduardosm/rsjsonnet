@@ -125,7 +125,7 @@ impl<'a> Evaluator<'a> {
 
         match input {
             EvalInput::Value(thunk) => {
-                this.state_stack.push(State::DiscardValue);
+                this.state_stack.push(State::OutputValue);
                 this.state_stack.push(State::DeepValue);
                 this.state_stack.push(State::DoThunk(thunk));
             }
