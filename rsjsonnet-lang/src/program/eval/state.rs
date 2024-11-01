@@ -340,9 +340,6 @@ pub(super) enum State {
     },
     StdCountInner {
         array: GcView<ArrayData>,
-    },
-    StdCountCheckItem {
-        array: GcView<ArrayData>,
         index: usize,
         count: usize,
     },
@@ -350,9 +347,6 @@ pub(super) enum State {
         value: GcView<ThunkData>,
     },
     StdFindInner {
-        array: GcView<ArrayData>,
-    },
-    StdFindCheckItem {
         array: GcView<ArrayData>,
         index: usize,
     },
