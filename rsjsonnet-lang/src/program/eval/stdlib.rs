@@ -1462,6 +1462,59 @@ impl Evaluator<'_> {
                 ValueData::Array(self.program.gc_alloc(result.into_boxed_slice()));
         }
     }
+    pub(super) fn do_std_map(&mut self) -> Result<(), Box<EvalError>> {
+        let arr_value = self.value_stack.pop().unwrap();
+        let func_value = self.value_stack.pop().unwrap();
+
+        let func = self.expect_std_func_arg_func(func_value, "map", 0)?;
+
+        match arr_value {
+            ValueData::String(s) => {
+                let mut array = Vec::new();
+                for chr in s.chars() {
+                    let args_thunks = Box::new([self
+                        .program
+                        .gc_alloc(ThunkData::new_done(ValueData::from_char(chr)))]);
+
+                    array.push(
+                        self.program
+                            .gc_alloc(ThunkData::new_pending_call(Gc::from(&func), args_thunks)),
+                    );
+                }
+
+                self.value_stack.push(ValueData::Array(
+                    self.program.gc_alloc(array.into_boxed_slice()),
+                ));
+
+                Ok(())
+            }
+            ValueData::Array(array) => {
+                let array = array.view();
+
+                let mut new_array = Vec::with_capacity(array.len());
+                for item in array.iter() {
+                    let args_thunks = Box::new([item.clone()]);
+
+                    new_array.push(
+                        self.program
+                            .gc_alloc(ThunkData::new_pending_call(Gc::from(&func), args_thunks)),
+                    );
+                }
+
+                self.value_stack.push(ValueData::Array(
+                    self.program.gc_alloc(new_array.into_boxed_slice()),
+                ));
+
+                Ok(())
+            }
+            _ => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
+                func_name: "map".into(),
+                arg_index: 1,
+                expected_types: vec![EvalErrorValueType::String, EvalErrorValueType::Array],
+                got_type: EvalErrorValueType::from_value(&arr_value),
+            })),
+        }
+    }
 
     pub(super) fn do_std_filter(&mut self) -> Result<(), Box<EvalError>> {
         let arr_value = self.value_stack.pop().unwrap();
