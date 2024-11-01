@@ -705,6 +705,7 @@ pub(super) enum BuiltInFunc {
     Member,
     Count,
     Find,
+    Map,
     Filter,
     Foldl,
     Foldr,

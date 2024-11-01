@@ -45,14 +45,6 @@ limitations under the License.
       else error 'std.repeat first argument must be an array or a string';
     std.join(joiner, std.makeArray(count, function(i) what)),
 
-  map(func, arr)::
-    if !std.isFunction(func) then
-      error ('std.map first param must be function, got ' + std.type(func))
-    else if !std.isArray(arr) && !std.isString(arr) then
-      error ('std.map second param must be array / string, got ' + std.type(arr))
-    else
-      std.makeArray(std.length(arr), function(i) func(arr[i])),
-
   mapWithIndex(func, arr)::
     if !std.isFunction(func) then
       error ('std.mapWithIndex first param must be function, got ' + std.type(func))

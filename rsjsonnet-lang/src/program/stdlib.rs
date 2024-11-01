@@ -175,6 +175,7 @@ impl Program {
         add_simple("member", BuiltInFunc::Member, &["arr", "x"]);
         add_simple("count", BuiltInFunc::Count, &["arr", "x"]);
         add_simple("find", BuiltInFunc::Find, &["value", "find"]);
+        add_simple("map", BuiltInFunc::Map, &["func", "arr"]);
         add_simple("filter", BuiltInFunc::Filter, &["func", "arr"]);
         add_simple("foldl", BuiltInFunc::Foldl, &["func", "arr", "init"]);
         add_simple("foldr", BuiltInFunc::Foldr, &["func", "arr", "init"]);
