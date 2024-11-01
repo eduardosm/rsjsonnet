@@ -1360,30 +1360,26 @@ impl Evaluator<'_> {
         let array = self.value_stack.pop().unwrap();
         let array = self.expect_std_func_arg_array(array, "count", 0)?;
 
-        if array.is_empty() {
-            self.value_stack.push(ValueData::Number(0.0));
-        } else {
-            self.state_stack.push(State::StdCountInner { array });
+        if let Some(item0) = array.first() {
+            let item0 = item0.view();
+
+            self.state_stack.push(State::StdCountInner {
+                array,
+                index: 0,
+                count: 0,
+            });
+            self.state_stack.push(State::EqualsValue);
+            self.state_stack.push(State::DoThunk(item0));
+            self.state_stack.push(State::DoThunk(value.clone()));
             self.state_stack.push(State::DoThunk(value));
+        } else {
+            self.value_stack.push(ValueData::Number(0.0));
         }
 
         Ok(())
     }
 
-    pub(super) fn do_std_count_inner(&mut self, array: GcView<ArrayData>) {
-        let item0 = array[0].view();
-        self.value_stack
-            .push(self.value_stack.last().unwrap().clone());
-        self.state_stack.push(State::StdCountCheckItem {
-            array,
-            index: 0,
-            count: 0,
-        });
-        self.state_stack.push(State::EqualsValue);
-        self.state_stack.push(State::DoThunk(item0));
-    }
-
-    pub(super) fn do_std_count_check_item(
+    pub(super) fn do_std_count_inner(
         &mut self,
         array: GcView<ArrayData>,
         index: usize,
@@ -1399,7 +1395,7 @@ impl Evaluator<'_> {
             let next_item = next_item.view();
             self.value_stack
                 .push(self.value_stack.last().unwrap().clone());
-            self.state_stack.push(State::StdCountCheckItem {
+            self.state_stack.push(State::StdCountInner {
                 array,
                 index: next_index,
                 count,
@@ -1415,29 +1411,25 @@ impl Evaluator<'_> {
         let array = self.value_stack.pop().unwrap();
         let array = self.expect_std_func_arg_array(array, "find", 1)?;
 
-        if array.is_empty() {
+        if let Some(item0) = array.first() {
+            let item0 = item0.view();
+
+            self.array_stack.push(Vec::new());
+            self.state_stack
+                .push(State::StdFindInner { array, index: 0 });
+            self.state_stack.push(State::EqualsValue);
+            self.state_stack.push(State::DoThunk(item0));
+            self.state_stack.push(State::DoThunk(value.clone()));
+            self.state_stack.push(State::DoThunk(value));
+        } else {
             self.value_stack
                 .push(ValueData::Array(Gc::from(&self.program.empty_array)));
-        } else {
-            self.array_stack.push(Vec::new());
-            self.state_stack.push(State::StdFindInner { array });
-            self.state_stack.push(State::DoThunk(value));
         }
 
         Ok(())
     }
 
-    pub(super) fn do_std_find_inner(&mut self, array: GcView<ArrayData>) {
-        let item0 = array[0].view();
-        self.value_stack
-            .push(self.value_stack.last().unwrap().clone());
-        self.state_stack
-            .push(State::StdFindCheckItem { array, index: 0 });
-        self.state_stack.push(State::EqualsValue);
-        self.state_stack.push(State::DoThunk(item0));
-    }
-
-    pub(super) fn do_std_find_check_item(&mut self, array: GcView<ArrayData>, index: usize) {
+    pub(super) fn do_std_find_inner(&mut self, array: GcView<ArrayData>, index: usize) {
         let equal = self.bool_stack.pop().unwrap();
         if equal {
             self.array_stack.last_mut().unwrap().push(
@@ -1451,7 +1443,7 @@ impl Evaluator<'_> {
             let next_item = next_item.view();
             self.value_stack
                 .push(self.value_stack.last().unwrap().clone());
-            self.state_stack.push(State::StdFindCheckItem {
+            self.state_stack.push(State::StdFindInner {
                 array,
                 index: next_index,
             });
