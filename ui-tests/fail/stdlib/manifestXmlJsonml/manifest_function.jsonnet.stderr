@@ -1,0 +1,58 @@
+error: functions cannot be manifested
+note: while evaluating this expression
+   --> <stdlib>:164:27
+    |
+164 |             std.join('', [' %s="%s"' % [k, attrs[k]] for k in std.objectFields(attrs)]);
+    |                           --------------------------
+note: while evaluating call to `join`
+   --> <stdlib>:164:13
+    |
+164 |             std.join('', [' %s="%s"' % [k, attrs[k]] for k in std.objectFields(attrs)]);
+    |             ---------------------------------------------------------------------------
+note: while evaluating variable `attrs_str`
+   --> <stdlib>:165:35
+    |
+165 |           std.deepJoin(['<', tag, attrs_str, '>', [aux(x) for x in children], '</', tag, '>']);
+    |                                   ---------
+note: while evaluating variable `x`
+  --> <stdlib>:88:34
+   |
+88 |       std.join('', [std.deepJoin(x) for x in arr])
+   |                                  -
+note: while evaluating variable `arr`
+  --> <stdlib>:85:21
+   |
+85 |     if std.isString(arr) then
+   |                     ---
+note: while evaluating call to `isString`
+  --> <stdlib>:85:8
+   |
+85 |     if std.isString(arr) then
+   |        -----------------
+note: while evaluating call to function
+  --> <stdlib>:88:21
+   |
+88 |       std.join('', [std.deepJoin(x) for x in arr])
+   |                     ---------------
+note: while evaluating call to `join`
+  --> <stdlib>:88:7
+   |
+88 |       std.join('', [std.deepJoin(x) for x in arr])
+   |       --------------------------------------------
+note: while evaluating call to function
+   --> <stdlib>:165:11
+    |
+165 |           std.deepJoin(['<', tag, attrs_str, '>', [aux(x) for x in children], '</', tag, '>']);
+    |           ------------------------------------------------------------------------------------
+note: while evaluating call to `aux`
+   --> <stdlib>:167:7
+    |
+167 |       aux(value),
+    |       ----------
+note: while evaluating call to function
+ --> manifest_function.jsonnet:1:1
+  |
+1 | std.manifestXmlJsonml(["a", { x: function() null }])
+  | ----------------------------------------------------
+note: during top-level value evaluation
+
