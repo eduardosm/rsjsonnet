@@ -951,7 +951,7 @@ pub(super) fn escape_string_json(s: &str, result: &mut String) {
     result.push('"');
 }
 
-fn escape_string_python(s: &str, result: &mut String) {
+pub(super) fn escape_string_python(s: &str, result: &mut String) {
     escape_string_json(s, result);
 }
 

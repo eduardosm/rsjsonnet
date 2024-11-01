@@ -679,6 +679,7 @@ pub(super) enum BuiltInFunc {
     StringChars,
     Format,
     EscapeStringJson,
+    EscapeStringPython,
     EscapeStringBash,
     EscapeStringDollars,
     EscapeStringXml,
