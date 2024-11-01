@@ -148,24 +148,6 @@ limitations under the License.
 
   manifestJsonMinified(value):: std.manifestJsonEx(value, '', '', ':'),
 
-  manifestXmlJsonml(value)::
-    if !std.isArray(value) then
-      error 'Expected a JSONML value (an array), got %s' % std.type(value)
-    else
-      local aux(v) =
-        if std.isString(v) then
-          v
-        else
-          local tag = v[0];
-          local has_attrs = std.length(v) > 1 && std.isObject(v[1]);
-          local attrs = if has_attrs then v[1] else {};
-          local children = if has_attrs then v[2:] else v[1:];
-          local attrs_str =
-            std.join('', [' %s="%s"' % [k, attrs[k]] for k in std.objectFields(attrs)]);
-          std.deepJoin(['<', tag, attrs_str, '>', [aux(x) for x in children], '</', tag, '>']);
-
-      aux(value),
-
   mergePatch(target, patch)::
     if std.isObject(patch) then
       local target_object =

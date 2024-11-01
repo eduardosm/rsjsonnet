@@ -1,0 +1,8 @@
+error: second element of JsonML array must be a string or array, got null
+note: while evaluating call to `manifestXmlJsonml`
+ --> not_string_3.jsonnet:1:1
+  |
+1 | std.manifestXmlJsonml(["a", "b", null])
+  | ---------------------------------------
+note: during top-level value evaluation
+

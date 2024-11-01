@@ -697,6 +697,7 @@ pub(super) enum BuiltInFunc {
     ManifestJsonEx,
     ManifestYamlDoc,
     ManifestYamlStream,
+    ManifestXmlJsonml,
     ManifestTomlEx,
     // Arrays
     MakeArray,
