@@ -1,0 +1,12 @@
+error: explicit error: std.mapWithIndex second param must be array, got null
+  --> <stdlib>:52:7
+   |
+52 |       error ('std.mapWithIndex second param must be array, got ' + std.type(arr))
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: while evaluating call to function
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.mapWithIndex(function(i, x) null, null)
+  | -------------------------------------------
+note: during top-level value evaluation
+
