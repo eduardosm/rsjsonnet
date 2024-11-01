@@ -202,7 +202,8 @@ pub struct Program {
     exprs: Exprs,
     stdlib_src_id: SourceId,
     stdlib_data: &'static [u8],
-    stdlib_obj: Option<GcView<ObjectData>>,
+    stdlib_base_obj: Option<GcView<ObjectData>>,
+    stdlib_extra: FHashMap<InternedStr, GcView<ThunkData>>,
     empty_array: GcView<ArrayData>,
     identity_func: GcView<FuncData>,
     ext_vars: FHashMap<InternedStr, GcView<ThunkData>>,
@@ -240,6 +241,8 @@ impl Program {
         let mut span_mgr = SpanManager::new();
         let (stdlib_span_ctx, stdlib_src_id) = span_mgr.insert_source_context(stdlib_data.len());
 
+        let stdlib_extra = Self::build_stdlib_extra(&str_interner, &gc_ctx, &exprs);
+
         let empty_array: GcView<ArrayData> = gc_ctx.alloc_view(Box::new([]));
         let identity_func = gc_ctx.alloc_view(FuncData::new(
             Rc::new(vec![(str_interner.intern("x"), None)]),
@@ -258,7 +261,8 @@ impl Program {
             exprs,
             stdlib_src_id,
             stdlib_data,
-            stdlib_obj: None,
+            stdlib_base_obj: None,
+            stdlib_extra,
             empty_array,
             identity_func,
             ext_vars: FHashMap::default(),
