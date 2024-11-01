@@ -1097,6 +1097,142 @@ impl Evaluator<'_> {
         Ok(())
     }
 
+    pub(super) fn do_std_manifest_xml_jsonml(&mut self) -> Result<(), Box<EvalError>> {
+        let value = self.value_stack.pop().unwrap();
+        let array = self.expect_std_func_arg_array(value, "manifestXmlJsonml", 0)?;
+
+        self.string_stack.push(String::new());
+        self.state_stack.push(State::StringToValue);
+        self.prepare_manifest_xml_jsonml_array(array)?;
+
+        Ok(())
+    }
+
+    fn prepare_manifest_xml_jsonml_array(
+        &mut self,
+        array: GcView<ArrayData>,
+    ) -> Result<(), Box<EvalError>> {
+        let Some(item0) = array.first() else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: "JsonML array is empty".into(),
+            }));
+        };
+        let item0 = item0.view();
+
+        self.state_stack
+            .push(State::StdManifestXmlJsonmlItem0 { array });
+        self.state_stack.push(State::DoThunk(item0));
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_manifest_xml_jsonml_item_0(
+        &mut self,
+        array: GcView<ArrayData>,
+    ) -> Result<(), Box<EvalError>> {
+        let item_value = self.value_stack.pop().unwrap();
+        let ValueData::String(tag) = item_value else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!(
+                    "first element of JsonML array must be a string, got {}",
+                    EvalErrorValueType::from_value(&item_value).to_str(),
+                ),
+            }));
+        };
+
+        let result = self.string_stack.last_mut().unwrap();
+        result.push('<');
+        result.push_str(&tag);
+
+        self.state_stack
+            .push(State::AppendToString(format!("</{tag}>")));
+
+        if let Some(item1) = array.get(1) {
+            for item in array[2..].iter().rev() {
+                self.state_stack.push(State::StdManifestXmlJsonmlItemN);
+                self.state_stack.push(State::DoThunk(item.view()));
+            }
+            self.state_stack.push(State::StdManifestXmlJsonmlItem1);
+            self.state_stack.push(State::DoThunk(item1.view()));
+        } else {
+            result.push('>');
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_manifest_xml_jsonml_item_1(&mut self) -> Result<(), Box<EvalError>> {
+        let item_value = self.value_stack.pop().unwrap();
+        match item_value {
+            ValueData::String(s) => {
+                let result = self.string_stack.last_mut().unwrap();
+                result.push('>');
+                result.push_str(&s);
+                Ok(())
+            }
+            ValueData::Array(array) => {
+                let result = self.string_stack.last_mut().unwrap();
+                result.push('>');
+
+                self.prepare_manifest_xml_jsonml_array(array.view())?;
+                Ok(())
+            }
+            ValueData::Object(object) => {
+                self.state_stack.push(State::AppendToString('>'.into()));
+
+                let object = object.view();
+                let visible_fields: Vec<_> = object
+                    .get_fields_order()
+                    .iter()
+                    .filter_map(|(name, visible)| visible.then_some(name))
+                    .collect();
+
+                for field_name in visible_fields.iter().rev() {
+                    let field_thunk = self
+                        .program
+                        .find_object_field_thunk(&object, 0, field_name)
+                        .unwrap();
+
+                    self.state_stack.push(State::AppendToString('"'.into()));
+                    self.state_stack.push(State::CoerceAppendToString);
+                    self.state_stack.push(State::DoThunk(field_thunk));
+                    self.state_stack
+                        .push(State::AppendToString(format!(" {}=\"", field_name.value())));
+                }
+
+                Ok(())
+            }
+            _ => Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!(
+                    "second element of JsonML array must be a string, array or object, got {}",
+                    EvalErrorValueType::from_value(&item_value).to_str(),
+                ),
+            })),
+        }
+    }
+
+    pub(super) fn do_std_manifest_xml_jsonml_item_n(&mut self) -> Result<(), Box<EvalError>> {
+        let item_value = self.value_stack.pop().unwrap();
+        match item_value {
+            ValueData::String(s) => {
+                let result = self.string_stack.last_mut().unwrap();
+                result.push_str(&s);
+                Ok(())
+            }
+            ValueData::Array(array) => self.prepare_manifest_xml_jsonml_array(array.view()),
+            _ => Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!(
+                    "second element of JsonML array must be a string or array, got {}",
+                    EvalErrorValueType::from_value(&item_value).to_str(),
+                ),
+            })),
+        }
+    }
+
     pub(super) fn do_std_manifest_toml_ex(&mut self) -> Result<(), Box<EvalError>> {
         let indent = self.value_stack.pop().unwrap();
         let value = self.value_stack.pop().unwrap();

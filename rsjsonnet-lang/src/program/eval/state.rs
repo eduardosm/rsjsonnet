@@ -317,6 +317,12 @@ pub(super) enum State {
     StdManifestJsonEx,
     StdManifestYamlDoc,
     StdManifestYamlStream,
+    StdManifestXmlJsonml,
+    StdManifestXmlJsonmlItem0 {
+        array: GcView<ArrayData>,
+    },
+    StdManifestXmlJsonmlItem1,
+    StdManifestXmlJsonmlItemN,
     StdManifestTomlEx,
     StdMakeArray,
     StdMember {

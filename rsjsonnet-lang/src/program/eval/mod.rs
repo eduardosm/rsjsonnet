@@ -1419,6 +1419,12 @@ impl<'a> Evaluator<'a> {
                 State::StdManifestJsonEx => self.do_std_manifest_json_ex()?,
                 State::StdManifestYamlDoc => self.do_std_manifest_yaml_doc()?,
                 State::StdManifestYamlStream => self.do_std_manifest_yaml_stream()?,
+                State::StdManifestXmlJsonml => self.do_std_manifest_xml_jsonml()?,
+                State::StdManifestXmlJsonmlItem0 { array } => {
+                    self.do_std_manifest_xml_jsonml_item_0(array)?
+                }
+                State::StdManifestXmlJsonmlItem1 => self.do_std_manifest_xml_jsonml_item_1()?,
+                State::StdManifestXmlJsonmlItemN => self.do_std_manifest_xml_jsonml_item_n()?,
                 State::StdManifestTomlEx => self.do_std_manifest_toml_ex()?,
                 State::StdMakeArray => self.do_std_make_array()?,
                 State::StdMember { value } => self.do_std_member(value)?,
