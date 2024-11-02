@@ -8,19 +8,20 @@
 //! // Implement callbacks
 //! struct Callbacks;
 //!
-//! impl rsjsonnet_lang::program::Callbacks for Callbacks {
+//! impl<'p> rsjsonnet_lang::program::Callbacks<'p> for Callbacks {
 //!     fn import(
 //!         &mut self,
-//!         program: &mut rsjsonnet_lang::program::Program,
+//!         program: &mut rsjsonnet_lang::program::Program<'p>,
 //!         from: rsjsonnet_lang::span::SpanId,
 //!         path: &str,
-//!     ) -> Result<rsjsonnet_lang::program::Thunk, rsjsonnet_lang::program::ImportError> {
+//!     ) -> Result<rsjsonnet_lang::program::Thunk<'p>, rsjsonnet_lang::program::ImportError>
+//!     {
 //!         unimplemented!();
 //!     }
 //!
 //!     fn import_str(
 //!         &mut self,
-//!         program: &mut rsjsonnet_lang::program::Program,
+//!         program: &mut rsjsonnet_lang::program::Program<'p>,
 //!         from: rsjsonnet_lang::span::SpanId,
 //!         path: &str,
 //!     ) -> Result<String, rsjsonnet_lang::program::ImportError> {
@@ -29,7 +30,7 @@
 //!
 //!     fn import_bin(
 //!         &mut self,
-//!         program: &mut rsjsonnet_lang::program::Program,
+//!         program: &mut rsjsonnet_lang::program::Program<'p>,
 //!         from: rsjsonnet_lang::span::SpanId,
 //!         path: &str,
 //!     ) -> Result<Vec<u8>, rsjsonnet_lang::program::ImportError> {
@@ -38,7 +39,7 @@
 //!
 //!     fn trace(
 //!         &mut self,
-//!         program: &mut rsjsonnet_lang::program::Program,
+//!         program: &mut rsjsonnet_lang::program::Program<'p>,
 //!         message: &str,
 //!         stack: &[rsjsonnet_lang::program::EvalStackTraceItem],
 //!     ) {
@@ -47,16 +48,18 @@
 //!
 //!     fn native_call(
 //!         &mut self,
-//!         program: &mut rsjsonnet_lang::program::Program,
-//!         name: &rsjsonnet_lang::interner::InternedStr,
-//!         args: &[rsjsonnet_lang::program::Value],
-//!     ) -> Result<rsjsonnet_lang::program::Value, rsjsonnet_lang::program::NativeError> {
+//!         program: &mut rsjsonnet_lang::program::Program<'p>,
+//!         name: rsjsonnet_lang::interner::InternedStr<'p>,
+//!         args: &[rsjsonnet_lang::program::Value<'p>],
+//!     ) -> Result<rsjsonnet_lang::program::Value<'p>, rsjsonnet_lang::program::NativeError>
+//!     {
 //!         unimplemented!();
 //!     }
 //! }
 //!
 //! // Create the program state.
-//! let mut program = rsjsonnet_lang::program::Program::new();
+//! let arena = rsjsonnet_lang::arena::Arena::new();
+//! let mut program = rsjsonnet_lang::program::Program::new(&arena);
 //! let mut callbacks = Callbacks;
 //!
 //! // Import the source.
@@ -73,8 +76,8 @@
 //! ```
 
 use std::cell::OnceCell;
-use std::rc::Rc;
 
+use crate::arena::Arena;
 use crate::gc::{Gc, GcContext, GcTrace, GcView};
 use crate::interner::{InternedStr, StrInterner};
 use crate::lexer::Lexer;
@@ -112,19 +115,19 @@ pub struct NativeError;
 ///
 /// Some [`Program`] methods need to be provided with an implementor of this
 /// trait.
-pub trait Callbacks {
+pub trait Callbacks<'p> {
     /// Called when an `import` expression is evaluated.
     fn import(
         &mut self,
-        program: &mut Program,
+        program: &mut Program<'p>,
         from: SpanId,
         path: &str,
-    ) -> Result<Thunk, ImportError>;
+    ) -> Result<Thunk<'p>, ImportError>;
 
     /// Called when an `importstr` expression is evaluated.
     fn import_str(
         &mut self,
-        program: &mut Program,
+        program: &mut Program<'p>,
         from: SpanId,
         path: &str,
     ) -> Result<String, ImportError>;
@@ -132,13 +135,13 @@ pub trait Callbacks {
     /// Called when an `importbin` expression is evaluated.
     fn import_bin(
         &mut self,
-        program: &mut Program,
+        program: &mut Program<'p>,
         from: SpanId,
         path: &str,
     ) -> Result<Vec<u8>, ImportError>;
 
     /// Called when a call to `std.trace` is evaluated.
-    fn trace(&mut self, program: &mut Program, message: &str, stack: &[EvalStackTraceItem]);
+    fn trace(&mut self, program: &mut Program<'p>, message: &str, stack: &[EvalStackTraceItem]);
 
     /// Called when a function returned by `std.native` is called.
     ///
@@ -146,10 +149,10 @@ pub trait Callbacks {
     /// [`Program::register_native_func`].
     fn native_call(
         &mut self,
-        program: &mut Program,
-        name: &InternedStr,
-        args: &[Value],
-    ) -> Result<Value, NativeError>;
+        program: &mut Program<'p>,
+        name: InternedStr<'p>,
+        args: &[Value<'p>],
+    ) -> Result<Value<'p>, NativeError>;
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -193,66 +196,62 @@ pub enum EvalStackTraceItem {
 /// Jsonnet program state and evaluator.
 ///
 /// See the [module-level documentation](self) for more information.
-pub struct Program {
-    str_interner: StrInterner,
+pub struct Program<'p> {
+    arena: &'p Arena,
+    str_interner: StrInterner<'p>,
     span_mgr: SpanManager,
-    gc_ctx: GcContext<'static>,
+    gc_ctx: GcContext<'p>,
     objs_after_last_gc: usize,
     max_stack: usize,
-    exprs: Exprs,
+    exprs: Exprs<'p>,
     stdlib_src_id: SourceId,
     stdlib_data: &'static [u8],
-    stdlib_base_obj: Option<GcView<ObjectData>>,
-    stdlib_extra: FHashMap<InternedStr, GcView<ThunkData>>,
-    empty_array: GcView<ArrayData>,
-    identity_func: GcView<FuncData>,
-    ext_vars: FHashMap<InternedStr, GcView<ThunkData>>,
-    native_funcs: FHashMap<InternedStr, GcView<FuncData>>,
+    stdlib_base_obj: Option<GcView<ObjectData<'p>>>,
+    stdlib_extra: FHashMap<InternedStr<'p>, GcView<ThunkData<'p>>>,
+    empty_array: GcView<ArrayData<'p>>,
+    identity_func: GcView<FuncData<'p>>,
+    ext_vars: FHashMap<InternedStr<'p>, GcView<ThunkData<'p>>>,
+    native_funcs: FHashMap<InternedStr<'p>, GcView<FuncData<'p>>>,
 }
 
-struct Exprs {
-    null: ir::RcExpr,
-    false_: ir::RcExpr,
-    true_: ir::RcExpr,
-    self_obj: ir::RcExpr,
-    top_obj: ir::RcExpr,
+struct Exprs<'p> {
+    null: &'p ir::Expr<'p>,
+    false_: &'p ir::Expr<'p>,
+    true_: &'p ir::Expr<'p>,
+    self_obj: &'p ir::Expr<'p>,
+    top_obj: &'p ir::Expr<'p>,
 }
 
-impl Default for Program {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Program {
+impl<'p> Program<'p> {
     /// Creates a new [`Program`].
-    pub fn new() -> Self {
+    pub fn new(arena: &'p Arena) -> Self {
         let str_interner = StrInterner::new();
         let gc_ctx = GcContext::new();
         let exprs = Exprs {
-            null: ir::RcExpr::new(ir::Expr::Null),
-            false_: ir::RcExpr::new(ir::Expr::Bool(false)),
-            true_: ir::RcExpr::new(ir::Expr::Bool(true)),
-            self_obj: ir::RcExpr::new(ir::Expr::SelfObj),
-            top_obj: ir::RcExpr::new(ir::Expr::TopObj),
+            null: arena.alloc(ir::Expr::Null),
+            false_: arena.alloc(ir::Expr::Bool(false)),
+            true_: arena.alloc(ir::Expr::Bool(true)),
+            self_obj: arena.alloc(ir::Expr::SelfObj),
+            top_obj: arena.alloc(ir::Expr::TopObj),
         };
 
         let stdlib_data = stdlib::STDLIB_DATA;
         let mut span_mgr = SpanManager::new();
         let (stdlib_span_ctx, stdlib_src_id) = span_mgr.insert_source_context(stdlib_data.len());
 
-        let stdlib_extra = Self::build_stdlib_extra(&str_interner, &gc_ctx, &exprs);
+        let stdlib_extra = Self::build_stdlib_extra(arena, &str_interner, &gc_ctx, &exprs);
 
-        let empty_array: GcView<ArrayData> = gc_ctx.alloc_view(Box::new([]));
+        let empty_array: GcView<ArrayData<'p>> = gc_ctx.alloc_view(Box::new([]));
         let identity_func = gc_ctx.alloc_view(FuncData::new(
-            Rc::new(vec![(str_interner.intern("x"), None)]),
+            arena.alloc([(str_interner.intern(arena, "x"), None)]),
             FuncKind::BuiltIn {
-                name: str_interner.intern("id"),
+                name: str_interner.intern(arena, "id"),
                 kind: BuiltInFunc::Identity,
             },
         ));
 
         let mut this = Self {
+            arena,
             str_interner,
             span_mgr,
             gc_ctx,
@@ -273,13 +272,13 @@ impl Program {
     }
 
     #[inline]
-    pub fn str_interner(&self) -> &StrInterner {
+    pub fn str_interner(&self) -> &StrInterner<'p> {
         &self.str_interner
     }
 
     #[inline]
-    pub fn intern_str(&self, value: &str) -> InternedStr {
-        self.str_interner.intern(value)
+    pub fn intern_str(&self, s: &str) -> InternedStr<'p> {
+        self.str_interner.intern(self.arena, s)
     }
 
     #[inline]
@@ -295,7 +294,6 @@ impl Program {
     /// Runs garbage collection unconditionally.
     pub fn gc(&mut self) {
         self.gc_ctx.gc();
-        self.str_interner.gc();
         self.objs_after_last_gc = self.gc_ctx.num_objects();
     }
 
@@ -324,7 +322,7 @@ impl Program {
     ///
     /// External variables can be accessed within a Jsonnet program
     /// with the `std.extVar` function.
-    pub fn add_ext_var(&mut self, name: InternedStr, thunk: &Thunk) {
+    pub fn add_ext_var(&mut self, name: InternedStr<'p>, thunk: &Thunk<'p>) {
         match self.ext_vars.entry(name) {
             std::collections::hash_map::Entry::Occupied(entry) => {
                 panic!("external variable {:?} already set", entry.key());
@@ -347,15 +345,15 @@ impl Program {
     ///
     /// Panics if a native function with the same name is already registered
     /// or if a parameter name is repeated.
-    pub fn register_native_func(&mut self, name: InternedStr, params: &[InternedStr]) {
-        match self.native_funcs.entry(name.clone()) {
+    pub fn register_native_func(&mut self, name: InternedStr<'p>, params: &[InternedStr<'p>]) {
+        match self.native_funcs.entry(name) {
             std::collections::hash_map::Entry::Occupied(entry) => {
                 panic!("native function {:?} already registered", entry.key());
             }
             std::collections::hash_map::Entry::Vacant(entry) => {
-                let params_order = params.iter().map(|name| (name.clone(), None)).collect();
+                let params_order: Vec<_> = params.iter().map(|&name| (name, None)).collect();
                 entry.insert(self.gc_ctx.alloc_view(FuncData::new(
-                    Rc::new(params_order),
+                    self.arena.alloc_slice(&params_order),
                     FuncKind::Native { name },
                 )));
             }
@@ -364,38 +362,38 @@ impl Program {
 
     #[must_use]
     #[inline]
-    fn gc_alloc<T: GcTrace + 'static>(&self, data: T) -> Gc<T> {
+    fn gc_alloc<T: GcTrace + 'p>(&self, data: T) -> Gc<T> {
         self.gc_ctx.alloc(data)
     }
 
     #[must_use]
     #[inline]
-    fn gc_alloc_view<T: GcTrace + 'static>(&self, data: T) -> GcView<T> {
+    fn gc_alloc_view<T: GcTrace + 'p>(&self, data: T) -> GcView<T> {
         self.gc_ctx.alloc_view(data)
     }
 
-    fn insert_thunk_with_value(&mut self, value: ValueData) -> GcView<ThunkData> {
+    fn insert_thunk_with_value(&mut self, value: ValueData<'p>) -> GcView<ThunkData<'p>> {
         self.gc_alloc_view(ThunkData::new_done(value))
     }
 
     /// Creates a thunk with an already evaluated value.
-    pub fn value_to_thunk(&mut self, value: &Value) -> Thunk {
+    pub fn value_to_thunk(&mut self, value: &Value<'p>) -> Thunk<'p> {
         Thunk::new(self.insert_thunk_with_value(value.inner.clone()))
     }
 
     /// Creates an array value.
-    pub fn make_array(&mut self, items: &[Value]) -> Value {
+    pub fn make_array(&mut self, items: &[Value<'p>]) -> Value<'p> {
         let array = self.make_value_array(items.iter().map(|item| item.inner.clone()));
         Value::from_value(ValueData::Array(array))
     }
 
     /// Creates an object value.
-    pub fn make_object(&mut self, obj_fields: &[(InternedStr, Value)]) -> Value {
+    pub fn make_object(&mut self, obj_fields: &[(InternedStr<'p>, Value<'p>)]) -> Value<'p> {
         let mut fields = FHashMap::default();
         for (name, value) in obj_fields.iter() {
             let value_thunk = self.gc_alloc(ThunkData::new_done(value.inner.clone()));
             let prev = fields.insert(
-                name.clone(),
+                *name,
                 ObjectField {
                     base_env: None,
                     visibility: ast::Visibility::Default,
@@ -420,11 +418,25 @@ impl Program {
         input: &[u8],
         with_stdlib: bool,
         this_file: &str,
-    ) -> Result<Thunk, LoadError> {
-        let lexer = Lexer::new(&self.str_interner, &mut self.span_mgr, span_ctx, input);
+    ) -> Result<Thunk<'p>, LoadError> {
+        let ast_arena = Arena::new();
+        let lexer = Lexer::new(
+            self.arena,
+            &ast_arena,
+            &self.str_interner,
+            &mut self.span_mgr,
+            span_ctx,
+            input,
+        );
         let tokens = lexer.lex_to_eof(false)?;
 
-        let parser = Parser::new(&self.str_interner, &mut self.span_mgr, tokens);
+        let parser = Parser::new(
+            self.arena,
+            &ast_arena,
+            &self.str_interner,
+            &mut self.span_mgr,
+            tokens,
+        );
         let root_expr = parser.parse_root_expr()?;
 
         let env = if with_stdlib {
@@ -445,9 +457,9 @@ impl Program {
 
     fn analyze(
         &mut self,
-        ast: &ast::Expr,
-        env: Option<FHashMap<InternedStr, Thunk>>,
-    ) -> Result<Thunk, AnalyzeError> {
+        ast: &ast::Expr<'p, '_>,
+        env: Option<FHashMap<InternedStr<'p>, Thunk<'p>>>,
+    ) -> Result<Thunk<'p>, AnalyzeError> {
         let analyze_env = env
             .as_ref()
             .map(|env| env.keys().cloned().collect())
@@ -457,7 +469,7 @@ impl Program {
         let mut thunk_env_data = ThunkEnvData::new(None);
         if let Some(env) = env {
             for (name, value) in env.iter() {
-                thunk_env_data.set_var(name.clone(), Gc::from(&value.data));
+                thunk_env_data.set_var(*name, Gc::from(&value.data));
             }
         }
         let thunk_env = self.gc_alloc(ThunkEnv::from(thunk_env_data));
@@ -470,9 +482,9 @@ impl Program {
     /// Evaluates a thunk into a value.
     pub fn eval_value(
         &mut self,
-        thunk: &Thunk,
-        callbacks: &mut dyn Callbacks,
-    ) -> Result<Value, EvalError> {
+        thunk: &Thunk<'p>,
+        callbacks: &mut dyn Callbacks<'p>,
+    ) -> Result<Value<'p>, EvalError> {
         let output = eval::Evaluator::eval(
             self,
             Some(callbacks),
@@ -485,7 +497,7 @@ impl Program {
         Ok(Value::from_value(value))
     }
 
-    fn eval_value_internal(&mut self, thunk: &Thunk) -> Result<ValueData, EvalError> {
+    fn eval_value_internal(&mut self, thunk: &Thunk<'p>) -> Result<ValueData<'p>, EvalError> {
         let output = eval::Evaluator::eval(self, None, eval::EvalInput::Value(thunk.data.clone()))
             .map_err(|e| *e)?;
         let eval::EvalOutput::Value(value) = output else {
@@ -497,11 +509,11 @@ impl Program {
     /// Evaluates a function call.
     pub fn eval_call(
         &mut self,
-        func: &Thunk,
-        pos_args: &[Thunk],
-        named_args: &[(InternedStr, Thunk)],
-        callbacks: &mut dyn Callbacks,
-    ) -> Result<Value, EvalError> {
+        func: &Thunk<'p>,
+        pos_args: &[Thunk<'p>],
+        named_args: &[(InternedStr<'p>, Thunk<'p>)],
+        callbacks: &mut dyn Callbacks<'p>,
+    ) -> Result<Value<'p>, EvalError> {
         let output = eval::Evaluator::eval(
             self,
             Some(callbacks),
@@ -511,7 +523,7 @@ impl Program {
                     positional: pos_args.iter().map(|thunk| thunk.data.clone()).collect(),
                     named: named_args
                         .iter()
-                        .map(|(name, thunk)| (name.clone(), thunk.data.clone()))
+                        .map(|(name, thunk)| (*name, thunk.data.clone()))
                         .collect(),
                 },
             ),
@@ -524,7 +536,11 @@ impl Program {
     }
 
     /// Manifests a value as JSON.
-    pub fn manifest_json(&mut self, value: &Value, multiline: bool) -> Result<String, EvalError> {
+    pub fn manifest_json(
+        &mut self,
+        value: &Value<'p>,
+        multiline: bool,
+    ) -> Result<String, EvalError> {
         let thunk = self.insert_thunk_with_value(value.inner.clone());
         let output =
             eval::Evaluator::eval(self, None, eval::EvalInput::ManifestJson(thunk, multiline))
@@ -542,13 +558,13 @@ impl Program {
 /// this type will only be valid as long as the [`Program`] they came from has
 /// not been dropped.
 #[derive(Clone)]
-pub struct Thunk {
-    data: GcView<ThunkData>,
+pub struct Thunk<'p> {
+    data: GcView<ThunkData<'p>>,
 }
 
-impl Thunk {
+impl<'p> Thunk<'p> {
     #[inline]
-    fn new(data: GcView<ThunkData>) -> Self {
+    fn new(data: GcView<ThunkData<'p>>) -> Self {
         Self { data }
     }
 }
@@ -559,18 +575,18 @@ impl Thunk {
 /// this type will only be valid as long as the [`Program`] they came from has
 /// not been dropped.
 #[derive(Clone)]
-pub struct Value {
-    inner: ValueData,
+pub struct Value<'p> {
+    inner: ValueData<'p>,
 }
 
-impl Value {
+impl<'p> Value<'p> {
     #[inline]
-    fn from_value(inner: ValueData) -> Self {
+    fn from_value(inner: ValueData<'p>) -> Self {
         Self { inner }
     }
 
     #[inline]
-    fn from_thunk(thunk: &ThunkData) -> Self {
+    fn from_thunk(thunk: &ThunkData<'p>) -> Self {
         Self {
             inner: match *thunk.state() {
                 ThunkState::Done(ref value) => value.clone(),
@@ -616,7 +632,7 @@ impl Value {
     }
 
     #[must_use]
-    pub fn kind(&self) -> ValueKind {
+    pub fn kind(&self) -> ValueKind<'p> {
         match self.inner {
             ValueData::Null => ValueKind::Null,
             ValueData::Bool(value) => ValueKind::Bool(value),
@@ -706,7 +722,7 @@ impl Value {
     }
 
     #[must_use]
-    pub fn to_object(&self) -> Option<Vec<(InternedStr, Self)>> {
+    pub fn to_object(&self) -> Option<Vec<(InternedStr<'p>, Self)>> {
         if let ValueData::Object(ref object) = self.inner {
             Some(Self::extract_object(&object.view()))
         } else {
@@ -720,20 +736,20 @@ impl Value {
         matches!(self.inner, ValueData::Function(_))
     }
 
-    fn extract_array(array: &ArrayData) -> Vec<Self> {
+    fn extract_array(array: &ArrayData<'p>) -> Vec<Self> {
         array
             .iter()
             .map(|item| Self::from_thunk(&item.view()))
             .collect()
     }
 
-    fn extract_object(object: &ObjectData) -> Vec<(InternedStr, Self)> {
+    fn extract_object(object: &ObjectData<'p>) -> Vec<(InternedStr<'p>, Self)> {
         let mut fields = Vec::new();
-        for (name, visible) in object.get_fields_order().iter() {
-            if *visible {
+        for &(name, visible) in object.get_fields_order().iter() {
+            if visible {
                 let (_, field) = object.find_field(0, name).unwrap();
                 let thunk = field.thunk.get().unwrap().clone();
-                fields.push((name.clone(), Self::from_thunk(&thunk.view())));
+                fields.push((name, Self::from_thunk(&thunk.view())));
             }
         }
         fields
@@ -741,12 +757,12 @@ impl Value {
 }
 
 #[derive(Clone)]
-pub enum ValueKind {
+pub enum ValueKind<'p> {
     Null,
     Bool(bool),
     Number(f64),
     String(String),
-    Array(Vec<Value>),
-    Object(Vec<(InternedStr, Value)>),
+    Array(Vec<Value<'p>>),
+    Object(Vec<(InternedStr<'p>, Value<'p>)>),
     Function,
 }

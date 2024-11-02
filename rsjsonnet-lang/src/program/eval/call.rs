@@ -6,43 +6,41 @@ use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
 use crate::span::SpanId;
 
-impl Evaluator<'_> {
+impl<'p> Evaluator<'_, 'p> {
     #[inline]
     pub(super) fn get_func_info(
         &self,
-        func: &FuncData,
-    ) -> (Option<InternedStr>, Option<Gc<ThunkEnv>>) {
+        func: &FuncData<'p>,
+    ) -> (Option<InternedStr<'p>>, Option<Gc<ThunkEnv<'p>>>) {
         match func.kind {
-            FuncKind::Normal {
-                ref name, ref env, ..
-            } => (name.clone(), Some(env.clone())),
-            FuncKind::BuiltIn { ref name, .. } => (Some(name.clone()), None),
+            FuncKind::Normal { name, ref env, .. } => (name, Some(env.clone())),
+            FuncKind::BuiltIn { name, .. } => (Some(name), None),
             FuncKind::Native { .. } => (None, None),
         }
     }
 
     pub(super) fn check_call_expr_args(
         &self,
-        params: &FuncParams,
-        positional_args: &[ir::RcExpr],
-        named_args: &[(InternedStr, SpanId, ir::RcExpr)],
-        call_env: GcView<ThunkEnv>,
-        func_env: Option<Gc<ThunkEnv>>,
+        params: &FuncParams<'p>,
+        positional_args: &[&'p ir::Expr<'p>],
+        named_args: &[(InternedStr<'p>, SpanId, &'p ir::Expr<'p>)],
+        call_env: GcView<ThunkEnv<'p>>,
+        func_env: Option<Gc<ThunkEnv<'p>>>,
         call_span: SpanId,
-    ) -> Result<Box<[Gc<ThunkData>]>, Box<EvalError>> {
+    ) -> Result<Box<[Gc<ThunkData<'p>>]>, Box<EvalError>> {
         self.check_call_args_generic(
             params,
             positional_args,
             |this, expr| {
                 this.program
-                    .new_pending_expr_thunk(expr.clone(), Gc::from(&call_env), None)
+                    .new_pending_expr_thunk(expr, Gc::from(&call_env), None)
             },
             named_args,
-            |(name, _, _)| name,
+            |&(name, _, _)| name,
             |(_, name_span, _)| Some(*name_span),
             |this, (_, _, expr)| {
                 this.program
-                    .new_pending_expr_thunk(expr.clone(), Gc::from(&call_env), None)
+                    .new_pending_expr_thunk(expr, Gc::from(&call_env), None)
             },
             func_env,
             Some(call_span),
@@ -51,17 +49,17 @@ impl Evaluator<'_> {
 
     fn check_call_thunk_args(
         &self,
-        params: &FuncParams,
-        positional_args: &[GcView<ThunkData>],
-        named_args: &[(InternedStr, GcView<ThunkData>)],
-        func_env: Option<Gc<ThunkEnv>>,
-    ) -> Result<Box<[Gc<ThunkData>]>, Box<EvalError>> {
+        params: &FuncParams<'p>,
+        positional_args: &[GcView<ThunkData<'p>>],
+        named_args: &[(InternedStr<'p>, GcView<ThunkData<'p>>)],
+        func_env: Option<Gc<ThunkEnv<'p>>>,
+    ) -> Result<Box<[Gc<ThunkData<'p>>]>, Box<EvalError>> {
         self.check_call_args_generic(
             params,
             positional_args,
             |_, thunk| Gc::from(thunk),
             named_args,
-            |(name, _)| name,
+            |&(name, _)| name,
             |(_, _)| None,
             |_, (_, thunk)| Gc::from(thunk),
             func_env,
@@ -72,16 +70,16 @@ impl Evaluator<'_> {
     #[inline]
     fn check_call_args_generic<PosArg, NamedArg>(
         &self,
-        params: &FuncParams,
+        params: &FuncParams<'p>,
         positional_args: &[PosArg],
-        pos_arg_thunk: impl Fn(&Self, &PosArg) -> Gc<ThunkData>,
+        pos_arg_thunk: impl Fn(&Self, &PosArg) -> Gc<ThunkData<'p>>,
         named_args: &[NamedArg],
-        named_arg_name: impl Fn(&NamedArg) -> &InternedStr,
+        named_arg_name: impl Fn(&NamedArg) -> InternedStr<'p>,
         named_arg_name_span: impl Fn(&NamedArg) -> Option<SpanId>,
-        named_arg_thunk: impl Fn(&Self, &NamedArg) -> Gc<ThunkData>,
-        func_env: Option<Gc<ThunkEnv>>,
+        named_arg_thunk: impl Fn(&Self, &NamedArg) -> Gc<ThunkData<'p>>,
+        func_env: Option<Gc<ThunkEnv<'p>>>,
         call_span: Option<SpanId>,
-    ) -> Result<Box<[Gc<ThunkData>]>, Box<EvalError>> {
+    ) -> Result<Box<[Gc<ThunkData<'p>>]>, Box<EvalError>> {
         if positional_args.len() > params.order.len() {
             return Err(self.report_error(EvalErrorKind::TooManyCallArgs {
                 span: call_span,
@@ -104,7 +102,7 @@ impl Evaluator<'_> {
         for named_arg in named_args.iter() {
             let param_name = named_arg_name(named_arg);
             let name_span = named_arg_name_span(named_arg);
-            let Some(&param_i) = params.by_name.get(param_name) else {
+            let Some(&param_i) = params.by_name.get(&param_name) else {
                 return Err(self.report_error(EvalErrorKind::UnknownCallParam {
                     span: name_span,
                     param_name: param_name.value().into(),
@@ -151,7 +149,7 @@ impl Evaluator<'_> {
             if let Some(arg) = arg_tmp {
                 args_thunks.push(arg);
             } else {
-                let (param_name, default_arg) = &params.order[args_thunks.len()];
+                let (param_name, default_arg) = params.order[args_thunks.len()];
                 let Some(default_arg) = default_arg else {
                     return Err(self.report_error(EvalErrorKind::CallParamNotBound {
                         span: call_span,
@@ -159,7 +157,7 @@ impl Evaluator<'_> {
                     }));
                 };
                 args_thunks.push(self.program.new_pending_expr_thunk(
-                    default_arg.clone(),
+                    default_arg,
                     Gc::from(&args_env),
                     None,
                 ));
@@ -167,8 +165,8 @@ impl Evaluator<'_> {
         }
 
         let mut args_env_data = ThunkEnvData::new(func_env);
-        for ((arg_name, _), arg_thunk) in params.order.iter().zip(args_thunks.iter()) {
-            args_env_data.set_var(arg_name.clone(), arg_thunk.clone());
+        for (&(arg_name, _), arg_thunk) in params.order.iter().zip(args_thunks.iter()) {
+            args_env_data.set_var(arg_name, arg_thunk.clone());
         }
 
         args_env.set_data(args_env_data);
@@ -180,9 +178,9 @@ impl Evaluator<'_> {
     #[inline]
     pub(super) fn check_thunk_args_and_execute_call(
         &mut self,
-        func: &FuncData,
-        positional_args: &[GcView<ThunkData>],
-        named_args: &[(InternedStr, GcView<ThunkData>)],
+        func: &FuncData<'p>,
+        positional_args: &[GcView<ThunkData<'p>>],
+        named_args: &[(InternedStr<'p>, GcView<ThunkData<'p>>)],
         call_span: Option<SpanId>,
     ) -> Result<(), Box<EvalError>> {
         let (func_name, func_env) = self.get_func_info(func);
@@ -196,17 +194,15 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    pub(super) fn execute_call(&mut self, func: &FuncData, args: Box<[Gc<ThunkData>]>) {
+    pub(super) fn execute_call(&mut self, func: &FuncData<'p>, args: Box<[Gc<ThunkData<'p>>]>) {
         match func.kind {
-            FuncKind::Normal {
-                ref body, ref env, ..
-            } => {
-                self.execute_normal_call(&func.params, body.clone(), env.clone(), args);
+            FuncKind::Normal { body, ref env, .. } => {
+                self.execute_normal_call(&func.params, body, env.clone(), args);
             }
             FuncKind::BuiltIn { kind, .. } => {
                 self.execute_built_in_call(kind, &args);
             }
-            FuncKind::Native { ref name, .. } => {
+            FuncKind::Native { name, .. } => {
                 self.execute_native_call(name, &args);
             }
         }
@@ -214,15 +210,15 @@ impl Evaluator<'_> {
 
     pub(super) fn execute_normal_call(
         &mut self,
-        params: &FuncParams,
-        body: ir::RcExpr,
-        env: Gc<ThunkEnv>,
-        args: Box<[Gc<ThunkData>]>,
+        params: &FuncParams<'p>,
+        body: &'p ir::Expr<'p>,
+        env: Gc<ThunkEnv<'p>>,
+        args: Box<[Gc<ThunkData<'p>>]>,
     ) {
         let inner_env = self.program.gc_alloc_view(ThunkEnv::new());
         let mut inner_env_data = ThunkEnvData::new(Some(env));
-        for ((arg_name, _), arg_thunk) in params.order.iter().zip(Vec::from(args)) {
-            inner_env_data.set_var(arg_name.clone(), arg_thunk);
+        for (&(arg_name, _), arg_thunk) in params.order.iter().zip(Vec::from(args)) {
+            inner_env_data.set_var(arg_name, arg_thunk);
         }
         inner_env.set_data(inner_env_data);
 
@@ -232,9 +228,11 @@ impl Evaluator<'_> {
         });
     }
 
-    fn execute_built_in_call(&mut self, kind: BuiltInFunc, args: &[Gc<ThunkData>]) {
+    fn execute_built_in_call(&mut self, kind: BuiltInFunc, args: &[Gc<ThunkData<'p>>]) {
         #[inline]
-        fn check_num_args<const N: usize>(args: &[Gc<ThunkData>]) -> &[Gc<ThunkData>; N] {
+        fn check_num_args<'a, 'p, const N: usize>(
+            args: &'a [Gc<ThunkData<'p>>],
+        ) -> &'a [Gc<ThunkData<'p>>; N] {
             args.try_into().unwrap()
         }
         match kind {
@@ -784,9 +782,9 @@ impl Evaluator<'_> {
         }
     }
 
-    fn execute_native_call(&mut self, name: &InternedStr, args: &[Gc<ThunkData>]) {
+    fn execute_native_call(&mut self, name: InternedStr<'p>, args: &[Gc<ThunkData<'p>>]) {
         self.state_stack.push(State::ExecNativeCall {
-            name: name.clone(),
+            name,
             args: args.iter().map(Gc::view).collect(),
         });
 

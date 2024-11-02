@@ -7,23 +7,25 @@
 )]
 #![forbid(unsafe_code)]
 
+use rsjsonnet_lang::arena::Arena;
 use rsjsonnet_lang::interner::StrInterner;
 
 #[test]
 fn test_intern_str() {
+    let arena = Arena::new();
     let interner = StrInterner::new();
 
-    let hello_1 = interner.intern("hello");
-    let world_1 = interner.intern("world");
+    let hello_1 = interner.intern(&arena, "hello");
+    let world_1 = interner.intern(&arena, "world");
     assert_ne!(hello_1, world_1);
     assert_eq!(hello_1.value(), "hello");
     assert_eq!(world_1.value(), "world");
 
-    let hello_2 = interner.intern("hello");
+    let hello_2 = interner.intern(&arena, "hello");
     assert_eq!(hello_1, hello_2);
     assert_ne!(hello_2, world_1);
 
-    let world_2 = interner.intern("world");
+    let world_2 = interner.intern(&arena, "world");
     assert_eq!(world_1, world_2);
     assert_ne!(hello_1, world_2);
     assert_ne!(hello_2, world_2);
@@ -31,12 +33,13 @@ fn test_intern_str() {
 
 #[test]
 fn test_get_interned_str() {
+    let arena = Arena::new();
     let interner = StrInterner::new();
 
     let hello_1 = interner.get_interned("hello");
     assert!(hello_1.is_none());
 
-    let hello_2 = interner.intern("hello");
+    let hello_2 = interner.intern(&arena, "hello");
     let hello_3 = interner.get_interned("hello");
     assert_eq!(hello_3, Some(hello_2));
 }

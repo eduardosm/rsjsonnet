@@ -15,8 +15,11 @@
 //! ```
 //! let source = b"local add_one(x) = x + 1; add_one(2)";
 //!
+//! // Create the arena allocator.
+//! let arena = rsjsonnet_lang::arena::Arena::new();
+//!
 //! // Create a session, which will contain a `rsjsonnet_lang::program::Program`.
-//! let mut session = rsjsonnet_front::Session::new();
+//! let mut session = rsjsonnet_front::Session::new(&arena);
 //!
 //! // Load a virtual (i.e., not from the file system) source file into the program
 //! let Some(thunk) = session.load_virt_file("<example>", source.to_vec()) else {

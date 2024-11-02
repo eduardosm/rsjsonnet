@@ -10,7 +10,9 @@
 - New variants have been added to `EvalStackTraceItem`.
 - `ExpectedThing` as been renamed to `ExpectedToken`.
 - `ParseError::Expected` now uses `ActualToken` instead of `TokenKind`.
-- `ast::Expr` now implements `Drop`, so it cannot be destructured.
+- Arena allocation is now used for interned strings, AST and some internal data
+  of `Program`.
+- String interner cannot be garbage-collected anymore.
 
 ### Fixed
 

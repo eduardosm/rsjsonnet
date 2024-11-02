@@ -3,8 +3,8 @@ use crate::ast;
 use crate::span::SpanId;
 use crate::token::STokenKind;
 
-impl Parser<'_> {
-    pub(super) fn parse_expr(&mut self) -> Result<ast::Expr, ParseError> {
+impl<'p, 'ast> Parser<'_, 'p, 'ast> {
+    pub(super) fn parse_expr(&mut self) -> Result<ast::Expr<'p, 'ast>, ParseError> {
         #[derive(Copy, Clone)]
         enum BinOpKind {
             LogicOr,
@@ -19,27 +19,27 @@ impl Parser<'_> {
             Mul,
         }
 
-        enum State {
-            Parsed(ast::Expr),
+        enum State<'p, 'ast> {
+            Parsed(ast::Expr<'p, 'ast>),
             Binary(BinOpKind),
-            BinaryRhs(BinOpKind, ast::Expr),
+            BinaryRhs(BinOpKind, ast::Expr<'p, 'ast>),
             Unary,
             Primary,
         }
 
-        enum StackItem {
+        enum StackItem<'p, 'ast> {
             BinaryLhs(BinOpKind),
-            BinaryRhs(BinOpKind, Box<ast::Expr>, ast::BinaryOp),
+            BinaryRhs(BinOpKind, &'ast ast::Expr<'p, 'ast>, ast::BinaryOp),
             Unary(ast::UnaryOp, SpanId),
             Suffix,
             ArrayItem0(SpanId),
-            ArrayItemN(SpanId, Vec<ast::Expr>),
+            ArrayItemN(SpanId, Vec<ast::Expr<'p, 'ast>>),
             Paren(SpanId),
         }
 
         impl BinOpKind {
             #[inline]
-            fn next_state(self) -> State {
+            fn next_state<'p, 'ast>(self) -> State<'p, 'ast> {
                 match self {
                     BinOpKind::LogicOr => State::Binary(BinOpKind::LogicAnd),
                     BinOpKind::LogicAnd => State::Binary(BinOpKind::BitwiseOr),
@@ -55,10 +55,13 @@ impl Parser<'_> {
             }
         }
 
-        const INIT_STATE: State = State::Binary(BinOpKind::LogicOr);
+        #[inline]
+        fn init_state<'p, 'ast>() -> State<'p, 'ast> {
+            State::Binary(BinOpKind::LogicOr)
+        }
 
         let mut stack = Vec::new();
-        let mut state = INIT_STATE;
+        let mut state = init_state();
 
         loop {
             match state {
@@ -68,7 +71,7 @@ impl Parser<'_> {
                         state = State::BinaryRhs(kind, expr);
                     }
                     Some(StackItem::BinaryRhs(kind, lhs, op)) => {
-                        let rhs = Box::new(expr);
+                        let rhs = self.ast_arena.alloc(expr);
                         let span = self.span_mgr.make_surrounding_span(lhs.span, rhs.span);
                         state = State::BinaryRhs(
                             kind,
@@ -79,7 +82,7 @@ impl Parser<'_> {
                         );
                     }
                     Some(StackItem::Unary(op, op_span)) => {
-                        let rhs = Box::new(expr);
+                        let rhs = self.ast_arena.alloc(expr);
                         let span = self.span_mgr.make_surrounding_span(op_span, rhs.span);
                         state = State::Parsed(ast::Expr {
                             kind: ast::ExprKind::Unary(op, rhs),
@@ -95,19 +98,22 @@ impl Parser<'_> {
                         if let Some(comp_spec) = self.maybe_parse_comp_spec()? {
                             let end_span = self.expect_simple(STokenKind::RightBracket, true)?;
                             state = State::Parsed(ast::Expr {
-                                kind: ast::ExprKind::ArrayComp(Box::new(item0), comp_spec),
+                                kind: ast::ExprKind::ArrayComp(
+                                    self.ast_arena.alloc(item0),
+                                    comp_spec,
+                                ),
                                 span: self.span_mgr.make_surrounding_span(start_span, end_span),
                             });
                         } else if let Some(end_span) =
                             self.eat_simple(STokenKind::RightBracket, true)
                         {
                             state = State::Parsed(ast::Expr {
-                                kind: ast::ExprKind::Array(Box::new([item0])),
+                                kind: ast::ExprKind::Array(self.ast_arena.alloc([item0])),
                                 span: self.span_mgr.make_surrounding_span(start_span, end_span),
                             });
                         } else if has_comma0 {
                             stack.push(StackItem::ArrayItemN(start_span, vec![item0]));
-                            state = INIT_STATE;
+                            state = init_state();
                         } else {
                             return Err(self.report_expected());
                         }
@@ -118,12 +124,12 @@ impl Parser<'_> {
                         let has_comma = self.eat_simple(STokenKind::Comma, true).is_some();
                         if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
                             state = State::Parsed(ast::Expr {
-                                kind: ast::ExprKind::Array(items.into_boxed_slice()),
+                                kind: ast::ExprKind::Array(self.ast_arena.alloc_slice(&items)),
                                 span: self.span_mgr.make_surrounding_span(start_span, end_span),
                             });
                         } else if has_comma {
                             stack.push(StackItem::ArrayItemN(start_span, items));
-                            state = INIT_STATE;
+                            state = init_state();
                         } else {
                             return Err(self.report_expected());
                         }
@@ -131,7 +137,7 @@ impl Parser<'_> {
                     Some(StackItem::Paren(start_span)) => {
                         let end_span = self.expect_simple(STokenKind::RightParen, true)?;
                         state = State::Parsed(ast::Expr {
-                            kind: ast::ExprKind::Paren(Box::new(expr)),
+                            kind: ast::ExprKind::Paren(self.ast_arena.alloc(expr)),
                             span: self.span_mgr.make_surrounding_span(start_span, end_span),
                         });
                     }
@@ -187,7 +193,10 @@ impl Parser<'_> {
                                     state = State::BinaryRhs(
                                         kind,
                                         ast::Expr {
-                                            kind: ast::ExprKind::InSuper(Box::new(lhs), super_span),
+                                            kind: ast::ExprKind::InSuper(
+                                                self.ast_arena.alloc(lhs),
+                                                super_span,
+                                            ),
                                             span,
                                         },
                                     );
@@ -231,7 +240,7 @@ impl Parser<'_> {
                     };
 
                     if let Some(op) = op {
-                        stack.push(StackItem::BinaryRhs(kind, Box::new(lhs), op));
+                        stack.push(StackItem::BinaryRhs(kind, self.ast_arena.alloc(lhs), op));
                         state = kind.next_state();
                     } else {
                         self.expected_things.push(ExpectedToken::BinaryOp);
@@ -265,14 +274,14 @@ impl Parser<'_> {
                     {
                         if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
                             state = State::Parsed(ast::Expr {
-                                kind: ast::ExprKind::Array(Box::new([])),
+                                kind: ast::ExprKind::Array(self.ast_arena.alloc([])),
                                 span: self.span_mgr.make_surrounding_span(start_span, end_span),
                             });
                             continue;
                         }
 
                         stack.push(StackItem::ArrayItem0(start_span));
-                        state = INIT_STATE;
+                        state = init_state();
                     } else if let Some(super_span) = self.eat_simple(STokenKind::Super, false) {
                         if self.eat_simple(STokenKind::Dot, true).is_some() {
                             let field_name = self.expect_ident(true)?;
@@ -284,7 +293,7 @@ impl Parser<'_> {
                                 span,
                             });
                         } else if self.eat_simple(STokenKind::LeftBracket, true).is_some() {
-                            let index_expr = Box::new(self.parse_expr()?);
+                            let index_expr = self.ast_arena.alloc(self.parse_expr()?);
                             let end_span = self.expect_simple(STokenKind::RightBracket, true)?;
 
                             state = State::Parsed(ast::Expr {
@@ -300,10 +309,10 @@ impl Parser<'_> {
                         while self.eat_simple(STokenKind::Comma, true).is_some() {
                             binds.push(self.parse_bind()?);
                         }
-                        let binds = binds.into_boxed_slice();
+                        let binds = self.ast_arena.alloc_slice(&binds);
 
                         self.expect_simple(STokenKind::Semicolon, true)?;
-                        let inner_expr = Box::new(self.parse_expr()?);
+                        let inner_expr = self.ast_arena.alloc(self.parse_expr()?);
 
                         let span = self
                             .span_mgr
@@ -313,11 +322,11 @@ impl Parser<'_> {
                             span,
                         });
                     } else if let Some(if_span) = self.eat_simple(STokenKind::If, false) {
-                        let cond = Box::new(self.parse_expr()?);
+                        let cond = self.ast_arena.alloc(self.parse_expr()?);
                         self.expect_simple(STokenKind::Then, true)?;
-                        let then_body = Box::new(self.parse_expr()?);
+                        let then_body = self.ast_arena.alloc(self.parse_expr()?);
                         let else_body = if self.eat_simple(STokenKind::Else, true).is_some() {
-                            Some(Box::new(self.parse_expr()?))
+                            Some(self.ast_arena.alloc(self.parse_expr()?))
                         } else {
                             None
                         };
@@ -333,8 +342,8 @@ impl Parser<'_> {
                     } else if let Some(start_span) = self.eat_simple(STokenKind::Function, false) {
                         self.expect_simple(STokenKind::LeftParen, true)?;
                         let (params, _) = self.parse_params()?;
-                        let params = params.into_boxed_slice();
-                        let body = Box::new(self.parse_expr()?);
+                        let params = self.ast_arena.alloc_slice(&params);
+                        let body = self.ast_arena.alloc(self.parse_expr()?);
                         let span = self.span_mgr.make_surrounding_span(start_span, body.span);
                         state = State::Parsed(ast::Expr {
                             kind: ast::ExprKind::Func(params, body),
@@ -342,16 +351,16 @@ impl Parser<'_> {
                         });
                     } else if let Some((start_span, assert)) = self.maybe_parse_assert(false)? {
                         self.expect_simple(STokenKind::Semicolon, true)?;
-                        let inner_expr = Box::new(self.parse_expr()?);
+                        let inner_expr = self.ast_arena.alloc(self.parse_expr()?);
                         let span = self
                             .span_mgr
                             .make_surrounding_span(start_span, inner_expr.span);
                         state = State::Parsed(ast::Expr {
-                            kind: ast::ExprKind::Assert(Box::new(assert), inner_expr),
+                            kind: ast::ExprKind::Assert(self.ast_arena.alloc(assert), inner_expr),
                             span,
                         });
                     } else if let Some(start_span) = self.eat_simple(STokenKind::Import, false) {
-                        let path_expr = Box::new(self.parse_expr()?);
+                        let path_expr = self.ast_arena.alloc(self.parse_expr()?);
                         let span = self
                             .span_mgr
                             .make_surrounding_span(start_span, path_expr.span);
@@ -360,7 +369,7 @@ impl Parser<'_> {
                             span,
                         });
                     } else if let Some(start_span) = self.eat_simple(STokenKind::Importstr, false) {
-                        let path_expr = Box::new(self.parse_expr()?);
+                        let path_expr = self.ast_arena.alloc(self.parse_expr()?);
                         let span = self
                             .span_mgr
                             .make_surrounding_span(start_span, path_expr.span);
@@ -369,7 +378,7 @@ impl Parser<'_> {
                             span,
                         });
                     } else if let Some(start_span) = self.eat_simple(STokenKind::Importbin, false) {
-                        let path_expr = Box::new(self.parse_expr()?);
+                        let path_expr = self.ast_arena.alloc(self.parse_expr()?);
                         let span = self
                             .span_mgr
                             .make_surrounding_span(start_span, path_expr.span);
@@ -378,7 +387,7 @@ impl Parser<'_> {
                             span,
                         });
                     } else if let Some(start_span) = self.eat_simple(STokenKind::Error, false) {
-                        let msg_expr = Box::new(self.parse_expr()?);
+                        let msg_expr = self.ast_arena.alloc(self.parse_expr()?);
                         let span = self
                             .span_mgr
                             .make_surrounding_span(start_span, msg_expr.span);
@@ -388,7 +397,7 @@ impl Parser<'_> {
                         });
                     } else if let Some(start_span) = self.eat_simple(STokenKind::LeftParen, false) {
                         stack.push(StackItem::Paren(start_span));
-                        state = INIT_STATE;
+                        state = init_state();
                     } else {
                         self.expected_things.push(ExpectedToken::Expr);
                         return Err(self.report_expected());
@@ -398,7 +407,10 @@ impl Parser<'_> {
         }
     }
 
-    fn parse_suffix_expr(&mut self, primary: ast::Expr) -> Result<ast::Expr, ParseError> {
+    fn parse_suffix_expr(
+        &mut self,
+        primary: ast::Expr<'p, 'ast>,
+    ) -> Result<ast::Expr<'p, 'ast>, ParseError> {
         let mut lhs = primary;
         loop {
             if self.eat_simple(STokenKind::Dot, true).is_some() {
@@ -407,18 +419,18 @@ impl Parser<'_> {
                     .span_mgr
                     .make_surrounding_span(lhs.span, field_name.span);
                 lhs = ast::Expr {
-                    kind: ast::ExprKind::Field(Box::new(lhs), field_name),
+                    kind: ast::ExprKind::Field(self.ast_arena.alloc(lhs), field_name),
                     span,
                 };
             } else if self.eat_simple(STokenKind::LeftBracket, true).is_some() {
                 lhs = self.parse_index_expr(lhs)?;
             } else if self.eat_simple(STokenKind::LeftParen, true).is_some() {
-                let (args, end_span): (Box<[_]>, _) =
+                let (args, end_span): (&[_], _) =
                     if let Some(end_span) = self.eat_simple(STokenKind::RightParen, true) {
-                        (Box::new([]), end_span)
+                        (self.ast_arena.alloc([]), end_span)
                     } else {
                         let (args, end_span) = self.parse_args()?;
-                        (args.into_boxed_slice(), end_span)
+                        (self.ast_arena.alloc_slice(&args), end_span)
                     };
 
                 let tailstrict_span = self.eat_simple(STokenKind::Tailstrict, true);
@@ -426,7 +438,11 @@ impl Parser<'_> {
                     .span_mgr
                     .make_surrounding_span(lhs.span, tailstrict_span.unwrap_or(end_span));
                 lhs = ast::Expr {
-                    kind: ast::ExprKind::Call(Box::new(lhs), args, tailstrict_span.is_some()),
+                    kind: ast::ExprKind::Call(
+                        self.ast_arena.alloc(lhs),
+                        args,
+                        tailstrict_span.is_some(),
+                    ),
                     span,
                 };
             } else if let Some(obj_start_span) = self.eat_simple(STokenKind::LeftBrace, true) {
@@ -434,7 +450,7 @@ impl Parser<'_> {
                 let span = self.span_mgr.make_surrounding_span(lhs.span, obj_end_span);
                 lhs = ast::Expr {
                     kind: ast::ExprKind::ObjExt(
-                        Box::new(lhs),
+                        self.ast_arena.alloc(lhs),
                         obj_inside,
                         self.span_mgr
                             .make_surrounding_span(obj_start_span, obj_end_span),
@@ -447,7 +463,10 @@ impl Parser<'_> {
         }
     }
 
-    fn parse_index_expr(&mut self, lhs: ast::Expr) -> Result<ast::Expr, ParseError> {
+    fn parse_index_expr(
+        &mut self,
+        lhs: ast::Expr<'p, 'ast>,
+    ) -> Result<ast::Expr<'p, 'ast>, ParseError> {
         let mut index1 = None;
         let mut index2 = None;
         let mut index3 = None;
@@ -459,18 +478,18 @@ impl Parser<'_> {
                 if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
                     end_span
                 } else {
-                    index3 = Some(Box::new(self.parse_expr()?));
+                    index3 = Some(self.ast_arena.alloc(self.parse_expr()?));
                     self.expect_simple(STokenKind::RightBracket, true)?
                 }
             } else {
-                index2 = Some(Box::new(self.parse_expr()?));
+                index2 = Some(self.ast_arena.alloc(self.parse_expr()?));
                 if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
                     end_span
                 } else if self.eat_simple(STokenKind::Colon, true).is_some() {
                     if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
                         end_span
                     } else {
-                        index3 = Some(Box::new(self.parse_expr()?));
+                        index3 = Some(self.ast_arena.alloc(self.parse_expr()?));
                         self.expect_simple(STokenKind::RightBracket, true)?
                     }
                 } else {
@@ -481,15 +500,15 @@ impl Parser<'_> {
             if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
                 end_span
             } else {
-                index3 = Some(Box::new(self.parse_expr()?));
+                index3 = Some(self.ast_arena.alloc(self.parse_expr()?));
                 self.expect_simple(STokenKind::RightBracket, true)?
             }
         } else {
-            index1 = Some(Box::new(self.parse_expr()?));
+            index1 = Some(self.ast_arena.alloc(self.parse_expr()?));
             if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
                 let span = self.span_mgr.make_surrounding_span(lhs.span, end_span);
                 return Ok(ast::Expr {
-                    kind: ast::ExprKind::Index(Box::new(lhs), index1.unwrap()),
+                    kind: ast::ExprKind::Index(self.ast_arena.alloc(lhs), index1.unwrap()),
                     span,
                 });
             } else if self.eat_simple(STokenKind::Colon, true).is_some() {
@@ -499,18 +518,18 @@ impl Parser<'_> {
                     if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
                         end_span
                     } else {
-                        index3 = Some(Box::new(self.parse_expr()?));
+                        index3 = Some(self.ast_arena.alloc(self.parse_expr()?));
                         self.expect_simple(STokenKind::RightBracket, true)?
                     }
                 } else {
-                    index2 = Some(Box::new(self.parse_expr()?));
+                    index2 = Some(self.ast_arena.alloc(self.parse_expr()?));
                     if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
                         end_span
                     } else if self.eat_simple(STokenKind::Colon, true).is_some() {
                         if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
                             end_span
                         } else {
-                            index3 = Some(Box::new(self.parse_expr()?));
+                            index3 = Some(self.ast_arena.alloc(self.parse_expr()?));
                             self.expect_simple(STokenKind::RightBracket, true)?
                         }
                     } else {
@@ -521,7 +540,7 @@ impl Parser<'_> {
                 if let Some(end_span) = self.eat_simple(STokenKind::RightBracket, true) {
                     end_span
                 } else {
-                    index3 = Some(Box::new(self.parse_expr()?));
+                    index3 = Some(self.ast_arena.alloc(self.parse_expr()?));
                     self.expect_simple(STokenKind::RightBracket, true)?
                 }
             } else {
@@ -531,12 +550,12 @@ impl Parser<'_> {
 
         let span = self.span_mgr.make_surrounding_span(lhs.span, end_span);
         Ok(ast::Expr {
-            kind: ast::ExprKind::Slice(Box::new(lhs), index1, index2, index3),
+            kind: ast::ExprKind::Slice(self.ast_arena.alloc(lhs), index1, index2, index3),
             span,
         })
     }
 
-    fn parse_maybe_simple_expr(&mut self) -> Option<ast::Expr> {
+    fn parse_maybe_simple_expr(&mut self) -> Option<ast::Expr<'p, 'ast>> {
         if let Some(span) = self.eat_simple(STokenKind::Null, false) {
             Some(ast::Expr {
                 kind: ast::ExprKind::Null,
@@ -591,7 +610,7 @@ impl Parser<'_> {
     fn maybe_parse_assert(
         &mut self,
         add_to_expected: bool,
-    ) -> Result<Option<(SpanId, ast::Assert)>, ParseError> {
+    ) -> Result<Option<(SpanId, ast::Assert<'p, 'ast>)>, ParseError> {
         if let Some(start_span) = self.eat_simple(STokenKind::Assert, add_to_expected) {
             let cond = self.parse_expr()?;
             let msg = if self.eat_simple(STokenKind::Colon, true).is_some() {
@@ -607,12 +626,12 @@ impl Parser<'_> {
         }
     }
 
-    fn parse_bind(&mut self) -> Result<ast::Bind, ParseError> {
+    fn parse_bind(&mut self) -> Result<ast::Bind<'p, 'ast>, ParseError> {
         let name = self.expect_ident(true)?;
         let params = if let Some(params_start_span) = self.eat_simple(STokenKind::LeftParen, true) {
             let (params, params_end_span) = self.parse_params()?;
             Some((
-                params.into_boxed_slice(),
+                self.ast_arena.alloc_slice(&params),
                 self.span_mgr
                     .make_surrounding_span(params_start_span, params_end_span),
             ))
@@ -629,15 +648,16 @@ impl Parser<'_> {
         })
     }
 
-    fn parse_obj_inside(&mut self) -> Result<(ast::ObjInside, SpanId), ParseError> {
+    fn parse_obj_inside(&mut self) -> Result<(ast::ObjInside<'p, 'ast>, SpanId), ParseError> {
         if let Some(end_span) = self.eat_simple(STokenKind::RightBrace, true) {
-            return Ok((ast::ObjInside::Members(Box::new([])), end_span));
+            return Ok((ast::ObjInside::Members(self.ast_arena.alloc([])), end_span));
         }
 
-        fn make_comp(
-            members: Vec<ast::Member>,
-            comp_spec: Box<[ast::CompSpecPart]>,
-        ) -> ast::ObjInside {
+        fn make_comp<'p, 'ast>(
+            this: &Parser<'_, 'p, 'ast>,
+            members: Vec<ast::Member<'p, 'ast>>,
+            comp_spec: &'ast [ast::CompSpecPart<'p, 'ast>],
+        ) -> ast::ObjInside<'p, 'ast> {
             let mut locals1 = Vec::new();
             let mut locals2 = Vec::new();
             let mut field = None;
@@ -658,7 +678,7 @@ impl Parser<'_> {
                         body,
                     )) => {
                         assert!(field.is_none());
-                        field = Some((Box::new(name), Box::new(body)));
+                        field = Some((this.ast_arena.alloc(name), this.ast_arena.alloc(body)));
                     }
                     ast::Member::Field(_) => unreachable!(),
                 }
@@ -667,10 +687,10 @@ impl Parser<'_> {
             let (name, body) = field.unwrap();
 
             ast::ObjInside::Comp {
-                locals1: locals1.into_boxed_slice(),
+                locals1: this.ast_arena.alloc_slice(&locals1),
                 name,
                 body,
-                locals2: locals2.into_boxed_slice(),
+                locals2: this.ast_arena.alloc_slice(&locals2),
                 comp_spec,
             }
         }
@@ -707,25 +727,25 @@ impl Parser<'_> {
 
             if let Some(end_span) = self.eat_simple(STokenKind::RightBrace, true) {
                 return Ok((
-                    ast::ObjInside::Members(members.into_boxed_slice()),
+                    ast::ObjInside::Members(self.ast_arena.alloc_slice(&members)),
                     end_span,
                 ));
             } else if self.eat_simple(STokenKind::Comma, true).is_some() {
                 if let Some(end_span) = self.eat_simple(STokenKind::RightBrace, true) {
                     return Ok((
-                        ast::ObjInside::Members(members.into_boxed_slice()),
+                        ast::ObjInside::Members(self.ast_arena.alloc_slice(&members)),
                         end_span,
                     ));
                 } else if can_be_comp && has_comp_dyn_field {
                     if let Some(comp_spec) = self.maybe_parse_comp_spec()? {
                         let end_span = self.expect_simple(STokenKind::RightBrace, true)?;
-                        return Ok((make_comp(members, comp_spec), end_span));
+                        return Ok((make_comp(self, members, comp_spec), end_span));
                     }
                 }
             } else if can_be_comp && has_comp_dyn_field {
                 if let Some(comp_spec) = self.maybe_parse_comp_spec()? {
                     let end_span = self.expect_simple(STokenKind::RightBrace, true)?;
-                    return Ok((make_comp(members, comp_spec), end_span));
+                    return Ok((make_comp(self, members, comp_spec), end_span));
                 } else {
                     return Err(self.report_expected());
                 }
@@ -735,14 +755,14 @@ impl Parser<'_> {
         }
     }
 
-    fn maybe_parse_field(&mut self) -> Result<Option<ast::Field>, ParseError> {
+    fn maybe_parse_field(&mut self) -> Result<Option<ast::Field<'p, 'ast>>, ParseError> {
         if let Some(name) = self.maybe_parse_field_name()? {
             if let Some(params_start_span) = self.eat_simple(STokenKind::LeftParen, true) {
                 let (params, params_end_span) = self.parse_params()?;
                 let Some(visibility) = self.eat_visibility(true) else {
                     return Err(self.report_expected());
                 };
-                let params = params.into_boxed_slice();
+                let params = self.ast_arena.alloc_slice(&params);
                 let value = self.parse_expr()?;
                 Ok(Some(ast::Field::Func(
                     name,
@@ -764,7 +784,7 @@ impl Parser<'_> {
         }
     }
 
-    fn maybe_parse_obj_local(&mut self) -> Result<Option<ast::ObjLocal>, ParseError> {
+    fn maybe_parse_obj_local(&mut self) -> Result<Option<ast::ObjLocal<'p, 'ast>>, ParseError> {
         if self.eat_simple(STokenKind::Local, true).is_some() {
             let bind = self.parse_bind()?;
             Ok(Some(ast::ObjLocal { bind }))
@@ -773,7 +793,9 @@ impl Parser<'_> {
         }
     }
 
-    fn maybe_parse_comp_spec(&mut self) -> Result<Option<Box<[ast::CompSpecPart]>>, ParseError> {
+    fn maybe_parse_comp_spec(
+        &mut self,
+    ) -> Result<Option<&'ast [ast::CompSpecPart<'p, 'ast>]>, ParseError> {
         if let Some(for_spec) = self.maybe_parse_for_spec()? {
             let mut parts = Vec::new();
             parts.push(ast::CompSpecPart::For(for_spec));
@@ -786,13 +808,13 @@ impl Parser<'_> {
                     break;
                 }
             }
-            Ok(Some(parts.into_boxed_slice()))
+            Ok(Some(self.ast_arena.alloc_slice(&parts)))
         } else {
             Ok(None)
         }
     }
 
-    fn maybe_parse_for_spec(&mut self) -> Result<Option<ast::ForSpec>, ParseError> {
+    fn maybe_parse_for_spec(&mut self) -> Result<Option<ast::ForSpec<'p, 'ast>>, ParseError> {
         if self.eat_simple(STokenKind::For, true).is_some() {
             let var = self.expect_ident(true)?;
             self.expect_simple(STokenKind::In, true)?;
@@ -803,7 +825,7 @@ impl Parser<'_> {
         }
     }
 
-    fn maybe_parse_if_spec(&mut self) -> Result<Option<ast::IfSpec>, ParseError> {
+    fn maybe_parse_if_spec(&mut self) -> Result<Option<ast::IfSpec<'p, 'ast>>, ParseError> {
         if self.eat_simple(STokenKind::If, true).is_some() {
             let cond = self.parse_expr()?;
             Ok(Some(ast::IfSpec { cond }))
@@ -812,14 +834,14 @@ impl Parser<'_> {
         }
     }
 
-    fn maybe_parse_field_name(&mut self) -> Result<Option<ast::FieldName>, ParseError> {
+    fn maybe_parse_field_name(&mut self) -> Result<Option<ast::FieldName<'p, 'ast>>, ParseError> {
         if let Some(ident) = self.eat_ident(true) {
             Ok(Some(ast::FieldName::Ident(ident)))
         } else if let Some((s, span)) = self.eat_string(true) {
-            let interned = self.str_interner.intern(&s);
+            let interned = self.str_interner.intern(self.arena, s);
             Ok(Some(ast::FieldName::String(interned, span)))
         } else if let Some((s, span)) = self.eat_text_block(true) {
-            let interned = self.str_interner.intern(&s);
+            let interned = self.str_interner.intern(self.arena, s);
             Ok(Some(ast::FieldName::String(interned, span)))
         } else if let Some(start_span) = self.eat_simple(STokenKind::LeftBracket, true) {
             let name_expr = self.parse_expr()?;
@@ -833,7 +855,7 @@ impl Parser<'_> {
         }
     }
 
-    fn parse_args(&mut self) -> Result<(Vec<ast::Arg>, SpanId), ParseError> {
+    fn parse_args(&mut self) -> Result<(Vec<ast::Arg<'p, 'ast>>, SpanId), ParseError> {
         if let Some(end_span) = self.eat_simple(STokenKind::RightParen, true) {
             return Ok((vec![], end_span));
         }
@@ -856,7 +878,7 @@ impl Parser<'_> {
         Ok((args, end_span))
     }
 
-    fn parse_arg(&mut self) -> Result<ast::Arg, ParseError> {
+    fn parse_arg(&mut self) -> Result<ast::Arg<'p, 'ast>, ParseError> {
         if self.peek_ident(0) && self.peek_simple(STokenKind::Eq, 1) {
             let name = self.eat_ident(false).unwrap();
             self.eat_simple(STokenKind::Eq, false).unwrap();
@@ -870,7 +892,7 @@ impl Parser<'_> {
         }
     }
 
-    fn parse_params(&mut self) -> Result<(Vec<ast::Param>, SpanId), ParseError> {
+    fn parse_params(&mut self) -> Result<(Vec<ast::Param<'p, 'ast>>, SpanId), ParseError> {
         if let Some(end_span) = self.eat_simple(STokenKind::RightParen, true) {
             return Ok((vec![], end_span));
         }

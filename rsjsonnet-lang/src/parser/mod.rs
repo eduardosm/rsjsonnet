@@ -5,21 +5,37 @@
 //! ```
 //! let source = b"local add_one(x) = x + 1; add_one(2)";
 //!
+//! let arena = rsjsonnet_lang::arena::Arena::new();
+//! let ast_arena = rsjsonnet_lang::arena::Arena::new();
 //! let str_interner = rsjsonnet_lang::interner::StrInterner::new();
 //! let mut span_mgr = rsjsonnet_lang::span::SpanManager::new();
 //! let (span_ctx, _) = span_mgr.insert_source_context(source.len());
 //!
 //! // First, lex the source excluding whitespace and comments.
-//! let lexer = rsjsonnet_lang::lexer::Lexer::new(&str_interner, &mut span_mgr, span_ctx, source);
+//! let lexer = rsjsonnet_lang::lexer::Lexer::new(
+//!     &arena,
+//!     &ast_arena,
+//!     &str_interner,
+//!     &mut span_mgr,
+//!     span_ctx,
+//!     source,
+//! );
 //! let tokens = lexer.lex_to_eof(false).unwrap();
 //!
 //! // Create the parser.
-//! let parser = rsjsonnet_lang::parser::Parser::new(&str_interner, &mut span_mgr, tokens);
+//! let parser = rsjsonnet_lang::parser::Parser::new(
+//!     &arena,
+//!     &ast_arena,
+//!     &str_interner,
+//!     &mut span_mgr,
+//!     tokens,
+//! );
 //!
 //! // Parse the source.
 //! let ast_root = parser.parse_root_expr().unwrap();
 //! ```
 
+use crate::arena::Arena;
 use crate::ast;
 use crate::interner::StrInterner;
 use crate::span::{SpanId, SpanManager};
@@ -30,28 +46,38 @@ mod expr;
 
 pub use error::{ActualToken, ExpectedToken, ParseError};
 
-pub struct Parser<'a> {
-    str_interner: &'a StrInterner,
+pub struct Parser<'a, 'p, 'ast> {
+    arena: &'p Arena,
+    ast_arena: &'ast Arena,
+    str_interner: &'a StrInterner<'p>,
     span_mgr: &'a mut SpanManager,
-    curr_token: Token,
-    rem_tokens: std::vec::IntoIter<Token>,
+    curr_token: Token<'p, 'ast>,
+    rem_tokens: std::vec::IntoIter<Token<'p, 'ast>>,
     expected_things: Vec<ExpectedToken>,
 }
 
-impl<'a> Parser<'a> {
+impl<'a, 'p, 'ast> Parser<'a, 'p, 'ast> {
     /// Creates a new parser that operates on `tokens`.
+    ///
+    /// `arena` is used to allocate interned strings and `ast_arena` is used to
+    /// allocate most of AST nodes. This allows to free most of the AST while
+    /// keeping interned strings.
     ///
     /// `tokens` must not include [whitespace](TokenKind::Whitespace)
     /// or [comments](TokenKind::Comment) and must end with an
     /// [end-of-file](TokenKind::EndOfFile) token.
     pub fn new(
-        str_interner: &'a StrInterner,
+        arena: &'p Arena,
+        ast_arena: &'ast Arena,
+        str_interner: &'a StrInterner<'p>,
         span_mgr: &'a mut SpanManager,
-        tokens: Vec<Token>,
+        tokens: Vec<Token<'p, 'ast>>,
     ) -> Self {
         let mut token_iter = tokens.into_iter();
         let first_token = token_iter.next().expect("passed an empty token slice");
         Self {
+            arena,
+            ast_arena,
             str_interner,
             span_mgr,
             curr_token: first_token,
@@ -60,7 +86,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn next_token(&mut self) -> Token {
+    fn next_token(&mut self) -> Token<'p, 'ast> {
         let next_token = self.rem_tokens.next().unwrap();
         let token = std::mem::replace(&mut self.curr_token, next_token);
 
@@ -121,9 +147,8 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn eat_ident(&mut self, add_to_expected: bool) -> Option<ast::Ident> {
-        if let TokenKind::Ident(ref value) = self.curr_token.kind {
-            let value = value.clone();
+    fn eat_ident(&mut self, add_to_expected: bool) -> Option<ast::Ident<'p>> {
+        if let TokenKind::Ident(value) = self.curr_token.kind {
             let span = self.curr_token.span;
             self.next_token();
             Some(ast::Ident { value, span })
@@ -136,7 +161,7 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn expect_ident(&mut self, add_to_expected: bool) -> Result<ast::Ident, ParseError> {
+    fn expect_ident(&mut self, add_to_expected: bool) -> Result<ast::Ident<'p>, ParseError> {
         if let Some(ident) = self.eat_ident(add_to_expected) {
             Ok(ident)
         } else {
@@ -145,12 +170,10 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn eat_number(&mut self, add_to_expected: bool) -> Option<(Number, SpanId)> {
-        if let TokenKind::Number(_) = self.curr_token.kind {
+    fn eat_number(&mut self, add_to_expected: bool) -> Option<(Number<'ast>, SpanId)> {
+        if let TokenKind::Number(n) = self.curr_token.kind {
             let span = self.curr_token.span;
-            let TokenKind::Number(n) = self.next_token().kind else {
-                unreachable!();
-            };
+            self.next_token();
             Some((n, span))
         } else {
             if add_to_expected {
@@ -161,12 +184,10 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn eat_string(&mut self, add_to_expected: bool) -> Option<(Box<str>, SpanId)> {
-        if let TokenKind::String(_) = self.curr_token.kind {
+    fn eat_string(&mut self, add_to_expected: bool) -> Option<(&'ast str, SpanId)> {
+        if let TokenKind::String(s) = self.curr_token.kind {
             let span = self.curr_token.span;
-            let TokenKind::String(s) = self.next_token().kind else {
-                unreachable!();
-            };
+            self.next_token();
             Some((s, span))
         } else {
             if add_to_expected {
@@ -177,12 +198,10 @@ impl<'a> Parser<'a> {
     }
 
     #[inline]
-    fn eat_text_block(&mut self, add_to_expected: bool) -> Option<(Box<str>, SpanId)> {
-        if let TokenKind::TextBlock(_) = self.curr_token.kind {
+    fn eat_text_block(&mut self, add_to_expected: bool) -> Option<(&'ast str, SpanId)> {
+        if let TokenKind::TextBlock(s) = self.curr_token.kind {
             let span = self.curr_token.span;
-            let TokenKind::TextBlock(s) = self.next_token().kind else {
-                unreachable!();
-            };
+            self.next_token();
             Some((s, span))
         } else {
             if add_to_expected {
@@ -278,7 +297,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses the tokens into an expression.
-    pub fn parse_root_expr(mut self) -> Result<ast::Expr, ParseError> {
+    pub fn parse_root_expr(mut self) -> Result<ast::Expr<'p, 'ast>, ParseError> {
         let expr = self.parse_expr()?;
         if self.eat_eof(true) {
             Ok(expr)

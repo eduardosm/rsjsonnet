@@ -76,7 +76,8 @@ fn main_inner() -> Result<(), RunError> {
         input = Input::File(Path::new(&args.input));
     }
 
-    let mut session = Session::new();
+    let arena = rsjsonnet_lang::arena::Arena::new();
+    let mut session = Session::new(&arena);
 
     if let Some(max_stack) = args.max_stack {
         session.program_mut().set_max_stack(max_stack);
@@ -106,7 +107,7 @@ fn main_inner() -> Result<(), RunError> {
 
     for arg in args.ext_str.iter() {
         let name = session.program().intern_str(&arg.var);
-        if !ext_names.insert(name.clone()) {
+        if !ext_names.insert(name) {
             eprintln!(
                 "error: external variable {:?} defined more than once",
                 arg.var
@@ -120,7 +121,7 @@ fn main_inner() -> Result<(), RunError> {
 
     for arg in args.ext_str_file.iter() {
         let name = session.program().intern_str(&arg.var);
-        if !ext_names.insert(name.clone()) {
+        if !ext_names.insert(name) {
             eprintln!(
                 "error: external variable {:?} defined more than once",
                 arg.var
@@ -134,7 +135,7 @@ fn main_inner() -> Result<(), RunError> {
 
     for arg in args.ext_code.iter() {
         let name = session.program().intern_str(&arg.var);
-        if !ext_names.insert(name.clone()) {
+        if !ext_names.insert(name) {
             eprintln!(
                 "error: external variable {:?} defined more than once",
                 arg.var
@@ -148,7 +149,7 @@ fn main_inner() -> Result<(), RunError> {
 
     for arg in args.ext_code_file.iter() {
         let name = session.program().intern_str(&arg.var);
-        if !ext_names.insert(name.clone()) {
+        if !ext_names.insert(name) {
             eprintln!(
                 "error: external variable {:?} defined more than once",
                 arg.var
@@ -165,7 +166,7 @@ fn main_inner() -> Result<(), RunError> {
 
     for arg in args.tla_str.iter() {
         let name = session.program().intern_str(&arg.var);
-        if !tla_names.insert(name.clone()) {
+        if !tla_names.insert(name) {
             eprintln!("error: TLA {:?} defined more than once", arg.var);
         }
 
@@ -175,7 +176,7 @@ fn main_inner() -> Result<(), RunError> {
 
     for arg in args.tla_str_file.iter() {
         let name = session.program().intern_str(&arg.var);
-        if !tla_names.insert(name.clone()) {
+        if !tla_names.insert(name) {
             eprintln!("error: TLA {:?} defined more than once", arg.var);
         }
 
@@ -185,7 +186,7 @@ fn main_inner() -> Result<(), RunError> {
 
     for arg in args.tla_code.iter() {
         let name = session.program().intern_str(&arg.var);
-        if !tla_names.insert(name.clone()) {
+        if !tla_names.insert(name) {
             eprintln!("error: TLA {:?} defined more than once", arg.var);
         }
 
@@ -195,7 +196,7 @@ fn main_inner() -> Result<(), RunError> {
 
     for arg in args.tla_code_file.iter() {
         let name = session.program().intern_str(&arg.var);
-        if !tla_names.insert(name.clone()) {
+        if !tla_names.insert(name) {
             eprintln!("error: TLA {:?} defined more than once", arg.var);
         }
 
@@ -275,12 +276,18 @@ fn main_inner() -> Result<(), RunError> {
     Ok(())
 }
 
-fn ext_str_to_thunk(program: &mut Program, arg: &cli::VarOptVal) -> Result<Thunk, RunError> {
+fn ext_str_to_thunk<'p>(
+    program: &mut Program<'p>,
+    arg: &cli::VarOptVal,
+) -> Result<Thunk<'p>, RunError> {
     let value = get_opt_val(arg)?;
     Ok(program.value_to_thunk(&Value::string(&value)))
 }
 
-fn ext_str_file_to_thunk(program: &mut Program, arg: &cli::VarFile) -> Result<Thunk, RunError> {
+fn ext_str_file_to_thunk<'p>(
+    program: &mut Program<'p>,
+    arg: &cli::VarFile,
+) -> Result<Thunk<'p>, RunError> {
     let value = match std::fs::read(&arg.file) {
         Ok(v) => v,
         Err(e) => {
@@ -298,11 +305,11 @@ fn ext_str_file_to_thunk(program: &mut Program, arg: &cli::VarFile) -> Result<Th
     Ok(program.value_to_thunk(&Value::string(&value)))
 }
 
-fn ext_code_to_thunk(
-    session: &mut Session,
+fn ext_code_to_thunk<'p>(
+    session: &mut Session<'p>,
     prefix: &str,
     arg: &cli::VarOptVal,
-) -> Result<Thunk, RunError> {
+) -> Result<Thunk<'p>, RunError> {
     let code = get_opt_val(arg)?;
     let virt_path = format!("<{prefix}:{}>", arg.var);
     session
@@ -310,7 +317,10 @@ fn ext_code_to_thunk(
         .ok_or(RunError::Generic)
 }
 
-fn ext_code_file_to_thunk(session: &mut Session, arg: &cli::VarFile) -> Result<Thunk, RunError> {
+fn ext_code_file_to_thunk<'p>(
+    session: &mut Session<'p>,
+    arg: &cli::VarFile,
+) -> Result<Thunk<'p>, RunError> {
     session
         .load_real_file(Path::new(&arg.file))
         .ok_or(RunError::Generic)
@@ -336,10 +346,10 @@ fn get_opt_val(arg: &cli::VarOptVal) -> Result<Cow<'_, str>, RunError> {
     }
 }
 
-fn value_to_repr(
+fn value_to_repr<'p>(
     args: &cli::Cli,
-    session: &mut Session,
-    value: &Value,
+    session: &mut Session<'p>,
+    value: &Value<'p>,
 ) -> Result<String, RunError> {
     if args.string {
         let Some(s) = value.to_string() else {

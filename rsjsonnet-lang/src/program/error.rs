@@ -213,7 +213,7 @@ pub enum EvalErrorValueType {
 }
 
 impl EvalErrorValueType {
-    pub(super) fn from_value(value: &ValueData) -> Self {
+    pub(super) fn from_value(value: &ValueData<'_>) -> Self {
         match value {
             ValueData::Null => Self::Null,
             ValueData::Bool(_) => Self::Bool,

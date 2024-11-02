@@ -7,6 +7,7 @@
 )]
 #![forbid(unsafe_code)]
 
+use rsjsonnet_lang::arena::Arena;
 use rsjsonnet_lang::interner::InternedStr;
 use rsjsonnet_lang::program::{
     EvalErrorKind, EvalStackTraceItem, ImportError, NativeError, Program, Thunk, Value,
@@ -20,7 +21,7 @@ impl TestCallbacks {
         Self
     }
 
-    pub(crate) fn init_native_funcs(&mut self, program: &mut Program) {
+    pub(crate) fn init_native_funcs(&mut self, program: &mut Program<'_>) {
         program.register_native_func(program.intern_str("returnNum"), &[]);
         program.register_native_func(
             program.intern_str("isString"),
@@ -34,19 +35,19 @@ impl TestCallbacks {
     }
 }
 
-impl rsjsonnet_lang::program::Callbacks for TestCallbacks {
+impl<'p> rsjsonnet_lang::program::Callbacks<'p> for TestCallbacks {
     fn import(
         &mut self,
-        _program: &mut Program,
+        _program: &mut Program<'p>,
         _from: SpanId,
         _path: &str,
-    ) -> Result<Thunk, ImportError> {
+    ) -> Result<Thunk<'p>, ImportError> {
         unimplemented!();
     }
 
     fn import_str(
         &mut self,
-        _program: &mut Program,
+        _program: &mut Program<'p>,
         _from: SpanId,
         _path: &str,
     ) -> Result<String, ImportError> {
@@ -55,21 +56,22 @@ impl rsjsonnet_lang::program::Callbacks for TestCallbacks {
 
     fn import_bin(
         &mut self,
-        _program: &mut Program,
+        _program: &mut Program<'p>,
         _from: SpanId,
         _path: &str,
     ) -> Result<Vec<u8>, ImportError> {
         unimplemented!();
     }
 
-    fn trace(&mut self, _program: &mut Program, _message: &str, _stack: &[EvalStackTraceItem]) {}
+    fn trace(&mut self, _program: &mut Program<'p>, _message: &str, _stack: &[EvalStackTraceItem]) {
+    }
 
     fn native_call(
         &mut self,
-        _program: &mut Program,
-        name: &InternedStr,
-        args: &[Value],
-    ) -> Result<Value, NativeError> {
+        _program: &mut Program<'p>,
+        name: InternedStr<'p>,
+        args: &[Value<'p>],
+    ) -> Result<Value<'p>, NativeError> {
         match name.value() {
             "returnNum" => {
                 assert!(args.is_empty());
@@ -104,8 +106,9 @@ impl rsjsonnet_lang::program::Callbacks for TestCallbacks {
 #[test]
 fn test_value_types() {
     #[track_caller]
-    pub(crate) fn test(input: &[u8], check: impl FnOnce(Value)) {
-        let mut program = Program::new();
+    pub(crate) fn test(input: &[u8], check: impl FnOnce(Value<'_>)) {
+        let arena = Arena::new();
+        let mut program = Program::new(&arena);
         let mut callbacks = TestCallbacks::new();
 
         let (span_ctx, _) = program
@@ -163,7 +166,8 @@ fn test_value_types() {
 fn test_manifest_single_line() {
     #[track_caller]
     fn test(input: &[u8], expected_result: &str) {
-        let mut program = Program::new();
+        let arena = Arena::new();
+        let mut program = Program::new(&arena);
         let mut callbacks = TestCallbacks::new();
 
         let (span_ctx, _) = program
@@ -203,7 +207,8 @@ fn test_manifest_single_line() {
 fn test_manifest_multi_line() {
     #[track_caller]
     fn test(input: &[u8], expected_result: &str) {
-        let mut program = Program::new();
+        let arena = Arena::new();
+        let mut program = Program::new(&arena);
         let mut callbacks = TestCallbacks::new();
 
         let (span_ctx, _) = program
@@ -243,7 +248,8 @@ fn test_manifest_multi_line() {
 fn test_native() {
     #[track_caller]
     fn test(input: &[u8], expected: &str) {
-        let mut program = Program::new();
+        let arena = Arena::new();
+        let mut program = Program::new(&arena);
         let mut callbacks = TestCallbacks::new();
         callbacks.init_native_funcs(&mut program);
 
@@ -275,7 +281,8 @@ fn test_native() {
 
     #[track_caller]
     fn test_fail(input: &[u8]) {
-        let mut program = Program::new();
+        let arena = Arena::new();
+        let mut program = Program::new(&arena);
         let mut callbacks = TestCallbacks::new();
         callbacks.init_native_funcs(&mut program);
 
@@ -297,18 +304,20 @@ fn test_native() {
 #[test]
 #[should_panic(expected = "already registered")]
 fn test_native_panic_repeated_func() {
-    let mut program = Program::new();
+    let arena = Arena::new();
+    let mut program = Program::new(&arena);
     let func_name = program.intern_str("nativeFunc");
     let param_name = program.intern_str("param");
-    program.register_native_func(func_name.clone(), &[param_name.clone()]);
+    program.register_native_func(func_name, &[param_name]);
     program.register_native_func(func_name, &[param_name]);
 }
 
 #[test]
 #[should_panic(expected = "repeated parameter name")]
 fn test_native_panic_repeated_param() {
-    let mut program = Program::new();
+    let arena = Arena::new();
+    let mut program = Program::new(&arena);
     let func_name = program.intern_str("nativeFunc");
     let param_name = program.intern_str("param");
-    program.register_native_func(func_name, &[param_name.clone(), param_name]);
+    program.register_native_func(func_name, &[param_name, param_name]);
 }

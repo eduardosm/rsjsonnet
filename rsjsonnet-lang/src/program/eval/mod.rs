@@ -24,52 +24,52 @@ mod stdlib;
 use manifest::ManifestJsonFormat;
 use state::State;
 
-pub(super) struct Evaluator<'a> {
-    program: &'a mut Program,
-    callbacks: Option<&'a mut dyn Callbacks>,
+pub(super) struct Evaluator<'a, 'p> {
+    program: &'a mut Program<'p>,
+    callbacks: Option<&'a mut dyn Callbacks<'p>>,
     stack_trace_len: usize,
-    state_stack: Vec<State>,
-    value_stack: Vec<ValueData>,
+    state_stack: Vec<State<'p>>,
+    value_stack: Vec<ValueData<'p>>,
     bool_stack: Vec<bool>,
     string_stack: Vec<String>,
-    array_stack: Vec<Vec<Gc<ThunkData>>>,
-    object_stack: Vec<ObjectData>,
-    comp_spec_stack: Vec<CompSpec>,
+    array_stack: Vec<Vec<Gc<ThunkData<'p>>>>,
+    object_stack: Vec<ObjectData<'p>>,
+    comp_spec_stack: Vec<CompSpec<'p>>,
     cmp_ord_stack: Vec<std::cmp::Ordering>,
     byte_array_stack: Vec<Vec<u8>>,
-    output: EvalOutput,
+    output: EvalOutput<'p>,
 }
 
-pub(super) enum EvalInput {
-    Value(GcView<ThunkData>),
-    Call(GcView<ThunkData>, TopLevelArgs),
-    ManifestJson(GcView<ThunkData>, bool),
+pub(super) enum EvalInput<'p> {
+    Value(GcView<ThunkData<'p>>),
+    Call(GcView<ThunkData<'p>>, TopLevelArgs<'p>),
+    ManifestJson(GcView<ThunkData<'p>>, bool),
 }
 
 #[must_use]
-pub(super) enum EvalOutput {
+pub(super) enum EvalOutput<'p> {
     Nothing,
-    Value(ValueData),
+    Value(ValueData<'p>),
     String(String),
 }
 
-pub(super) struct TopLevelArgs {
-    pub(super) positional: Box<[GcView<ThunkData>]>,
-    pub(super) named: Box<[(InternedStr, GcView<ThunkData>)]>,
+pub(super) struct TopLevelArgs<'p> {
+    pub(super) positional: Box<[GcView<ThunkData<'p>>]>,
+    pub(super) named: Box<[(InternedStr<'p>, GcView<ThunkData<'p>>)]>,
 }
 
 #[derive(Clone)]
-enum TraceItem {
+enum TraceItem<'p> {
     Expr {
         span: SpanId,
     },
     Call {
         span: Option<SpanId>,
-        name: Option<InternedStr>,
+        name: Option<InternedStr<'p>>,
     },
     Variable {
         span: SpanId,
-        name: InternedStr,
+        name: InternedStr<'p>,
     },
     ArrayItem {
         span: Option<SpanId>,
@@ -77,36 +77,37 @@ enum TraceItem {
     },
     ObjectField {
         span: Option<SpanId>,
-        name: InternedStr,
+        name: InternedStr<'p>,
     },
     CompareArrayItem {
         index: usize,
     },
     CompareObjectField {
-        name: InternedStr,
+        name: InternedStr<'p>,
     },
     ManifestArrayItem {
         index: usize,
     },
     ManifestObjectField {
-        name: InternedStr,
+        name: InternedStr<'p>,
     },
     Import {
         span: SpanId,
     },
 }
 
-struct CompSpec {
-    vars: Vec<FHashMap<InternedStr, GcView<ThunkData>>>,
+struct CompSpec<'p> {
+    vars: Vec<FHashMap<InternedStr<'p>, GcView<ThunkData<'p>>>>,
 }
 
-impl<'a> Evaluator<'a> {
-    // `EvalError` is boxed to reduce the size of `Result`s returned by internal functions.
+impl<'p, 'a> Evaluator<'a, 'p> {
+    // `EvalError` is boxed to reduce the size of `Result`s returned by internal
+    // functions.
     pub(super) fn eval(
-        program: &'a mut Program,
-        callbacks: Option<&'a mut dyn Callbacks>,
-        input: EvalInput,
-    ) -> Result<EvalOutput, Box<EvalError>> {
+        program: &'a mut Program<'p>,
+        callbacks: Option<&'a mut dyn Callbacks<'p>>,
+        input: EvalInput<'p>,
+    ) -> Result<EvalOutput<'p>, Box<EvalError>> {
         let mut this = Self {
             program,
             callbacks,
@@ -198,11 +199,10 @@ impl<'a> Evaluator<'a> {
                                 let env = env.view();
                                 let (object, core_i) = env.get_object();
                                 let object = object.view();
-                                if let Some(super_field) = self.program.find_object_field_thunk(
-                                    &object,
-                                    core_i + 1,
-                                    &field,
-                                ) {
+                                if let Some(super_field) =
+                                    self.program
+                                        .find_object_field_thunk(&object, core_i + 1, field)
+                                {
                                     self.state_stack.push(State::BinaryOp {
                                         span: None,
                                         op: ast::BinaryOp::Add,
@@ -233,7 +233,7 @@ impl<'a> Evaluator<'a> {
                 }
                 State::DeepValue => {
                     #[inline]
-                    fn might_need_deep(thunk: &ThunkData) -> bool {
+                    fn might_need_deep(thunk: &ThunkData<'_>) -> bool {
                         if let ThunkState::Done(ref value) = *thunk.state() {
                             value.might_need_deep()
                         } else {
@@ -259,8 +259,8 @@ impl<'a> Evaluator<'a> {
                         }
                     } else if let ValueData::Object(ref object) = value {
                         let object = object.view();
-                        for (field_name, field_visible) in object.get_fields_order().iter().rev() {
-                            if *field_visible {
+                        for &(field_name, field_visible) in object.get_fields_order().iter().rev() {
+                            if field_visible {
                                 let thunk = self
                                     .program
                                     .find_object_field_thunk(&object, 0, field_name)
@@ -268,7 +268,7 @@ impl<'a> Evaluator<'a> {
                                 if might_need_deep(&thunk) {
                                     self.push_trace_item(TraceItem::ObjectField {
                                         span: None,
-                                        name: field_name.clone(),
+                                        name: field_name,
                                     });
                                     self.state_stack.push(State::DiscardValue);
                                     self.state_stack.push(State::DeepValue);
@@ -578,7 +578,7 @@ impl<'a> Evaluator<'a> {
                     let mut comp_spec = CompSpec { vars: Vec::new() };
                     for item in array.iter() {
                         let mut vars = FHashMap::default();
-                        vars.insert(var_name.clone(), item.view());
+                        vars.insert(var_name, item.view());
                         comp_spec.vars.push(vars);
                     }
 
@@ -598,11 +598,11 @@ impl<'a> Evaluator<'a> {
                     for vars in comp_spec.vars.iter().rev() {
                         let mut inner_env_data = ThunkEnvData::new(Some(Gc::from(&env)));
                         for (var_name, var_value) in vars.iter() {
-                            inner_env_data.set_var(var_name.clone(), Gc::from(var_value));
+                            inner_env_data.set_var(*var_name, Gc::from(var_value));
                         }
                         let inner_env = self.program.gc_alloc_view(ThunkEnv::from(inner_env_data));
                         self.state_stack.push(State::Expr {
-                            expr: value.clone(),
+                            expr: value,
                             env: inner_env,
                         });
                     }
@@ -629,7 +629,7 @@ impl<'a> Evaluator<'a> {
                         let array = array.view();
                         for item in array.iter() {
                             let mut new_vars = old_vars.clone();
-                            new_vars.insert(var_name.clone(), item.view());
+                            new_vars.insert(var_name, item.view());
                             comp_spec.vars.push(new_vars);
                         }
                     }
@@ -644,11 +644,11 @@ impl<'a> Evaluator<'a> {
                     for vars in comp_spec.vars.iter().rev() {
                         let mut inner_env_data = ThunkEnvData::new(Some(Gc::from(&env)));
                         for (var_name, var_value) in vars.iter() {
-                            inner_env_data.set_var(var_name.clone(), Gc::from(var_value));
+                            inner_env_data.set_var(*var_name, Gc::from(var_value));
                         }
                         let inner_env = self.program.gc_alloc_view(ThunkEnv::from(inner_env_data));
                         self.state_stack.push(State::Expr {
-                            expr: cond.clone(),
+                            expr: cond,
                             env: inner_env,
                         });
                     }
@@ -684,14 +684,10 @@ impl<'a> Evaluator<'a> {
                         for vars in comp_spec.vars.iter() {
                             let mut item_env_data = ThunkEnvData::new(Some(Gc::from(&env)));
                             for (var_name, var_value) in vars.iter() {
-                                item_env_data.set_var(var_name.clone(), Gc::from(var_value));
+                                item_env_data.set_var(*var_name, Gc::from(var_value));
                             }
                             let item_env = self.program.gc_alloc(ThunkEnv::from(item_env_data));
-                            array.push(self.program.new_pending_expr_thunk(
-                                item.clone(),
-                                item_env,
-                                None,
-                            ));
+                            array.push(self.program.new_pending_expr_thunk(item, item_env, None));
                         }
                         self.value_stack.push(ValueData::Array(
                             self.program.gc_alloc(array.into_boxed_slice()),
@@ -701,10 +697,10 @@ impl<'a> Evaluator<'a> {
                 State::ObjectComp { expr, env } => {
                     let ir::Expr::ObjectComp {
                         is_top,
-                        locals: ref ir_locals,
-                        ref field_name,
+                        locals: ir_locals,
+                        field_name,
                         field_name_span,
-                        ref field_value,
+                        field_value,
                         ..
                     } = *expr
                     else {
@@ -716,11 +712,11 @@ impl<'a> Evaluator<'a> {
                     self.object_stack.push(ObjectData {
                         self_core: ObjectCore {
                             is_top,
-                            locals: ir_locals.clone(),
+                            locals: ir_locals,
                             base_env: None,
                             env: OnceCell::new(),
                             fields: FHashMap::default(),
-                            asserts: Rc::new(Vec::new()),
+                            asserts: &[],
                         },
                         super_cores: Vec::new(),
                         fields_order: OnceCell::new(),
@@ -732,7 +728,7 @@ impl<'a> Evaluator<'a> {
                     for vars in comp_spec.vars.iter().rev() {
                         let mut item_env_data = ThunkEnvData::new(Some(Gc::from(&env)));
                         for (var_name, var_value) in vars.iter() {
-                            item_env_data.set_var(var_name.clone(), Gc::from(var_value));
+                            item_env_data.set_var(*var_name, Gc::from(var_value));
                         }
                         let outer_env = self.program.gc_alloc_view(ThunkEnv::from(item_env_data));
 
@@ -740,11 +736,11 @@ impl<'a> Evaluator<'a> {
                             name_span: field_name_span,
                             plus: false,
                             visibility: ast::Visibility::Default,
-                            value: field_value.clone(),
+                            value: field_value,
                             base_env: Some(Gc::from(&outer_env)),
                         });
                         self.state_stack.push(State::Expr {
-                            expr: field_name.clone(),
+                            expr: field_name,
                             env: outer_env,
                         });
                     }
@@ -758,7 +754,7 @@ impl<'a> Evaluator<'a> {
                 State::Field { span, field_name } => {
                     let object = self.value_stack.pop().unwrap();
                     if let ValueData::Object(ref object) = object {
-                        self.want_field(&object.view(), &field_name, span)?;
+                        self.want_field(&object.view(), field_name, span)?;
                     } else {
                         return Err(self.report_error(EvalErrorKind::FieldOfNonObject { span }));
                     }
@@ -841,7 +837,7 @@ impl<'a> Evaluator<'a> {
                             if let Some(field_name) =
                                 self.program.str_interner.get_interned(field_name)
                             {
-                                self.want_field(&object.view(), &field_name, span)?;
+                                self.want_field(&object.view(), field_name, span)?;
                             } else {
                                 return Err(self.report_error(EvalErrorKind::UnknownObjectField {
                                     span,
@@ -870,7 +866,7 @@ impl<'a> Evaluator<'a> {
                         }));
                     };
                     if let Some(field_name) = self.program.str_interner.get_interned(field_name) {
-                        self.want_super_field(&env, super_span, &field_name, span)?;
+                        self.want_super_field(&env, super_span, field_name, span)?;
                     } else {
                         return Err(self.report_error(EvalErrorKind::UnknownObjectField {
                             span,
@@ -948,7 +944,7 @@ impl<'a> Evaluator<'a> {
                         .is_some_and(|field_name| {
                             let (object, core_i) = env.get_object();
                             let object = object.view();
-                            object.has_field(core_i + 1, &field_name)
+                            object.has_field(core_i + 1, field_name)
                         });
 
                     self.value_stack.push(ValueData::Bool(has_field));
@@ -1013,11 +1009,11 @@ impl<'a> Evaluator<'a> {
                                 if let Some(first_field) = fields.pop() {
                                     let lhs_field = self
                                         .program
-                                        .find_object_field_thunk(&lhs, 0, &first_field)
+                                        .find_object_field_thunk(&lhs, 0, first_field)
                                         .unwrap();
                                     let rhs_field = self
                                         .program
-                                        .find_object_field_thunk(&rhs, 0, &first_field)
+                                        .find_object_field_thunk(&rhs, 0, first_field)
                                         .unwrap();
                                     self.state_stack.push(State::EqualsObject {
                                         lhs: lhs.clone(),
@@ -1079,11 +1075,11 @@ impl<'a> Evaluator<'a> {
                         if field_eq {
                             let lhs_field = self
                                 .program
-                                .find_object_field_thunk(&lhs, 0, &next_field)
+                                .find_object_field_thunk(&lhs, 0, next_field)
                                 .unwrap();
                             let rhs_field = self
                                 .program
-                                .find_object_field_thunk(&rhs, 0, &next_field)
+                                .find_object_field_thunk(&rhs, 0, next_field)
                                 .unwrap();
                             self.state_stack.push(State::EqualsObject {
                                 lhs,
@@ -1195,8 +1191,8 @@ impl<'a> Evaluator<'a> {
                     call_env,
                 } => {
                     let ir::Expr::Call {
-                        ref positional_args,
-                        ref named_args,
+                        positional_args,
+                        named_args,
                         tailstrict,
                         span: call_span,
                         ..
@@ -1223,7 +1219,7 @@ impl<'a> Evaluator<'a> {
                     )?;
                     match func.kind {
                         FuncKind::Normal { .. } if tailstrict => {
-                            let params_order = func.params.order.clone();
+                            let params_order = func.params.order;
                             self.state_stack.push(State::ExecTailstrictCall {
                                 func,
                                 args: args_thunks.clone(),
@@ -1232,7 +1228,7 @@ impl<'a> Evaluator<'a> {
                             for (i, arg_thunk) in args_thunks.iter().enumerate().rev() {
                                 self.push_trace_item(TraceItem::Variable {
                                     span: call_span,
-                                    name: params_order[i].0.clone(),
+                                    name: params_order[i].0,
                                 });
                                 self.state_stack.push(State::DiscardValue);
                                 self.state_stack.push(State::DoThunk(arg_thunk.view()));
@@ -1280,7 +1276,7 @@ impl<'a> Evaluator<'a> {
                         .iter()
                         .map(|arg| super::Value::from_thunk(arg))
                         .collect();
-                    match callbacks.native_call(self.program, &name, &args) {
+                    match callbacks.native_call(self.program, name, &args) {
                         Ok(result_value) => {
                             self.value_stack.push(result_value.inner);
                         }
@@ -1572,7 +1568,7 @@ impl<'a> Evaluator<'a> {
     }
 
     #[inline]
-    fn push_trace_item(&mut self, item: TraceItem) {
+    fn push_trace_item(&mut self, item: TraceItem<'p>) {
         self.state_stack.push(State::TraceItem(item));
         self.inc_trace_len();
     }
@@ -1596,8 +1592,8 @@ impl<'a> Evaluator<'a> {
     #[inline]
     fn want_thunk_direct(
         &mut self,
-        thunk: GcView<ThunkData>,
-        trace_item: impl FnOnce() -> TraceItem,
+        thunk: GcView<ThunkData<'p>>,
+        trace_item: impl FnOnce() -> TraceItem<'p>,
     ) {
         if let Some(value) = thunk.get_value() {
             self.value_stack.push(value);
@@ -1609,15 +1605,15 @@ impl<'a> Evaluator<'a> {
 
     fn add_object_field(
         &mut self,
-        name: InternedStr,
+        name: InternedStr<'p>,
         name_span: SpanId,
         plus: bool,
         visibility: ast::Visibility,
-        value: ir::RcExpr,
-        base_env: Option<Gc<ThunkEnv>>,
+        value: &'p ir::Expr<'p>,
+        base_env: Option<Gc<ThunkEnv<'p>>>,
     ) -> Result<(), Box<EvalError>> {
         let object = self.object_stack.last_mut().unwrap();
-        match object.self_core.fields.entry(name.clone()) {
+        match object.self_core.fields.entry(name) {
             HashMapEntry::Occupied(_) => Err(self.report_error(EvalErrorKind::RepeatedFieldName {
                 span: name_span,
                 name: name.value().into(),
@@ -1628,7 +1624,7 @@ impl<'a> Evaluator<'a> {
                 if plus {
                     actual_expr = Some((value, true));
                     thunk = OnceCell::new();
-                } else if let Some(value) = self.program.try_value_from_expr(&value) {
+                } else if let Some(value) = self.program.try_value_from_expr(value) {
                     actual_expr = None;
                     thunk = OnceCell::from(self.program.gc_alloc(ThunkData::new_done(value)));
                 } else {
@@ -1647,7 +1643,7 @@ impl<'a> Evaluator<'a> {
         }
     }
 
-    fn check_object_asserts(&mut self, object: &GcView<ObjectData>) {
+    fn check_object_asserts(&mut self, object: &GcView<ObjectData<'p>>) {
         if !object.asserts_checked.get() {
             object.asserts_checked.set(true);
             let core_iter = object
@@ -1665,10 +1661,10 @@ impl<'a> Evaluator<'a> {
                     self.state_stack.push(State::Assert {
                         assert_span: assert.span,
                         cond_span: assert.cond_span,
-                        msg_expr: assert.msg.as_ref().map(|e| (e.clone(), env.clone())),
+                        msg_expr: assert.msg.map(|e| (e, env.clone())),
                     });
                     self.state_stack.push(State::Expr {
-                        expr: assert.cond.clone(),
+                        expr: assert.cond,
                         env,
                     });
                 }
@@ -1695,7 +1691,7 @@ impl<'a> Evaluator<'a> {
     #[inline]
     fn expect_std_func_arg_bool(
         &self,
-        value: ValueData,
+        value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
     ) -> Result<bool, Box<EvalError>> {
@@ -1713,7 +1709,7 @@ impl<'a> Evaluator<'a> {
     #[inline]
     fn expect_std_func_arg_number(
         &self,
-        value: ValueData,
+        value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
     ) -> Result<f64, Box<EvalError>> {
@@ -1731,7 +1727,7 @@ impl<'a> Evaluator<'a> {
     #[inline]
     fn expect_std_func_arg_null_or_number(
         &self,
-        value: ValueData,
+        value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
     ) -> Result<Option<f64>, Box<EvalError>> {
@@ -1750,7 +1746,7 @@ impl<'a> Evaluator<'a> {
     #[inline]
     fn expect_std_func_arg_string(
         &self,
-        value: ValueData,
+        value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
     ) -> Result<Rc<str>, Box<EvalError>> {
@@ -1768,10 +1764,10 @@ impl<'a> Evaluator<'a> {
     #[inline]
     fn expect_std_func_arg_array(
         &self,
-        value: ValueData,
+        value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<GcView<ArrayData>, Box<EvalError>> {
+    ) -> Result<GcView<ArrayData<'p>>, Box<EvalError>> {
         match value {
             ValueData::Array(arr) => Ok(arr.view()),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -1786,10 +1782,10 @@ impl<'a> Evaluator<'a> {
     #[inline]
     fn expect_std_func_arg_object(
         &self,
-        value: ValueData,
+        value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<GcView<ObjectData>, Box<EvalError>> {
+    ) -> Result<GcView<ObjectData<'p>>, Box<EvalError>> {
         match value {
             ValueData::Object(obj) => Ok(obj.view()),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -1804,10 +1800,10 @@ impl<'a> Evaluator<'a> {
     #[inline]
     fn expect_std_func_arg_func(
         &self,
-        value: ValueData,
+        value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<GcView<FuncData>, Box<EvalError>> {
+    ) -> Result<GcView<FuncData<'p>>, Box<EvalError>> {
         match value {
             ValueData::Function(func) => Ok(func.view()),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -1831,7 +1827,7 @@ impl<'a> Evaluator<'a> {
     fn get_stack_trace(&self) -> Vec<EvalStackTraceItem> {
         let mut stack_trace = Vec::new();
         for stack_item in self.state_stack.iter() {
-            fn conv_trace_item(item: &TraceItem) -> EvalStackTraceItem {
+            fn conv_trace_item(item: &TraceItem<'_>) -> EvalStackTraceItem {
                 match *item {
                     TraceItem::Expr { span } => EvalStackTraceItem::Expr { span },
                     TraceItem::Call { span, ref name } => EvalStackTraceItem::Call {

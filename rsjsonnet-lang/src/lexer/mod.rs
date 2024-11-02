@@ -5,17 +5,27 @@
 //! ```
 //! let source = b"local add_one(x) = x + 1; add_one(2)";
 //!
+//! let arena = rsjsonnet_lang::arena::Arena::new();
+//! let ast_arena = rsjsonnet_lang::arena::Arena::new();
 //! let str_interner = rsjsonnet_lang::interner::StrInterner::new();
 //! let mut span_mgr = rsjsonnet_lang::span::SpanManager::new();
 //! let (span_ctx, _) = span_mgr.insert_source_context(source.len());
 //!
 //! // Create the lexer
-//! let lexer = rsjsonnet_lang::lexer::Lexer::new(&str_interner, &mut span_mgr, span_ctx, source);
+//! let lexer = rsjsonnet_lang::lexer::Lexer::new(
+//!     &arena,
+//!     &ast_arena,
+//!     &str_interner,
+//!     &mut span_mgr,
+//!     span_ctx,
+//!     source,
+//! );
 //!
 //! // Lex the whole input.
 //! let tokens = lexer.lex_to_eof(false).unwrap();
 //! ```
 
+use crate::arena::Arena;
 use crate::interner::StrInterner;
 use crate::span::{SpanContextId, SpanId, SpanManager};
 use crate::token::{Number, STokenKind, Token, TokenKind};
@@ -25,8 +35,10 @@ mod error;
 pub use error::LexError;
 
 /// The lexer. See the [module-level documentation](self) for more details.
-pub struct Lexer<'a> {
-    str_interner: &'a StrInterner,
+pub struct Lexer<'a, 'p, 'ast> {
+    arena: &'p Arena,
+    ast_arena: &'ast Arena,
+    str_interner: &'a StrInterner<'p>,
     span_mgr: &'a mut SpanManager,
     span_ctx: SpanContextId,
     input: &'a [u8],
@@ -34,15 +46,19 @@ pub struct Lexer<'a> {
     end_pos: usize,
 }
 
-impl<'a> Lexer<'a> {
+impl<'a, 'p, 'ast> Lexer<'a, 'p, 'ast> {
     /// Create a new lexer that operates on `input`.
     pub fn new(
-        str_interner: &'a StrInterner,
+        arena: &'p Arena,
+        ast_arena: &'ast Arena,
+        str_interner: &'a StrInterner<'p>,
         span_mgr: &'a mut SpanManager,
         span_ctx: SpanContextId,
         input: &'a [u8],
     ) -> Self {
         Self {
+            arena,
+            ast_arena,
             str_interner,
             span_mgr,
             span_ctx,
@@ -59,7 +75,10 @@ impl<'a> Lexer<'a> {
     /// If `whitespaces_and_comments` is `false`,
     /// [whitespace](TokenKind::Whitespace) and [comment](TokenKind::Comment)
     /// tokens will be omitted from the output.
-    pub fn lex_to_eof(mut self, whitespaces_and_comments: bool) -> Result<Vec<Token>, LexError> {
+    pub fn lex_to_eof(
+        mut self,
+        whitespaces_and_comments: bool,
+    ) -> Result<Vec<Token<'p, 'ast>>, LexError> {
         let mut tokens = Vec::new();
         loop {
             let token = self.next_token()?;
@@ -77,7 +96,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Lexes the next token.
-    pub fn next_token(&mut self) -> Result<Token, LexError> {
+    pub fn next_token(&mut self) -> Result<Token<'p, 'ast>, LexError> {
         match self.eat_any_byte() {
             None => Ok(self.commit_token(TokenKind::EndOfFile)),
             Some(b'{') => Ok(self.commit_token(TokenKind::Simple(STokenKind::LeftBrace))),
@@ -144,12 +163,12 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn lex_single_line_comment(&mut self) -> Result<Token, LexError> {
+    fn lex_single_line_comment(&mut self) -> Result<Token<'p, 'ast>, LexError> {
         while !matches!(self.eat_any_byte(), None | Some(b'\n')) {}
         Ok(self.commit_token(TokenKind::Comment))
     }
 
-    fn lex_multi_line_comment(&mut self) -> Result<Token, LexError> {
+    fn lex_multi_line_comment(&mut self) -> Result<Token<'p, 'ast>, LexError> {
         loop {
             if self.eat_slice(b"*/") {
                 break;
@@ -162,7 +181,7 @@ impl<'a> Lexer<'a> {
     }
 
     #[must_use]
-    fn lex_operator(&mut self) -> Token {
+    fn lex_operator(&mut self) -> Token<'p, 'ast> {
         let mut sure_end_pos = self.end_pos;
         loop {
             if self.eat_slice(b"|||") || self.eat_slice(b"//") || self.eat_slice(b"/*") {
@@ -214,14 +233,14 @@ impl<'a> Lexer<'a> {
             b"||" => self.commit_token(TokenKind::Simple(STokenKind::PipePipe)),
             b"!" => self.commit_token(TokenKind::Simple(STokenKind::Exclam)),
             b"~" => self.commit_token(TokenKind::Simple(STokenKind::Tilde)),
-            _ => self.commit_token(TokenKind::OtherOp(Box::from(
-                std::str::from_utf8(op).unwrap(),
-            ))),
+            _ => self.commit_token(TokenKind::OtherOp(
+                self.ast_arena.alloc_str(std::str::from_utf8(op).unwrap()),
+            )),
         }
     }
 
     #[must_use]
-    fn lex_ident(&mut self) -> Token {
+    fn lex_ident(&mut self) -> Token<'p, 'ast> {
         while self.eat_byte_if(|b| b.is_ascii_alphanumeric() || b == b'_') {}
         let ident_bytes = &self.input[self.start_pos..self.end_pos];
         match ident_bytes {
@@ -245,12 +264,12 @@ impl<'a> Lexer<'a> {
             b"true" => self.commit_token(TokenKind::Simple(STokenKind::True)),
             _ => self.commit_token(TokenKind::Ident(
                 self.str_interner
-                    .intern(std::str::from_utf8(ident_bytes).unwrap()),
+                    .intern(self.arena, std::str::from_utf8(ident_bytes).unwrap()),
             )),
         }
     }
 
-    fn lex_number(&mut self, chr0: u8) -> Result<Token, LexError> {
+    fn lex_number(&mut self, chr0: u8) -> Result<Token<'p, 'ast>, LexError> {
         let leading_zero = chr0 == b'0';
         let mut digits = String::new();
         digits.push(char::from(chr0));
@@ -319,12 +338,12 @@ impl<'a> Lexer<'a> {
         }
 
         Ok(self.commit_token(TokenKind::Number(Number {
-            digits: digits.into_boxed_str(),
+            digits: self.ast_arena.alloc_str(&digits),
             exp: eff_exp,
         })))
     }
 
-    fn lex_quoted_string(&mut self, delim: u8) -> Result<Token, LexError> {
+    fn lex_quoted_string(&mut self, delim: u8) -> Result<Token<'p, 'ast>, LexError> {
         let mut string = String::new();
         loop {
             if self.eat_byte(delim) {
@@ -426,10 +445,10 @@ impl<'a> Lexer<'a> {
                 }
             }
         }
-        Ok(self.commit_token(TokenKind::String(string.into_boxed_str())))
+        Ok(self.commit_token(TokenKind::String(self.ast_arena.alloc_str(&string))))
     }
 
-    fn lex_verbatim_string(&mut self, delim: u8) -> Result<Token, LexError> {
+    fn lex_verbatim_string(&mut self, delim: u8) -> Result<Token<'p, 'ast>, LexError> {
         let mut string = String::new();
         loop {
             if self.eat_byte(delim) {
@@ -448,11 +467,11 @@ impl<'a> Lexer<'a> {
                 }
             }
         }
-        Ok(self.commit_token(TokenKind::String(string.into_boxed_str())))
+        Ok(self.commit_token(TokenKind::String(self.ast_arena.alloc_str(&string))))
     }
 
     #[inline]
-    fn lex_text_block(&mut self) -> Result<Token, LexError> {
+    fn lex_text_block(&mut self) -> Result<Token<'p, 'ast>, LexError> {
         let mut string = String::new();
         let mut prefix;
         while self.eat_byte_if(|b| matches!(b, b' ' | b'\t' | b'\r')) {}
@@ -520,7 +539,7 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        Ok(self.commit_token(TokenKind::TextBlock(string.into_boxed_str())))
+        Ok(self.commit_token(TokenKind::TextBlock(self.ast_arena.alloc_str(&string))))
     }
 
     #[must_use]
@@ -688,7 +707,7 @@ impl<'a> Lexer<'a> {
 
     #[must_use]
     #[inline]
-    fn commit_token(&mut self, kind: TokenKind) -> Token {
+    fn commit_token(&mut self, kind: TokenKind<'p, 'ast>) -> Token<'p, 'ast> {
         let start_pos = self.start_pos;
         self.start_pos = self.end_pos;
         Token {
@@ -707,11 +726,14 @@ impl<'a> Lexer<'a> {
 #[cfg(test)]
 mod tests {
     use super::Lexer;
+    use crate::arena::Arena;
     use crate::interner::StrInterner;
     use crate::span::SpanManager;
 
     #[test]
     fn test_decode_valid_utf8() {
+        let arena = Arena::new();
+        let ast_arena = Arena::new();
         let str_interner = StrInterner::new();
         let mut span_mgr = SpanManager::new();
         let (span_ctx, _) = span_mgr.insert_source_context(4);
@@ -720,13 +742,22 @@ mod tests {
             let mut buf = [0; 4];
             let encoded = chr.encode_utf8(&mut buf);
 
-            let mut lexer = Lexer::new(&str_interner, &mut span_mgr, span_ctx, encoded.as_bytes());
+            let mut lexer = Lexer::new(
+                &arena,
+                &ast_arena,
+                &str_interner,
+                &mut span_mgr,
+                span_ctx,
+                encoded.as_bytes(),
+            );
             assert_eq!(lexer.eat_any_char(), Some(Ok(chr)));
         }
     }
 
     #[test]
     fn test_decode_invalid_utf8() {
+        let arena = Arena::new();
+        let ast_area = Arena::new();
         let str_interner = StrInterner::new();
         let mut span_mgr = SpanManager::new();
 
@@ -761,7 +792,14 @@ mod tests {
             assert_eq!(utf8_error.valid_up_to(), 0);
             let error_len = utf8_error.error_len().unwrap_or(source.len());
 
-            let mut lexer = Lexer::new(&str_interner, &mut span_mgr, span_ctx, source);
+            let mut lexer = Lexer::new(
+                &ast_area,
+                &arena,
+                &str_interner,
+                &mut span_mgr,
+                span_ctx,
+                source,
+            );
             assert_eq!(lexer.eat_any_char(), Some(Err(error_len)));
         }
     }

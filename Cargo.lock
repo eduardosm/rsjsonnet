@@ -97,6 +97,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bumpalo"
+version = "3.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79296716171880943b8470b5f8d03aa55eb2e645a4874bdbb28adb49162e012c"
+
+[[package]]
 name = "cc"
 version = "1.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -475,6 +481,7 @@ dependencies = [
 name = "rsjsonnet-lang"
 version = "0.3.0-pre"
 dependencies = [
+ "bumpalo",
  "foldhash",
  "hashbrown 0.15.0",
  "md-5",

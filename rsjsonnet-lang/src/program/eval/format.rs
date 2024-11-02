@@ -74,13 +74,13 @@ enum FieldWidth {
     External,
 }
 
-enum WidthTmp {
+enum WidthTmp<'p> {
     None,
     Inline(u32),
-    Thunk(GcView<ThunkData>),
+    Thunk(GcView<ThunkData<'p>>),
 }
 
-impl Evaluator<'_> {
+impl<'p> Evaluator<'_, 'p> {
     pub(super) fn do_std_format(&mut self) -> Result<(), Box<EvalError>> {
         let vals = self.value_stack.pop().unwrap();
         let fmt = self.value_stack.pop().unwrap();
@@ -302,7 +302,11 @@ impl Evaluator<'_> {
         Ok(conv_type)
     }
 
-    pub(super) fn want_format_array(&mut self, parts: Vec<FormatPart>, array: GcView<ArrayData>) {
+    pub(super) fn want_format_array(
+        &mut self,
+        parts: Vec<FormatPart>,
+        array: GcView<ArrayData<'p>>,
+    ) {
         self.string_stack.push(String::new());
         self.state_stack.push(State::StdFormatCodesArray1 {
             parts: Rc::new(parts),
@@ -315,7 +319,7 @@ impl Evaluator<'_> {
     pub(super) fn want_format_object(
         &mut self,
         parts: Vec<FormatPart>,
-        object: GcView<ObjectData>,
+        object: GcView<ObjectData<'p>>,
     ) {
         self.string_stack.push(String::new());
         self.state_stack.push(State::StdFormatCodesObject1 {
@@ -328,7 +332,7 @@ impl Evaluator<'_> {
     pub(super) fn do_std_format_codes_array_1(
         &mut self,
         parts: Rc<Vec<FormatPart>>,
-        array: GcView<ArrayData>,
+        array: GcView<ArrayData<'p>>,
         part_i: usize,
         mut array_i: usize,
     ) -> Result<(), Box<EvalError>> {
@@ -434,7 +438,7 @@ impl Evaluator<'_> {
     pub(super) fn do_std_format_codes_array_2(
         &mut self,
         parts: Rc<Vec<FormatPart>>,
-        array: GcView<ArrayData>,
+        array: GcView<ArrayData<'p>>,
         part_i: usize,
         mut array_i: usize,
     ) -> Result<(), Box<EvalError>> {
@@ -527,7 +531,7 @@ impl Evaluator<'_> {
     pub(super) fn do_std_format_codes_array_3(
         &mut self,
         parts: Rc<Vec<FormatPart>>,
-        array: GcView<ArrayData>,
+        array: GcView<ArrayData<'p>>,
         part_i: usize,
         array_i: usize,
         fw: u32,
@@ -565,7 +569,7 @@ impl Evaluator<'_> {
     pub(super) fn do_std_format_codes_object_1(
         &mut self,
         parts: Rc<Vec<FormatPart>>,
-        object: GcView<ObjectData>,
+        object: GcView<ObjectData<'p>>,
         part_i: usize,
     ) -> Result<(), Box<EvalError>> {
         if part_i >= parts.len() {
@@ -634,8 +638,7 @@ impl Evaluator<'_> {
                     };
                     let field_name = self.program.str_interner.get_interned(mkey);
                     if let Some(field_thunk) = field_name.and_then(|field_name| {
-                        self.program
-                            .find_object_field_thunk(&object, 0, &field_name)
+                        self.program.find_object_field_thunk(&object, 0, field_name)
                     }) {
                         Some(field_thunk)
                     } else {
@@ -674,7 +677,7 @@ impl Evaluator<'_> {
     pub(super) fn do_std_format_codes_object_2(
         &mut self,
         parts: Rc<Vec<FormatPart>>,
-        object: GcView<ObjectData>,
+        object: GcView<ObjectData<'p>>,
         part_i: usize,
         fw: u32,
     ) -> Result<(), EvalError> {

@@ -14,6 +14,7 @@
 //! Jsonnet parsing. See the [`program`] module for Jsonnet
 //! evaluation.
 
+pub mod arena;
 pub mod ast;
 mod float;
 mod gc;
