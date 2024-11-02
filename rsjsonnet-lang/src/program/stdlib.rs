@@ -1,9 +1,9 @@
 use std::cell::OnceCell;
-use std::rc::Rc;
 
 use super::{
     ir, BuiltInFunc, FuncData, FuncKind, ObjectData, ObjectField, Program, ThunkData, ValueData,
 };
+use crate::arena::Arena;
 use crate::gc::{Gc, GcContext, GcView};
 use crate::interner::{InternedStr, StrInterner};
 use crate::span::SpanContextId;
@@ -12,7 +12,7 @@ use crate::{ast, FHashMap};
 // From jsonnet 0.20.0
 pub(super) const STDLIB_DATA: &[u8] = include_bytes!("std.jsonnet");
 
-impl Program {
+impl<'p> Program<'p> {
     pub(super) fn load_stdlib(&mut self, span_ctx: SpanContextId) {
         let stdlib_data = self.stdlib_data;
         let stdlib_thunk = self
@@ -34,20 +34,21 @@ impl Program {
     }
 
     pub(super) fn build_stdlib_extra(
-        str_interner: &StrInterner,
-        gc_ctx: &GcContext<'static>,
-        exprs: &super::Exprs,
-    ) -> FHashMap<InternedStr, GcView<ThunkData>> {
+        arena: &'p Arena,
+        str_interner: &StrInterner<'p>,
+        gc_ctx: &GcContext<'p>,
+        exprs: &super::Exprs<'p>,
+    ) -> FHashMap<InternedStr<'p>, GcView<ThunkData<'p>>> {
         let mut extra_fields = FHashMap::default();
 
         let mut add_builtin_func =
-            |name: InternedStr,
+            |name: InternedStr<'p>,
              kind: BuiltInFunc,
-             params: Vec<(InternedStr, Option<ir::RcExpr>)>| {
+             params: Vec<(InternedStr<'p>, Option<&'p ir::Expr<'p>>)>| {
                 let prev = extra_fields.insert(
-                    name.clone(),
+                    name,
                     gc_ctx.alloc_view(ThunkData::new_done(ValueData::Function(gc_ctx.alloc(
-                        FuncData::new(Rc::new(params), FuncKind::BuiltIn { name, kind }),
+                        FuncData::new(arena.alloc_slice(&params), FuncKind::BuiltIn { name, kind }),
                     )))),
                 );
                 assert!(prev.is_none());
@@ -55,11 +56,11 @@ impl Program {
 
         let mut add_simple = |name: &str, kind: BuiltInFunc, params: &[&str]| {
             add_builtin_func(
-                str_interner.intern(name),
+                str_interner.intern(arena, name),
                 kind,
                 params
                     .iter()
-                    .map(|&s| (str_interner.intern(s), None))
+                    .map(|&s| (str_interner.intern(arena, s), None))
                     .collect(),
             );
         };
@@ -203,18 +204,18 @@ impl Program {
         add_simple("mod", BuiltInFunc::Mod, &["a", "b"]);
 
         let mut add_with_defaults =
-            |name: &str, kind: BuiltInFunc, params: &[(&str, Option<ir::RcExpr>)]| {
+            |name: &str, kind: BuiltInFunc, params: &[(&str, Option<&'p ir::Expr<'p>>)]| {
                 add_builtin_func(
-                    str_interner.intern(name),
+                    str_interner.intern(arena, name),
                     kind,
                     params
                         .iter()
-                        .map(|(s, e)| (str_interner.intern(s), e.clone()))
+                        .map(|&(s, e)| (str_interner.intern(arena, s), e))
                         .collect(),
                 );
             };
 
-        let identity_func = ir::RcExpr::new(ir::Expr::IdentityFunc);
+        let identity_func = arena.alloc(ir::Expr::IdentityFunc);
 
         add_with_defaults(
             "manifestJsonEx",
@@ -222,14 +223,8 @@ impl Program {
             &[
                 ("value", None),
                 ("indent", None),
-                (
-                    "newline",
-                    Some(ir::RcExpr::new(ir::Expr::String("\n".into()))),
-                ),
-                (
-                    "key_val_sep",
-                    Some(ir::RcExpr::new(ir::Expr::String(": ".into()))),
-                ),
+                ("newline", Some(arena.alloc(ir::Expr::String("\n")))),
+                ("key_val_sep", Some(arena.alloc(ir::Expr::String(": ")))),
             ],
         );
         add_with_defaults(
@@ -237,8 +232,8 @@ impl Program {
             BuiltInFunc::ManifestYamlDoc,
             &[
                 ("value", None),
-                ("indent_array_in_object", Some(exprs.false_.clone())),
-                ("quote_keys", Some(exprs.true_.clone())),
+                ("indent_array_in_object", Some(exprs.false_)),
+                ("quote_keys", Some(exprs.true_)),
             ],
         );
         add_with_defaults(
@@ -246,52 +241,40 @@ impl Program {
             BuiltInFunc::ManifestYamlStream,
             &[
                 ("value", None),
-                ("indent_array_in_object", Some(exprs.false_.clone())),
-                ("c_document_end", Some(exprs.true_.clone())),
-                ("quote_keys", Some(exprs.true_.clone())),
+                ("indent_array_in_object", Some(exprs.false_)),
+                ("c_document_end", Some(exprs.true_)),
+                ("quote_keys", Some(exprs.true_)),
             ],
         );
         add_with_defaults(
             "sort",
             BuiltInFunc::Sort,
-            &[("arr", None), ("keyF", Some(identity_func.clone()))],
+            &[("arr", None), ("keyF", Some(identity_func))],
         );
         add_with_defaults(
             "uniq",
             BuiltInFunc::Uniq,
-            &[("arr", None), ("keyF", Some(identity_func.clone()))],
+            &[("arr", None), ("keyF", Some(identity_func))],
         );
         add_with_defaults(
             "set",
             BuiltInFunc::Set,
-            &[("arr", None), ("keyF", Some(identity_func.clone()))],
+            &[("arr", None), ("keyF", Some(identity_func))],
         );
         add_with_defaults(
             "setInter",
             BuiltInFunc::SetInter,
-            &[
-                ("a", None),
-                ("b", None),
-                ("keyF", Some(identity_func.clone())),
-            ],
+            &[("a", None), ("b", None), ("keyF", Some(identity_func))],
         );
         add_with_defaults(
             "setUnion",
             BuiltInFunc::SetUnion,
-            &[
-                ("a", None),
-                ("b", None),
-                ("keyF", Some(identity_func.clone())),
-            ],
+            &[("a", None), ("b", None), ("keyF", Some(identity_func))],
         );
         add_with_defaults(
             "setDiff",
             BuiltInFunc::SetDiff,
-            &[
-                ("a", None),
-                ("b", None),
-                ("keyF", Some(identity_func.clone())),
-            ],
+            &[("a", None), ("b", None), ("keyF", Some(identity_func))],
         );
         add_with_defaults(
             "setMember",
@@ -302,7 +285,7 @@ impl Program {
         extra_fields
     }
 
-    pub(super) fn make_custom_stdlib(&mut self, this_file: &str) -> Gc<ObjectData> {
+    pub(super) fn make_custom_stdlib(&mut self, this_file: &str) -> Gc<ObjectData<'p>> {
         let stdlib_base_obj = self.stdlib_base_obj.as_ref().unwrap().clone();
 
         let mut extra_fields: FHashMap<_, _> = self
@@ -310,7 +293,7 @@ impl Program {
             .iter()
             .map(|(name, thunk)| {
                 (
-                    name.clone(),
+                    *name,
                     ObjectField {
                         base_env: None,
                         visibility: ast::Visibility::Hidden,

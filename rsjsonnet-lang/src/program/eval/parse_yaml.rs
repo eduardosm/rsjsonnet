@@ -5,7 +5,7 @@ use crate::gc::Gc;
 use crate::interner::InternedStr;
 use crate::{ast, FHashMap};
 
-pub(crate) enum ParseError {
+pub(crate) enum ParseError<'p> {
     Parser(saphyr_parser::ScanError),
     EmptyStream,
     Tag,
@@ -14,17 +14,17 @@ pub(crate) enum ParseError {
     KeyIsObject(saphyr_parser::Marker),
     KeyIsArray(saphyr_parser::Marker),
     NumberOverflow,
-    RepeatedFieldName(InternedStr),
+    RepeatedFieldName(InternedStr<'p>),
 }
 
-impl From<saphyr_parser::ScanError> for ParseError {
+impl From<saphyr_parser::ScanError> for ParseError<'_> {
     #[inline]
     fn from(e: saphyr_parser::ScanError) -> Self {
         Self::Parser(e)
     }
 }
 
-impl std::fmt::Display for ParseError {
+impl std::fmt::Display for ParseError<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
             Self::Parser(ref e) => write!(f, "{e}"),
@@ -54,7 +54,10 @@ impl std::fmt::Display for ParseError {
     }
 }
 
-pub(super) fn parse_yaml(program: &mut Program, s: &str) -> Result<ValueData, ParseError> {
+pub(super) fn parse_yaml<'p>(
+    program: &mut Program<'p>,
+    s: &str,
+) -> Result<ValueData<'p>, ParseError<'p>> {
     let mut parser = saphyr_parser::Parser::new_from_str(s);
 
     let (first_event, _) = parser.next_event().unwrap()?;
@@ -64,10 +67,10 @@ pub(super) fn parse_yaml(program: &mut Program, s: &str) -> Result<ValueData, Pa
         unreachable!();
     }
 
-    enum StreamKind {
+    enum StreamKind<'p> {
         Empty,
-        Single(ValueData),
-        Stream(Vec<Gc<ThunkData>>),
+        Single(ValueData<'p>),
+        Stream(Vec<Gc<ThunkData<'p>>>),
     }
 
     let mut stream_kind = StreamKind::Empty;
@@ -115,29 +118,29 @@ pub(super) fn parse_yaml(program: &mut Program, s: &str) -> Result<ValueData, Pa
     }
 }
 
-enum AnchorValue {
+enum AnchorValue<'p> {
     Pending,
     Scalar {
         style: saphyr_parser::TScalarStyle,
         value: String,
     },
-    Array(Gc<ArrayData>),
-    Object(Gc<ObjectData>),
+    Array(Gc<ArrayData<'p>>),
+    Object(Gc<ObjectData<'p>>),
 }
 
-fn parse_yaml_document(
-    program: &mut Program,
+fn parse_yaml_document<'p>(
+    program: &mut Program<'p>,
     parser: &mut saphyr_parser::Parser<saphyr_parser::StrInput<'_>>,
-) -> Result<ValueData, ParseError> {
-    enum StackItem {
+) -> Result<ValueData<'p>, ParseError<'p>> {
+    enum StackItem<'p> {
         Array {
             anchor_id: usize,
-            items: Vec<Gc<ThunkData>>,
+            items: Vec<Gc<ThunkData<'p>>>,
         },
         Object {
             anchor_id: usize,
-            fields: FHashMap<InternedStr, ObjectField>,
-            current_key: InternedStr,
+            fields: FHashMap<InternedStr<'p>, ObjectField<'p>>,
+            current_key: InternedStr<'p>,
         },
     }
 
@@ -292,7 +295,7 @@ fn parse_yaml_document(
                                 });
                             }
                             std::collections::hash_map::Entry::Occupied(entry) => {
-                                return Err(ParseError::RepeatedFieldName(entry.key().clone()));
+                                return Err(ParseError::RepeatedFieldName(*entry.key()));
                             }
                         }
 
@@ -363,10 +366,10 @@ fn parse_yaml_document(
     }
 }
 
-fn scalar_to_value(
+fn scalar_to_value<'p>(
     style: saphyr_parser::TScalarStyle,
     value: &str,
-) -> Result<ValueData, ParseError> {
+) -> Result<ValueData<'p>, ParseError<'p>> {
     if style == saphyr_parser::TScalarStyle::Plain {
         match value {
             "null" | "Null" | "NULL" | "~" => Ok(ValueData::Null),

@@ -7,6 +7,7 @@
 )]
 #![forbid(unsafe_code)]
 
+use rsjsonnet_lang::arena::Arena;
 use rsjsonnet_lang::ast;
 use rsjsonnet_lang::interner::StrInterner;
 use rsjsonnet_lang::lexer::Lexer;
@@ -15,31 +16,36 @@ use rsjsonnet_lang::span::{SpanContextId, SpanId, SpanManager};
 use rsjsonnet_lang::token::TokenKind;
 
 #[must_use]
-struct ParserTest<'a, F: FnOnce(&mut Session, Result<ast::Expr, ParseError>)> {
+struct ParserTest<'a, F: for<'p> FnOnce(&mut Session<'p>, Result<ast::Expr<'p, 'p>, ParseError>)> {
     input: &'a [u8],
     check: F,
 }
 
-struct Session {
-    str_interner: StrInterner,
+struct Session<'p> {
+    arena: &'p Arena,
+    str_interner: StrInterner<'p>,
     span_mgr: SpanManager,
     span_ctx: SpanContextId,
 }
 
-impl<F: FnOnce(&mut Session, Result<ast::Expr, ParseError>)> ParserTest<'_, F> {
+impl<F: for<'p> FnOnce(&mut Session<'p>, Result<ast::Expr<'p, 'p>, ParseError>)> ParserTest<'_, F> {
     #[track_caller]
     fn run(self) {
+        let arena = Arena::new();
         let str_interner = StrInterner::new();
         let mut span_mgr = SpanManager::new();
         let (span_ctx, _) = span_mgr.insert_source_context(self.input.len());
 
         let mut session = Session {
+            arena: &arena,
             str_interner,
             span_mgr,
             span_ctx,
         };
 
         let lexer = Lexer::new(
+            &arena,
+            &arena,
             &session.str_interner,
             &mut session.span_mgr,
             span_ctx,
@@ -53,7 +59,13 @@ impl<F: FnOnce(&mut Session, Result<ast::Expr, ParseError>)> ParserTest<'_, F> {
         let (start_ctx, start_pos, _) = session.span_mgr.get_span(first_span);
         let (end_ctx, _, end_pos) = session.span_mgr.get_span(last_span);
 
-        let parser = Parser::new(&session.str_interner, &mut session.span_mgr, tokens);
+        let parser = Parser::new(
+            &arena,
+            &arena,
+            &session.str_interner,
+            &mut session.span_mgr,
+            tokens,
+        );
         let result_ast = parser.parse_root_expr();
 
         if let Ok(ref result_ast) = result_ast {
@@ -69,23 +81,28 @@ impl<F: FnOnce(&mut Session, Result<ast::Expr, ParseError>)> ParserTest<'_, F> {
     }
 }
 
-impl Session {
+impl<'p> Session<'p> {
     fn intern_span(&mut self, start: usize, end: usize) -> SpanId {
         self.span_mgr.intern_span(self.span_ctx, start, end)
     }
 
-    fn make_ident(&mut self, s: &str, span_start: usize, span_end: usize) -> ast::Ident {
+    fn make_ident(&mut self, s: &str, span_start: usize, span_end: usize) -> ast::Ident<'p> {
         ast::Ident {
-            value: self.str_interner.intern(s),
+            value: self.str_interner.intern(self.arena, s),
             span: self.intern_span(span_start, span_end),
         }
     }
 
-    fn make_ident_expr(&mut self, s: &str, span_start: usize, span_end: usize) -> ast::Expr {
+    fn make_ident_expr(
+        &mut self,
+        s: &str,
+        span_start: usize,
+        span_end: usize,
+    ) -> ast::Expr<'p, 'p> {
         let span = self.intern_span(span_start, span_end);
         ast::Expr {
             kind: ast::ExprKind::Ident(ast::Ident {
-                value: self.str_interner.intern(s),
+                value: self.str_interner.intern(self.arena, s),
                 span,
             }),
             span,
@@ -147,7 +164,7 @@ fn test_simple_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Number(rsjsonnet_lang::token::Number {
-                    digits: "12".into(),
+                    digits: "12",
                     exp: -1,
                 })
             );
@@ -171,7 +188,7 @@ fn test_simple_expr() {
         input: b"\"x\"",
         check: |_, expr| {
             let expr = expr.unwrap();
-            assert_eq!(expr.kind, ast::ExprKind::String("x".into()));
+            assert_eq!(expr.kind, ast::ExprKind::String("x"));
         },
     }
     .run();
@@ -180,7 +197,7 @@ fn test_simple_expr() {
         input: b"|||\n  x\n|||",
         check: |_, expr| {
             let expr = expr.unwrap();
-            assert_eq!(expr.kind, ast::ExprKind::TextBlock("x\n".into()));
+            assert_eq!(expr.kind, ast::ExprKind::TextBlock("x\n"));
         },
     }
     .run();
@@ -194,7 +211,7 @@ fn test_paren_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Paren(Box::new(ast::Expr {
+                ast::ExprKind::Paren(session.arena.alloc(ast::Expr {
                     kind: ast::ExprKind::Null,
                     span: session.intern_span(1, 5),
                 }))
@@ -208,11 +225,11 @@ fn test_paren_expr() {
 fn test_object_expr() {
     ParserTest {
         input: b"{}",
-        check: |_, expr| {
+        check: |session, expr| {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([]))),
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([]))),
             );
         },
     }
@@ -224,14 +241,14 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([ast::Member::Field(
-                    ast::Field::Value(
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
+                    ast::Member::Field(ast::Field::Value(
                         ast::FieldName::Ident(session.make_ident("a", 1, 2)),
                         false,
                         ast::Visibility::Default,
                         session.make_ident_expr("b", 4, 5),
-                    ),
-                )]))),
+                    ),)
+                ]))),
             );
         },
     }
@@ -243,14 +260,14 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([ast::Member::Field(
-                    ast::Field::Value(
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
+                    ast::Member::Field(ast::Field::Value(
                         ast::FieldName::Ident(session.make_ident("a", 1, 2)),
                         false,
                         ast::Visibility::Default,
                         session.make_ident_expr("b", 4, 5),
-                    ),
-                )]))),
+                    ),)
+                ]))),
             );
         },
     }
@@ -262,7 +279,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
                     ast::Member::Field(ast::Field::Value(
                         ast::FieldName::Ident(session.make_ident("a", 1, 2)),
                         false,
@@ -287,7 +304,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
                     ast::Member::Field(ast::Field::Value(
                         ast::FieldName::Ident(session.make_ident("a", 1, 2)),
                         false,
@@ -312,18 +329,18 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([ast::Member::Field(
-                    ast::Field::Func(
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
+                    ast::Member::Field(ast::Field::Func(
                         ast::FieldName::Ident(session.make_ident("a", 1, 2)),
-                        Box::new([ast::Param {
+                        session.arena.alloc([ast::Param {
                             name: session.make_ident("b", 3, 4),
                             default_value: None,
                         }]),
                         session.intern_span(2, 5),
                         ast::Visibility::Default,
                         session.make_ident_expr("c", 7, 8),
-                    ),
-                )]))),
+                    ),)
+                ]))),
             );
         },
     }
@@ -335,18 +352,18 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([ast::Member::Field(
-                    ast::Field::Func(
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
+                    ast::Member::Field(ast::Field::Func(
                         ast::FieldName::Ident(session.make_ident("a", 1, 2)),
-                        Box::new([ast::Param {
+                        session.arena.alloc([ast::Param {
                             name: session.make_ident("b", 3, 4),
                             default_value: None,
                         }]),
                         session.intern_span(2, 6),
                         ast::Visibility::Default,
                         session.make_ident_expr("c", 8, 9),
-                    ),
-                )]))),
+                    ),)
+                ]))),
             );
         },
     }
@@ -358,10 +375,10 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([ast::Member::Field(
-                    ast::Field::Func(
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
+                    ast::Member::Field(ast::Field::Func(
                         ast::FieldName::Ident(session.make_ident("a", 1, 2)),
-                        Box::new([
+                        session.arena.alloc([
                             ast::Param {
                                 name: session.make_ident("b", 3, 4),
                                 default_value: None,
@@ -374,8 +391,8 @@ fn test_object_expr() {
                         session.intern_span(2, 8),
                         ast::Visibility::Default,
                         session.make_ident_expr("d", 10, 11),
-                    ),
-                )]))),
+                    ),)
+                ]))),
             );
         },
     }
@@ -387,15 +404,15 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([ast::Member::Local(
-                    ast::ObjLocal {
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
+                    ast::Member::Local(ast::ObjLocal {
                         bind: ast::Bind {
                             name: session.make_ident("x", 7, 8),
                             params: None,
                             value: session.make_ident_expr("a", 11, 12),
                         },
-                    },
-                )]))),
+                    },)
+                ]))),
             );
         },
     }
@@ -407,15 +424,15 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([ast::Member::Local(
-                    ast::ObjLocal {
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
+                    ast::Member::Local(ast::ObjLocal {
                         bind: ast::Bind {
                             name: session.make_ident("x", 7, 8),
                             params: None,
                             value: session.make_ident_expr("a", 11, 12),
                         },
-                    },
-                )]))),
+                    },)
+                ]))),
             );
         },
     }
@@ -427,7 +444,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
                     ast::Member::Local(ast::ObjLocal {
                         bind: ast::Bind {
                             name: session.make_ident("x", 7, 8),
@@ -454,7 +471,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
                     ast::Member::Local(ast::ObjLocal {
                         bind: ast::Bind {
                             name: session.make_ident("x", 7, 8),
@@ -481,7 +498,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
                     ast::Member::Local(ast::ObjLocal {
                         bind: ast::Bind {
                             name: session.make_ident("x", 7, 8),
@@ -507,7 +524,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
                     ast::Member::Local(ast::ObjLocal {
                         bind: ast::Bind {
                             name: session.make_ident("x", 7, 8),
@@ -533,7 +550,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(Box::new([
+                ast::ExprKind::Object(ast::ObjInside::Members(session.arena.alloc([
                     ast::Member::Local(ast::ObjLocal {
                         bind: ast::Bind {
                             name: session.make_ident("x", 7, 8),
@@ -545,9 +562,9 @@ fn test_object_expr() {
                         span: session.intern_span(14, 27),
                         cond: ast::Expr {
                             kind: ast::ExprKind::Binary(
-                                Box::new(session.make_ident_expr("x", 21, 22)),
+                                session.arena.alloc(session.make_ident_expr("x", 21, 22)),
                                 ast::BinaryOp::Eq,
-                                Box::new(session.make_ident_expr("a", 26, 27)),
+                                session.arena.alloc(session.make_ident_expr("a", 26, 27)),
                             ),
                             span: session.intern_span(21, 27),
                         },
@@ -565,7 +582,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert!(matches!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(ref members)) if members.len() == 1
+                ast::ExprKind::Object(ast::ObjInside::Members(members)) if members.len() == 1
             ));
         },
     }
@@ -577,7 +594,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert!(matches!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(ref members)) if members.len() == 2
+                ast::ExprKind::Object(ast::ObjInside::Members(members)) if members.len() == 2
             ));
         },
     }
@@ -589,7 +606,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert!(matches!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(ref members)) if members.len() == 2
+                ast::ExprKind::Object(ast::ObjInside::Members(members)) if members.len() == 2
             ));
         },
     }
@@ -601,7 +618,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert!(matches!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(ref members)) if members.len() == 3
+                ast::ExprKind::Object(ast::ObjInside::Members(members)) if members.len() == 3
             ));
         },
     }
@@ -613,7 +630,7 @@ fn test_object_expr() {
             let expr = expr.unwrap();
             assert!(matches!(
                 expr.kind,
-                ast::ExprKind::Object(ast::ObjInside::Members(ref members)) if members.len() == 3
+                ast::ExprKind::Object(ast::ObjInside::Members(members)) if members.len() == 3
             ));
         },
     }
@@ -672,9 +689,9 @@ fn test_object_expr() {
 fn test_array_expr() {
     ParserTest {
         input: b"[]",
-        check: |_, expr| {
+        check: |session, expr| {
             let expr = expr.unwrap();
-            assert_eq!(expr.kind, ast::ExprKind::Array(Box::new([])));
+            assert_eq!(expr.kind, ast::ExprKind::Array(session.arena.alloc([])));
         },
     }
     .run();
@@ -685,7 +702,7 @@ fn test_array_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Array(Box::new([session.make_ident_expr("a", 1, 2)])),
+                ast::ExprKind::Array(session.arena.alloc([session.make_ident_expr("a", 1, 2)])),
             );
         },
     }
@@ -697,7 +714,7 @@ fn test_array_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Array(Box::new([session.make_ident_expr("a", 1, 2)])),
+                ast::ExprKind::Array(session.arena.alloc([session.make_ident_expr("a", 1, 2)])),
             );
         },
     }
@@ -709,7 +726,7 @@ fn test_array_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Array(Box::new([
+                ast::ExprKind::Array(session.arena.alloc([
                     session.make_ident_expr("a", 1, 2),
                     session.make_ident_expr("b", 4, 5),
                 ])),
@@ -724,7 +741,7 @@ fn test_array_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Array(Box::new([
+                ast::ExprKind::Array(session.arena.alloc([
                     session.make_ident_expr("a", 1, 2),
                     session.make_ident_expr("b", 4, 5),
                 ])),
@@ -739,7 +756,7 @@ fn test_array_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Array(Box::new([
+                ast::ExprKind::Array(session.arena.alloc([
                     session.make_ident_expr("a", 1, 2),
                     session.make_ident_expr("b", 4, 5),
                     session.make_ident_expr("c", 7, 8),
@@ -755,7 +772,7 @@ fn test_array_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Array(Box::new([
+                ast::ExprKind::Array(session.arena.alloc([
                     session.make_ident_expr("a", 1, 2),
                     session.make_ident_expr("b", 4, 5),
                     session.make_ident_expr("c", 7, 8),
@@ -772,8 +789,8 @@ fn test_array_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::ArrayComp(
-                    Box::new(session.make_ident_expr("a", 1, 2)),
-                    Box::new([ast::CompSpecPart::For(ast::ForSpec {
+                    session.arena.alloc(session.make_ident_expr("a", 1, 2)),
+                    session.arena.alloc([ast::CompSpecPart::For(ast::ForSpec {
                         var: session.make_ident("b", 7, 8),
                         inner: session.make_ident_expr("c", 12, 13),
                     })]),
@@ -790,8 +807,8 @@ fn test_array_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::ArrayComp(
-                    Box::new(session.make_ident_expr("a", 1, 2)),
-                    Box::new([
+                    session.arena.alloc(session.make_ident_expr("a", 1, 2)),
+                    session.arena.alloc([
                         ast::CompSpecPart::For(ast::ForSpec {
                             var: session.make_ident("b", 7, 8),
                             inner: session.make_ident_expr("c", 12, 13),
@@ -813,8 +830,8 @@ fn test_array_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::ArrayComp(
-                    Box::new(session.make_ident_expr("a", 1, 2)),
-                    Box::new([
+                    session.arena.alloc(session.make_ident_expr("a", 1, 2)),
+                    session.arena.alloc([
                         ast::CompSpecPart::For(ast::ForSpec {
                             var: session.make_ident("b", 7, 8),
                             inner: session.make_ident_expr("c", 12, 13),
@@ -839,8 +856,8 @@ fn test_array_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::ArrayComp(
-                    Box::new(session.make_ident_expr("a", 1, 2)),
-                    Box::new([ast::CompSpecPart::For(ast::ForSpec {
+                    session.arena.alloc(session.make_ident_expr("a", 1, 2)),
+                    session.arena.alloc([ast::CompSpecPart::For(ast::ForSpec {
                         var: session.make_ident("b", 8, 9),
                         inner: session.make_ident_expr("c", 13, 14),
                     })]),
@@ -857,8 +874,8 @@ fn test_array_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::ArrayComp(
-                    Box::new(session.make_ident_expr("a", 1, 2)),
-                    Box::new([
+                    session.arena.alloc(session.make_ident_expr("a", 1, 2)),
+                    session.arena.alloc([
                         ast::CompSpecPart::For(ast::ForSpec {
                             var: session.make_ident("b", 8, 9),
                             inner: session.make_ident_expr("c", 13, 14),
@@ -901,7 +918,7 @@ fn test_field_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Field(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
                     session.make_ident("b", 2, 3),
                 ),
             );
@@ -916,9 +933,9 @@ fn test_field_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Field(
-                    Box::new(ast::Expr {
+                    session.arena.alloc(ast::Expr {
                         kind: ast::ExprKind::Field(
-                            Box::new(session.make_ident_expr("a", 0, 1)),
+                            session.arena.alloc(session.make_ident_expr("a", 0, 1)),
                             session.make_ident("b", 2, 3),
                         ),
                         span: session.intern_span(0, 3),
@@ -940,8 +957,8 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Index(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Box::new(session.make_ident_expr("b", 2, 3)),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc(session.make_ident_expr("b", 2, 3)),
                 ),
             );
         },
@@ -955,9 +972,9 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Some(Box::new(session.make_ident_expr("b", 2, 3))),
-                    Some(Box::new(session.make_ident_expr("c", 4, 5))),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    Some(session.arena.alloc(session.make_ident_expr("b", 2, 3))),
+                    Some(session.arena.alloc(session.make_ident_expr("c", 4, 5))),
                     None
                 ),
             );
@@ -972,10 +989,10 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Some(Box::new(session.make_ident_expr("b", 2, 3))),
-                    Some(Box::new(session.make_ident_expr("c", 4, 5))),
-                    Some(Box::new(session.make_ident_expr("d", 6, 7))),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    Some(session.arena.alloc(session.make_ident_expr("b", 2, 3))),
+                    Some(session.arena.alloc(session.make_ident_expr("c", 4, 5))),
+                    Some(session.arena.alloc(session.make_ident_expr("d", 6, 7))),
                 ),
             );
         },
@@ -989,8 +1006,8 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Some(Box::new(session.make_ident_expr("b", 2, 3))),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    Some(session.arena.alloc(session.make_ident_expr("b", 2, 3))),
                     None,
                     None
                 ),
@@ -1006,8 +1023,8 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Some(Box::new(session.make_ident_expr("b", 2, 3))),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    Some(session.arena.alloc(session.make_ident_expr("b", 2, 3))),
                     None,
                     None
                 ),
@@ -1023,8 +1040,8 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Some(Box::new(session.make_ident_expr("b", 2, 3))),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    Some(session.arena.alloc(session.make_ident_expr("b", 2, 3))),
                     None,
                     None
                 ),
@@ -1040,10 +1057,10 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Some(Box::new(session.make_ident_expr("b", 2, 3))),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    Some(session.arena.alloc(session.make_ident_expr("b", 2, 3))),
                     None,
-                    Some(Box::new(session.make_ident_expr("d", 5, 6))),
+                    Some(session.arena.alloc(session.make_ident_expr("d", 5, 6))),
                 ),
             );
         },
@@ -1057,10 +1074,10 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Some(Box::new(session.make_ident_expr("b", 2, 3))),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    Some(session.arena.alloc(session.make_ident_expr("b", 2, 3))),
                     None,
-                    Some(Box::new(session.make_ident_expr("d", 6, 7))),
+                    Some(session.arena.alloc(session.make_ident_expr("d", 6, 7))),
                 ),
             );
         },
@@ -1074,7 +1091,7 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
                     None,
                     None,
                     None
@@ -1091,7 +1108,7 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
                     None,
                     None,
                     None
@@ -1108,7 +1125,7 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
                     None,
                     None,
                     None
@@ -1125,9 +1142,9 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
                     None,
-                    Some(Box::new(session.make_ident_expr("c", 3, 4))),
+                    Some(session.arena.alloc(session.make_ident_expr("c", 3, 4))),
                     None,
                 ),
             );
@@ -1142,9 +1159,9 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
                     None,
-                    Some(Box::new(session.make_ident_expr("c", 3, 4))),
+                    Some(session.arena.alloc(session.make_ident_expr("c", 3, 4))),
                     None,
                 ),
             );
@@ -1159,10 +1176,10 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
                     None,
                     None,
-                    Some(Box::new(session.make_ident_expr("d", 4, 5))),
+                    Some(session.arena.alloc(session.make_ident_expr("d", 4, 5))),
                 ),
             );
         },
@@ -1176,10 +1193,10 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
                     None,
                     None,
-                    Some(Box::new(session.make_ident_expr("d", 5, 6))),
+                    Some(session.arena.alloc(session.make_ident_expr("d", 5, 6))),
                 ),
             );
         },
@@ -1193,10 +1210,10 @@ fn test_index_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Slice(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
                     None,
-                    Some(Box::new(session.make_ident_expr("c", 3, 4))),
-                    Some(Box::new(session.make_ident_expr("d", 5, 6))),
+                    Some(session.arena.alloc(session.make_ident_expr("c", 3, 4))),
+                    Some(session.arena.alloc(session.make_ident_expr("d", 5, 6))),
                 ),
             );
         },
@@ -1229,7 +1246,7 @@ fn test_super_expr() {
                 expr.kind,
                 ast::ExprKind::SuperIndex(
                     session.intern_span(0, 5),
-                    Box::new(session.make_ident_expr("index", 6, 11)),
+                    session.arena.alloc(session.make_ident_expr("index", 6, 11)),
                 ),
             );
         },
@@ -1246,8 +1263,8 @@ fn test_call_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Call(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Box::new([]),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc([]),
                     false
                 ),
             );
@@ -1262,8 +1279,8 @@ fn test_call_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Call(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Box::new([]),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc([]),
                     true
                 ),
             );
@@ -1278,8 +1295,10 @@ fn test_call_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Call(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Box::new([ast::Arg::Positional(session.make_ident_expr("b", 2, 3))]),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    session
+                        .arena
+                        .alloc([ast::Arg::Positional(session.make_ident_expr("b", 2, 3))]),
                     false,
                 ),
             );
@@ -1294,8 +1313,10 @@ fn test_call_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Call(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Box::new([ast::Arg::Positional(session.make_ident_expr("b", 2, 3))]),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    session
+                        .arena
+                        .alloc([ast::Arg::Positional(session.make_ident_expr("b", 2, 3))]),
                     true,
                 ),
             );
@@ -1310,8 +1331,10 @@ fn test_call_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Call(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Box::new([ast::Arg::Positional(session.make_ident_expr("b", 2, 3))]),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    session
+                        .arena
+                        .alloc([ast::Arg::Positional(session.make_ident_expr("b", 2, 3))]),
                     false,
                 ),
             );
@@ -1326,8 +1349,10 @@ fn test_call_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Call(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Box::new([ast::Arg::Positional(session.make_ident_expr("b", 2, 3))]),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    session
+                        .arena
+                        .alloc([ast::Arg::Positional(session.make_ident_expr("b", 2, 3))]),
                     false,
                 ),
             );
@@ -1342,8 +1367,8 @@ fn test_call_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Call(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Box::new([
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc([
                         ast::Arg::Positional(session.make_ident_expr("b", 2, 3)),
                         ast::Arg::Positional(session.make_ident_expr("c", 5, 6)),
                     ]),
@@ -1361,8 +1386,8 @@ fn test_call_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Call(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Box::new([
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc([
                         ast::Arg::Positional(session.make_ident_expr("b", 2, 3)),
                         ast::Arg::Positional(session.make_ident_expr("c", 5, 6)),
                     ]),
@@ -1380,8 +1405,8 @@ fn test_call_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Call(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    Box::new([ast::Arg::Named(
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    session.arena.alloc([ast::Arg::Named(
                         session.make_ident("b", 2, 3),
                         session.make_ident_expr("c", 6, 7),
                     )]),
@@ -1402,12 +1427,12 @@ fn test_local_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Local(
-                    Box::new([ast::Bind {
+                    session.arena.alloc([ast::Bind {
                         name: session.make_ident("x", 6, 7),
                         params: None,
                         value: session.make_ident_expr("v1", 10, 12),
                     }]),
-                    Box::new(session.make_ident_expr("a", 14, 15)),
+                    session.arena.alloc(session.make_ident_expr("a", 14, 15)),
                 ),
             );
         },
@@ -1421,7 +1446,7 @@ fn test_local_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Local(
-                    Box::new([
+                    session.arena.alloc([
                         ast::Bind {
                             name: session.make_ident("x", 6, 7),
                             params: None,
@@ -1433,7 +1458,7 @@ fn test_local_expr() {
                             value: session.make_ident_expr("v2", 18, 20),
                         }
                     ]),
-                    Box::new(session.make_ident_expr("a", 22, 23)),
+                    session.arena.alloc(session.make_ident_expr("a", 22, 23)),
                 ),
             );
         },
@@ -1504,8 +1529,8 @@ fn test_if_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::If(
-                    Box::new(session.make_ident_expr("a", 3, 4)),
-                    Box::new(session.make_ident_expr("b", 10, 11)),
+                    session.arena.alloc(session.make_ident_expr("a", 3, 4)),
+                    session.arena.alloc(session.make_ident_expr("b", 10, 11)),
                     None,
                 )
             );
@@ -1520,9 +1545,9 @@ fn test_if_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::If(
-                    Box::new(session.make_ident_expr("a", 3, 4)),
-                    Box::new(session.make_ident_expr("b", 10, 11)),
-                    Some(Box::new(session.make_ident_expr("c", 17, 18))),
+                    session.arena.alloc(session.make_ident_expr("a", 3, 4)),
+                    session.arena.alloc(session.make_ident_expr("b", 10, 11)),
+                    Some(session.arena.alloc(session.make_ident_expr("c", 17, 18))),
                 )
             );
         },
@@ -1539,8 +1564,8 @@ fn test_obj_ext_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::ObjExt(
-                    Box::new(session.make_ident_expr("a", 0, 1)),
-                    ast::ObjInside::Members(Box::new([])),
+                    session.arena.alloc(session.make_ident_expr("a", 0, 1)),
+                    ast::ObjInside::Members(session.arena.alloc([])),
                     session.intern_span(2, 4),
                 )
             );
@@ -1597,12 +1622,14 @@ fn test_assert_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Assert(
-                    Box::new(ast::Assert {
+                    session.arena.alloc(ast::Assert {
                         span: session.intern_span(0, 11),
                         cond: session.make_ident_expr("cond", 7, 11),
                         msg: None
                     }),
-                    Box::new(session.make_ident_expr("value", 13, 18)),
+                    session
+                        .arena
+                        .alloc(session.make_ident_expr("value", 13, 18)),
                 )
             );
         },
@@ -1616,12 +1643,14 @@ fn test_assert_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Assert(
-                    Box::new(ast::Assert {
+                    session.arena.alloc(ast::Assert {
                         span: session.intern_span(0, 17),
                         cond: session.make_ident_expr("cond", 7, 11),
                         msg: Some(session.make_ident_expr("msg", 14, 17)),
                     }),
-                    Box::new(session.make_ident_expr("value", 19, 24)),
+                    session
+                        .arena
+                        .alloc(session.make_ident_expr("value", 19, 24)),
                 )
             );
         },
@@ -1637,8 +1666,8 @@ fn test_import_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Import(Box::new(ast::Expr {
-                    kind: ast::ExprKind::String("x".into()),
+                ast::ExprKind::Import(session.arena.alloc(ast::Expr {
+                    kind: ast::ExprKind::String("x"),
                     span: session.intern_span(7, 10),
                 })),
             );
@@ -1652,8 +1681,8 @@ fn test_import_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::ImportStr(Box::new(ast::Expr {
-                    kind: ast::ExprKind::String("x".into()),
+                ast::ExprKind::ImportStr(session.arena.alloc(ast::Expr {
+                    kind: ast::ExprKind::String("x"),
                     span: session.intern_span(10, 13),
                 })),
             );
@@ -1667,8 +1696,8 @@ fn test_import_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::ImportBin(Box::new(ast::Expr {
-                    kind: ast::ExprKind::String("x".into()),
+                ast::ExprKind::ImportBin(session.arena.alloc(ast::Expr {
+                    kind: ast::ExprKind::String("x"),
                     span: session.intern_span(10, 13),
                 })),
             );
@@ -1685,8 +1714,8 @@ fn test_error_expr() {
             let expr = expr.unwrap();
             assert_eq!(
                 expr.kind,
-                ast::ExprKind::Error(Box::new(ast::Expr {
-                    kind: ast::ExprKind::String("err".into()),
+                ast::ExprKind::Error(session.arena.alloc(ast::Expr {
+                    kind: ast::ExprKind::String("err"),
                     span: session.intern_span(6, 11),
                 })),
             );
@@ -1722,57 +1751,69 @@ fn str_to_binop(s: &str) -> ast::BinaryOp {
 
 #[test]
 fn test_binary_expr() {
-    fn make_binop_2(session: &mut Session, op: ast::BinaryOp, op_len: usize) -> ast::Expr {
+    fn make_binop_2<'p>(
+        session: &mut Session<'p>,
+        op: ast::BinaryOp,
+        op_len: usize,
+    ) -> ast::Expr<'p, 'p> {
         let lhs = session.make_ident_expr("a", 0, 1);
         let rhs = session.make_ident_expr("b", op_len + 3, op_len + 4);
 
         ast::Expr {
-            kind: ast::ExprKind::Binary(Box::new(lhs), op, Box::new(rhs)),
+            kind: ast::ExprKind::Binary(session.arena.alloc(lhs), op, session.arena.alloc(rhs)),
             span: session.intern_span(0, op_len + 4),
         }
     }
 
-    fn make_binop_3l(
-        session: &mut Session,
+    fn make_binop_3l<'p>(
+        session: &mut Session<'p>,
         op1: ast::BinaryOp,
         op1_len: usize,
         op2: ast::BinaryOp,
         op2_len: usize,
-    ) -> ast::Expr {
+    ) -> ast::Expr<'p, 'p> {
         let hs1 = session.make_ident_expr("a", 0, 1);
         let hs2 = session.make_ident_expr("b", op1_len + 3, op1_len + 4);
         let hs3 = session.make_ident_expr("c", op1_len + op2_len + 6, op1_len + op2_len + 7);
 
         ast::Expr {
             kind: ast::ExprKind::Binary(
-                Box::new(ast::Expr {
-                    kind: ast::ExprKind::Binary(Box::new(hs1), op1, Box::new(hs2)),
+                session.arena.alloc(ast::Expr {
+                    kind: ast::ExprKind::Binary(
+                        session.arena.alloc(hs1),
+                        op1,
+                        session.arena.alloc(hs2),
+                    ),
                     span: session.intern_span(0, op1_len + 4),
                 }),
                 op2,
-                Box::new(hs3),
+                session.arena.alloc(hs3),
             ),
             span: session.intern_span(0, op1_len + op2_len + 7),
         }
     }
 
-    fn make_binop_3r(
-        session: &mut Session,
+    fn make_binop_3r<'p>(
+        session: &mut Session<'p>,
         op1: ast::BinaryOp,
         op1_len: usize,
         op2: ast::BinaryOp,
         op2_len: usize,
-    ) -> ast::Expr {
+    ) -> ast::Expr<'p, 'p> {
         let hs1 = session.make_ident_expr("a", 0, 1);
         let hs2 = session.make_ident_expr("b", op1_len + 3, op1_len + 4);
         let hs3 = session.make_ident_expr("c", op1_len + op2_len + 6, op1_len + op2_len + 7);
 
         ast::Expr {
             kind: ast::ExprKind::Binary(
-                Box::new(hs1),
+                session.arena.alloc(hs1),
                 op1,
-                Box::new(ast::Expr {
-                    kind: ast::ExprKind::Binary(Box::new(hs2), op2, Box::new(hs3)),
+                session.arena.alloc(ast::Expr {
+                    kind: ast::ExprKind::Binary(
+                        session.arena.alloc(hs2),
+                        op2,
+                        session.arena.alloc(hs3),
+                    ),
                     span: session.intern_span(op1_len + 3, op1_len + op2_len + 7),
                 }),
             ),
@@ -1881,7 +1922,7 @@ fn test_unary_expr() {
                 expr.kind,
                 ast::ExprKind::Unary(
                     ast::UnaryOp::Plus,
-                    Box::new(session.make_ident_expr("a", 1, 2)),
+                    session.arena.alloc(session.make_ident_expr("a", 1, 2)),
                 ),
             );
         },
@@ -1896,7 +1937,7 @@ fn test_unary_expr() {
                 expr.kind,
                 ast::ExprKind::Unary(
                     ast::UnaryOp::Minus,
-                    Box::new(session.make_ident_expr("a", 1, 2)),
+                    session.arena.alloc(session.make_ident_expr("a", 1, 2)),
                 ),
             );
         },
@@ -1911,7 +1952,7 @@ fn test_unary_expr() {
                 expr.kind,
                 ast::ExprKind::Unary(
                     ast::UnaryOp::BitwiseNot,
-                    Box::new(session.make_ident_expr("a", 1, 2)),
+                    session.arena.alloc(session.make_ident_expr("a", 1, 2)),
                 ),
             );
         },
@@ -1926,7 +1967,7 @@ fn test_unary_expr() {
                 expr.kind,
                 ast::ExprKind::Unary(
                     ast::UnaryOp::LogicNot,
-                    Box::new(session.make_ident_expr("a", 1, 2)),
+                    session.arena.alloc(session.make_ident_expr("a", 1, 2)),
                 ),
             );
         },
@@ -1941,10 +1982,10 @@ fn test_unary_expr() {
                 expr.kind,
                 ast::ExprKind::Unary(
                     ast::UnaryOp::LogicNot,
-                    Box::new(ast::Expr {
+                    session.arena.alloc(ast::Expr {
                         kind: ast::ExprKind::Unary(
                             ast::UnaryOp::LogicNot,
-                            Box::new(session.make_ident_expr("a", 2, 3)),
+                            session.arena.alloc(session.make_ident_expr("a", 2, 3)),
                         ),
                         span: session.intern_span(1, 3),
                     }),
@@ -1964,8 +2005,8 @@ fn test_in_super_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::InSuper(
-                    Box::new(ast::Expr {
-                        kind: ast::ExprKind::String("x".into()),
+                    session.arena.alloc(ast::Expr {
+                        kind: ast::ExprKind::String("x"),
                         span: session.intern_span(0, 3),
                     }),
                     session.intern_span(7, 12),
@@ -1982,12 +2023,12 @@ fn test_in_super_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Binary(
-                    Box::new(ast::Expr {
-                        kind: ast::ExprKind::String("x".into()),
+                    session.arena.alloc(ast::Expr {
+                        kind: ast::ExprKind::String("x"),
                         span: session.intern_span(0, 3),
                     }),
                     ast::BinaryOp::In,
-                    Box::new(ast::Expr {
+                    session.arena.alloc(ast::Expr {
                         kind: ast::ExprKind::SuperField(
                             session.intern_span(7, 12),
                             session.make_ident("a", 13, 14),
@@ -2007,15 +2048,15 @@ fn test_in_super_expr() {
             assert_eq!(
                 expr.kind,
                 ast::ExprKind::Binary(
-                    Box::new(ast::Expr {
-                        kind: ast::ExprKind::String("x".into()),
+                    session.arena.alloc(ast::Expr {
+                        kind: ast::ExprKind::String("x"),
                         span: session.intern_span(0, 3),
                     }),
                     ast::BinaryOp::In,
-                    Box::new(ast::Expr {
+                    session.arena.alloc(ast::Expr {
                         kind: ast::ExprKind::SuperIndex(
                             session.intern_span(7, 12),
-                            Box::new(session.make_ident_expr("a", 13, 14)),
+                            session.arena.alloc(session.make_ident_expr("a", 13, 14)),
                         ),
                         span: session.intern_span(7, 15),
                     }),

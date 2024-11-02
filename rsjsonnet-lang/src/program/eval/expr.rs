@@ -9,11 +9,11 @@ use crate::interner::InternedStr;
 use crate::span::SpanId;
 use crate::{ast, FHashMap};
 
-impl Evaluator<'_> {
+impl<'p> Evaluator<'_, 'p> {
     pub(super) fn do_expr(
         &mut self,
-        expr: ir::RcExpr,
-        env: GcView<ThunkEnv>,
+        expr: &'p ir::Expr<'p>,
+        env: GcView<ThunkEnv<'p>>,
     ) -> Result<(), Box<EvalError>> {
         match *expr {
             ir::Expr::Null => {
@@ -26,23 +26,23 @@ impl Evaluator<'_> {
                 self.check_number_value(value, Some(span))?;
                 self.value_stack.push(ValueData::Number(value));
             }
-            ir::Expr::String(ref s) => {
-                self.value_stack.push(ValueData::String(s.clone()));
+            ir::Expr::String(s) => {
+                self.value_stack.push(ValueData::String(s.into()));
             }
             ir::Expr::Object {
                 is_top,
-                locals: ref ir_locals,
-                asserts: ref ir_asserts,
-                fields: ref ir_fields,
+                locals: ir_locals,
+                asserts: ir_asserts,
+                fields: ir_fields,
             } => {
                 self.object_stack.push(ObjectData {
                     self_core: ObjectCore {
                         is_top,
-                        locals: ir_locals.clone(),
+                        locals: ir_locals,
                         base_env: Some(Gc::from(&env)),
                         env: OnceCell::new(),
                         fields: FHashMap::default(),
-                        asserts: ir_asserts.clone(),
+                        asserts: ir_asserts,
                     },
                     super_cores: Vec::new(),
                     fields_order: OnceCell::new(),
@@ -53,40 +53,40 @@ impl Evaluator<'_> {
 
                 for field in ir_fields.iter().rev() {
                     match field.name {
-                        ir::FieldName::Fix(ref name) => {
+                        ir::FieldName::Fix(name) => {
                             self.state_stack.push(State::ObjectFixField {
-                                name: name.clone(),
+                                name,
                                 name_span: field.name_span,
                                 plus: field.plus,
                                 visibility: field.visibility,
-                                value: field.value.clone(),
+                                value: field.value,
                                 base_env: None,
                             });
                         }
-                        ir::FieldName::Dyn(ref name_expr) => {
+                        ir::FieldName::Dyn(name_expr) => {
                             self.state_stack.push(State::ObjectDynField {
                                 name_span: field.name_span,
                                 plus: field.plus,
                                 visibility: field.visibility,
-                                value: field.value.clone(),
+                                value: field.value,
                                 base_env: None,
                             });
                             self.state_stack.push(State::Expr {
-                                expr: name_expr.clone(),
+                                expr: name_expr,
                                 env: env.clone(),
                             });
                         }
                     }
                 }
             }
-            ir::Expr::ObjectComp { ref comp_spec, .. } => {
+            ir::Expr::ObjectComp { comp_spec, .. } => {
                 self.state_stack.push(State::ObjectComp {
-                    expr: expr.clone(),
+                    expr,
                     env: env.clone(),
                 });
                 self.want_comp_spec(comp_spec, env);
             }
-            ir::Expr::Array(ref items_exprs) => {
+            ir::Expr::Array(items_exprs) => {
                 if items_exprs.is_empty() {
                     self.value_stack
                         .push(ValueData::Array(Gc::from(&self.program.empty_array)));
@@ -95,57 +95,48 @@ impl Evaluator<'_> {
                         .iter()
                         .map(|item| {
                             self.program
-                                .new_pending_expr_thunk(item.clone(), Gc::from(&env), None)
+                                .new_pending_expr_thunk(item, Gc::from(&env), None)
                         })
                         .collect();
                     self.value_stack
                         .push(ValueData::Array(self.program.gc_alloc(items)));
                 }
             }
-            ir::Expr::ArrayComp {
-                ref value,
-                ref comp_spec,
-            } => {
+            ir::Expr::ArrayComp { value, comp_spec } => {
                 self.state_stack.push(State::ArrayComp {
-                    item: value.clone(),
+                    item: value,
                     env: env.clone(),
                 });
                 self.want_comp_spec(comp_spec, env);
             }
             ir::Expr::Field {
-                ref object,
-                ref field_name,
+                object,
+                field_name,
                 expr_span,
             } => {
                 self.state_stack.push(State::Field {
                     span: expr_span,
-                    field_name: field_name.clone(),
+                    field_name,
                 });
-                self.state_stack.push(State::Expr {
-                    expr: object.clone(),
-                    env,
-                });
+                self.state_stack.push(State::Expr { expr: object, env });
             }
             ir::Expr::Index {
-                ref object,
-                ref index,
+                object,
+                index,
                 expr_span,
             } => {
                 self.state_stack.push(State::Index { span: expr_span });
                 self.state_stack.push(State::Expr {
-                    expr: index.clone(),
+                    expr: index,
                     env: env.clone(),
                 });
-                self.state_stack.push(State::Expr {
-                    expr: object.clone(),
-                    env,
-                });
+                self.state_stack.push(State::Expr { expr: object, env });
             }
             ir::Expr::Slice {
-                ref array,
-                ref start_index,
-                ref end_index,
-                ref step,
+                array,
+                start_index,
+                end_index,
+                step,
                 expr_span,
             } => {
                 self.state_stack.push(State::Slice {
@@ -156,37 +147,34 @@ impl Evaluator<'_> {
                 });
                 if let Some(step) = step {
                     self.state_stack.push(State::Expr {
-                        expr: step.clone(),
+                        expr: step,
                         env: env.clone(),
                     });
                 }
                 if let Some(end_index) = end_index {
                     self.state_stack.push(State::Expr {
-                        expr: end_index.clone(),
+                        expr: end_index,
                         env: env.clone(),
                     });
                 }
                 if let Some(start_index) = start_index {
                     self.state_stack.push(State::Expr {
-                        expr: start_index.clone(),
+                        expr: start_index,
                         env: env.clone(),
                     });
                 }
-                self.state_stack.push(State::Expr {
-                    expr: array.clone(),
-                    env,
-                });
+                self.state_stack.push(State::Expr { expr: array, env });
             }
             ir::Expr::SuperField {
                 super_span,
-                ref field_name,
+                field_name,
                 expr_span,
             } => {
                 self.want_super_field(&env, super_span, field_name, expr_span)?;
             }
             ir::Expr::SuperIndex {
                 super_span,
-                ref index,
+                index,
                 expr_span,
             } => {
                 self.state_stack.push(State::SuperIndex {
@@ -194,13 +182,9 @@ impl Evaluator<'_> {
                     super_span,
                     env: env.clone(),
                 });
-                self.state_stack.push(State::Expr {
-                    expr: index.clone(),
-                    env,
-                });
+                self.state_stack.push(State::Expr { expr: index, env });
             }
-            ir::Expr::Call { ref callee, .. } => {
-                let callee = callee.clone();
+            ir::Expr::Call { callee, .. } => {
                 self.state_stack.push(State::CallWithExpr {
                     call_expr: expr,
                     call_env: env.clone(),
@@ -210,11 +194,11 @@ impl Evaluator<'_> {
                     env: env.clone(),
                 });
             }
-            ir::Expr::Var(ref var_name, span) => {
+            ir::Expr::Var(var_name, span) => {
                 let thunk = env.get_var(var_name).view();
                 self.want_thunk_direct(thunk, || TraceItem::Variable {
                     span,
-                    name: var_name.clone(),
+                    name: var_name,
                 });
             }
             ir::Expr::TopObj => {
@@ -225,60 +209,49 @@ impl Evaluator<'_> {
                 let (object, _) = env.get_object();
                 self.value_stack.push(ValueData::Object(object));
             }
-            ir::Expr::Local {
-                ref bindings,
-                ref inner,
-            } => {
+            ir::Expr::Local { bindings, inner } => {
                 let new_env = self.program.gc_alloc_view(ThunkEnv::new());
                 let mut new_env_data = ThunkEnvData::new(Some(Gc::from(&env)));
-                for (var_name, value_expr) in bindings.iter() {
+                for &(var_name, value_expr) in bindings.iter() {
                     let var_thunk = self.program.new_pending_expr_thunk(
-                        value_expr.clone(),
+                        value_expr,
                         Gc::from(&new_env),
                         Some(var_name),
                     );
-                    new_env_data.set_var(var_name.clone(), var_thunk);
+                    new_env_data.set_var(var_name, var_thunk);
                 }
                 new_env.set_data(new_env_data);
                 self.state_stack.push(State::Expr {
-                    expr: inner.clone(),
+                    expr: inner,
                     env: new_env,
                 });
             }
             ir::Expr::If {
-                ref cond,
+                cond,
                 cond_span,
-                ref then_body,
-                ref else_body,
+                then_body,
+                else_body,
             } => {
                 self.state_stack.push(State::If {
                     cond_span,
-                    then_body: then_body.clone(),
-                    else_body: else_body.clone(),
+                    then_body,
+                    else_body,
                     env: env.clone(),
                 });
-                self.state_stack.push(State::Expr {
-                    expr: cond.clone(),
-                    env,
-                });
+                self.state_stack.push(State::Expr { expr: cond, env });
             }
-            ir::Expr::Binary {
-                op,
-                ref lhs,
-                ref rhs,
-                span,
-            } => {
+            ir::Expr::Binary { op, lhs, rhs, span } => {
                 match op {
                     ast::BinaryOp::Lt => {
                         self.push_trace_item(TraceItem::Expr { span });
                         self.state_stack.push(State::CmpOrdToBoolValueIsLt);
                         self.state_stack.push(State::CompareValue);
                         self.state_stack.push(State::Expr {
-                            expr: rhs.clone(),
+                            expr: rhs,
                             env: env.clone(),
                         });
                         self.state_stack.push(State::Expr {
-                            expr: lhs.clone(),
+                            expr: lhs,
                             env: env.clone(),
                         });
                     }
@@ -287,11 +260,11 @@ impl Evaluator<'_> {
                         self.state_stack.push(State::CmpOrdToBoolValueIsLe);
                         self.state_stack.push(State::CompareValue);
                         self.state_stack.push(State::Expr {
-                            expr: rhs.clone(),
+                            expr: rhs,
                             env: env.clone(),
                         });
                         self.state_stack.push(State::Expr {
-                            expr: lhs.clone(),
+                            expr: lhs,
                             env: env.clone(),
                         });
                     }
@@ -300,11 +273,11 @@ impl Evaluator<'_> {
                         self.state_stack.push(State::CmpOrdToBoolValueIsGt);
                         self.state_stack.push(State::CompareValue);
                         self.state_stack.push(State::Expr {
-                            expr: rhs.clone(),
+                            expr: rhs,
                             env: env.clone(),
                         });
                         self.state_stack.push(State::Expr {
-                            expr: lhs.clone(),
+                            expr: lhs,
                             env: env.clone(),
                         });
                     }
@@ -313,11 +286,11 @@ impl Evaluator<'_> {
                         self.state_stack.push(State::CmpOrdToBoolValueIsGe);
                         self.state_stack.push(State::CompareValue);
                         self.state_stack.push(State::Expr {
-                            expr: rhs.clone(),
+                            expr: rhs,
                             env: env.clone(),
                         });
                         self.state_stack.push(State::Expr {
-                            expr: lhs.clone(),
+                            expr: lhs,
                             env: env.clone(),
                         });
                     }
@@ -326,11 +299,11 @@ impl Evaluator<'_> {
                         self.state_stack.push(State::BoolToValue);
                         self.state_stack.push(State::EqualsValue);
                         self.state_stack.push(State::Expr {
-                            expr: rhs.clone(),
+                            expr: rhs,
                             env: env.clone(),
                         });
                         self.state_stack.push(State::Expr {
-                            expr: lhs.clone(),
+                            expr: lhs,
                             env: env.clone(),
                         });
                     }
@@ -340,11 +313,11 @@ impl Evaluator<'_> {
                         self.state_stack.push(State::InvertBool);
                         self.state_stack.push(State::EqualsValue);
                         self.state_stack.push(State::Expr {
-                            expr: rhs.clone(),
+                            expr: rhs,
                             env: env.clone(),
                         });
                         self.state_stack.push(State::Expr {
-                            expr: lhs.clone(),
+                            expr: lhs,
                             env: env.clone(),
                         });
                     }
@@ -352,24 +325,18 @@ impl Evaluator<'_> {
                     ast::BinaryOp::LogicAnd => {
                         self.state_stack.push(State::LogicAnd {
                             span,
-                            rhs: rhs.clone(),
+                            rhs,
                             env: env.clone(),
                         });
-                        self.state_stack.push(State::Expr {
-                            expr: lhs.clone(),
-                            env,
-                        });
+                        self.state_stack.push(State::Expr { expr: lhs, env });
                     }
                     ast::BinaryOp::LogicOr => {
                         self.state_stack.push(State::LogicOr {
                             span,
-                            rhs: rhs.clone(),
+                            rhs,
                             env: env.clone(),
                         });
-                        self.state_stack.push(State::Expr {
-                            expr: lhs.clone(),
-                            env,
-                        });
+                        self.state_stack.push(State::Expr { expr: lhs, env });
                     }
                     _ => {
                         self.state_stack.push(State::BinaryOp {
@@ -377,80 +344,68 @@ impl Evaluator<'_> {
                             op,
                         });
                         self.state_stack.push(State::Expr {
-                            expr: rhs.clone(),
+                            expr: rhs,
                             env: env.clone(),
                         });
                         self.state_stack.push(State::Expr {
-                            expr: lhs.clone(),
+                            expr: lhs,
                             env: env.clone(),
                         });
                     }
                 }
             }
-            ir::Expr::Unary { op, ref rhs, span } => {
+            ir::Expr::Unary { op, rhs, span } => {
                 self.state_stack.push(State::UnaryOp { span, op });
                 self.state_stack.push(State::Expr {
-                    expr: rhs.clone(),
+                    expr: rhs,
                     env: env.clone(),
                 });
             }
-            ir::Expr::InSuper { ref lhs, span } => {
+            ir::Expr::InSuper { lhs, span } => {
                 self.state_stack.push(State::InSuper {
                     span,
                     env: env.clone(),
                 });
-                self.state_stack.push(State::Expr {
-                    expr: lhs.clone(),
-                    env,
-                });
+                self.state_stack.push(State::Expr { expr: lhs, env });
             }
             ir::Expr::IdentityFunc => {
                 self.value_stack
                     .push(ValueData::Function(Gc::from(&self.program.identity_func)));
             }
-            ir::Expr::Func {
-                ref params,
-                ref body,
-            } => {
+            ir::Expr::Func { params, body } => {
                 self.value_stack
                     .push(ValueData::Function(self.program.gc_alloc(FuncData::new(
-                        params.clone(),
+                        params,
                         FuncKind::Normal {
                             name: None,
-                            body: body.clone(),
+                            body,
                             env: Gc::from(&env),
                         },
                     ))));
             }
-            ir::Expr::Error { ref msg, span } => {
+            ir::Expr::Error { msg, span } => {
                 self.state_stack.push(State::Error { span });
                 self.push_trace_item(TraceItem::Expr { span });
                 self.state_stack.push(State::CoerceToString);
                 self.delay_trace_item();
-                self.state_stack.push(State::Expr {
-                    expr: msg.clone(),
-                    env,
-                });
+                self.state_stack.push(State::Expr { expr: msg, env });
             }
-            ir::Expr::Assert {
-                ref assert,
-                ref inner,
-            } => {
+            ir::Expr::Assert { ref assert, inner } => {
                 self.state_stack.push(State::Expr {
-                    expr: inner.clone(),
+                    expr: inner,
                     env: env.clone(),
                 });
                 self.state_stack.push(State::Assert {
                     assert_span: assert.span,
                     cond_span: assert.cond_span,
-                    msg_expr: assert.msg.as_ref().map(|e| (e.clone(), env.clone())),
+                    msg_expr: assert.msg.map(|e| (e, env.clone())),
                 });
                 self.state_stack.push(State::Expr {
-                    expr: assert.cond.clone(),
+                    expr: assert.cond,
                     env,
                 });
             }
-            ir::Expr::Import { ref path, span } => {
+            ir::Expr::Import { path, span } => {
                 let callbacks = self
                     .callbacks
                     .as_deref_mut()
@@ -463,12 +418,12 @@ impl Evaluator<'_> {
                     Err(ImportError) => {
                         return Err(self.report_error(EvalErrorKind::ImportFailed {
                             span,
-                            path: path.clone(),
+                            path: path.into(),
                         }));
                     }
                 }
             }
-            ir::Expr::ImportStr { ref path, span } => {
+            ir::Expr::ImportStr { path, span } => {
                 let callbacks = self
                     .callbacks
                     .as_deref_mut()
@@ -480,12 +435,12 @@ impl Evaluator<'_> {
                     Err(ImportError) => {
                         return Err(self.report_error(EvalErrorKind::ImportFailed {
                             span,
-                            path: path.clone(),
+                            path: path.into(),
                         }));
                     }
                 }
             }
-            ir::Expr::ImportBin { ref path, span } => {
+            ir::Expr::ImportBin { path, span } => {
                 let callbacks = self
                     .callbacks
                     .as_deref_mut()
@@ -500,7 +455,7 @@ impl Evaluator<'_> {
                     Err(ImportError) => {
                         return Err(self.report_error(EvalErrorKind::ImportFailed {
                             span,
-                            path: path.clone(),
+                            path: path.into(),
                         }));
                     }
                 }
@@ -510,27 +465,24 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    fn want_comp_spec(&mut self, comp_spec: &[ir::CompSpecPart], env: GcView<ThunkEnv>) {
+    fn want_comp_spec(&mut self, comp_spec: &[ir::CompSpecPart<'p>], env: GcView<ThunkEnv<'p>>) {
         for comp_spec_part in comp_spec[1..].iter().rev() {
             match *comp_spec_part {
                 ir::CompSpecPart::For {
-                    ref var,
-                    ref value,
+                    var,
+                    value,
                     value_span,
                 } => {
                     self.state_stack.push(State::ForSpec {
-                        var_name: var.clone(),
-                        value: value.clone(),
+                        var_name: var,
+                        value,
                         value_span,
                         env: env.clone(),
                     });
                 }
-                ir::CompSpecPart::If {
-                    ref cond,
-                    cond_span,
-                } => {
+                ir::CompSpecPart::If { cond, cond_span } => {
                     self.state_stack.push(State::IfSpec {
-                        cond: cond.clone(),
+                        cond,
                         cond_span,
                         env: env.clone(),
                     });
@@ -539,13 +491,13 @@ impl Evaluator<'_> {
         }
         match comp_spec[0] {
             ir::CompSpecPart::For {
-                ref var,
-                ref value,
+                var,
+                value,
                 value_span,
             } => {
                 self.state_stack.push(State::InitCompSpec {
-                    var_name: var.clone(),
-                    value: value.clone(),
+                    var_name: var,
+                    value,
                     value_span,
                     env,
                 });
@@ -558,20 +510,20 @@ impl Evaluator<'_> {
 
     pub(super) fn want_field(
         &mut self,
-        object: &GcView<ObjectData>,
-        field_name: &InternedStr,
+        object: &GcView<ObjectData<'p>>,
+        field_name: InternedStr<'p>,
         expr_span: SpanId,
     ) -> Result<(), Box<EvalError>> {
         if let Some(field_thunk) = self.program.find_object_field_thunk(object, 0, field_name) {
             if object.asserts_checked.get() {
                 self.want_thunk_direct(field_thunk, || TraceItem::ObjectField {
                     span: Some(expr_span),
-                    name: field_name.clone(),
+                    name: field_name,
                 });
             } else {
                 self.push_trace_item(TraceItem::ObjectField {
                     span: Some(expr_span),
-                    name: field_name.clone(),
+                    name: field_name,
                 });
                 self.state_stack.push(State::DoThunk(field_thunk));
                 self.check_object_asserts(object);
@@ -587,9 +539,9 @@ impl Evaluator<'_> {
 
     pub(super) fn want_super_field(
         &mut self,
-        env: &ThunkEnv,
+        env: &ThunkEnv<'p>,
         super_span: SpanId,
-        field_name: &InternedStr,
+        field_name: InternedStr<'p>,
         expr_span: SpanId,
     ) -> Result<(), Box<EvalError>> {
         let (object, core_i) = env.get_object();
@@ -605,7 +557,7 @@ impl Evaluator<'_> {
         {
             self.want_thunk_direct(field_thunk, || TraceItem::ObjectField {
                 span: Some(expr_span),
-                name: field_name.clone(),
+                name: field_name,
             });
             Ok(())
         } else {
@@ -618,7 +570,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_slice(
         &mut self,
-        indexable: ValueData,
+        indexable: ValueData<'p>,
         start: Option<f64>,
         end: Option<f64>,
         step: Option<f64>,
@@ -852,7 +804,7 @@ impl Evaluator<'_> {
                 let object = rhs.view();
 
                 self.value_stack
-                    .push(ValueData::Bool(object.has_field(0, &field_name)));
+                    .push(ValueData::Bool(object.has_field(0, field_name)));
             }
             (op, lhs, rhs) => {
                 return Err(self.report_error(EvalErrorKind::InvalidBinaryOpTypes {

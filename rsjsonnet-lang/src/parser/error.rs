@@ -27,14 +27,14 @@ pub enum ActualToken {
 }
 
 impl ActualToken {
-    pub(super) fn from_token_kind(kind: &TokenKind) -> Self {
+    pub(super) fn from_token_kind(kind: &TokenKind<'_, '_>) -> Self {
         match *kind {
             TokenKind::EndOfFile => Self::EndOfFile,
             TokenKind::Whitespace => unreachable!(),
             TokenKind::Comment => unreachable!(),
             TokenKind::Simple(kind) => Self::Simple(kind),
-            TokenKind::OtherOp(ref op) => Self::OtherOp((**op).into()),
-            TokenKind::Ident(ref ident) => Self::Ident(ident.value().into()),
+            TokenKind::OtherOp(op) => Self::OtherOp(op.into()),
+            TokenKind::Ident(ident) => Self::Ident(ident.value().into()),
             TokenKind::Number(_) => Self::Number,
             TokenKind::String(_) => Self::String,
             TokenKind::TextBlock(_) => Self::TextBlock,

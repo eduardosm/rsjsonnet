@@ -1,24 +1,24 @@
 use crate::interner::InternedStr;
 use crate::span::SpanId;
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Token {
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Token<'p, 'ast> {
     pub span: SpanId,
-    pub kind: TokenKind,
+    pub kind: TokenKind<'p, 'ast>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum TokenKind {
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TokenKind<'p, 'ast> {
     EndOfFile,
     Whitespace,
     Comment,
 
     Simple(STokenKind),
-    OtherOp(Box<str>),
-    Ident(InternedStr),
-    Number(Number),
-    String(Box<str>),
-    TextBlock(Box<str>),
+    OtherOp(&'ast str),
+    Ident(InternedStr<'p>),
+    Number(Number<'ast>),
+    String(&'ast str),
+    TextBlock(&'ast str),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -83,8 +83,8 @@ pub enum STokenKind {
     Tilde,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Number {
-    pub digits: Box<str>,
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Number<'ast> {
+    pub digits: &'ast str,
     pub exp: i64,
 }

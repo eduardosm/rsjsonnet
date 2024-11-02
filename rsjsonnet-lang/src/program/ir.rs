@@ -1,404 +1,153 @@
-use std::rc::Rc;
-
 use crate::ast;
 use crate::interner::InternedStr;
 use crate::span::SpanId;
 
-#[derive(Debug)]
-pub(super) enum Expr {
+#[derive(Copy, Clone, Debug)]
+pub(super) enum Expr<'p> {
     Null,
     Bool(bool),
     Number(f64, SpanId),
-    String(Rc<str>),
+    String(&'p str),
     Object {
         is_top: bool,
-        locals: Rc<Vec<(InternedStr, RcExpr)>>,
-        asserts: Rc<Vec<Assert>>,
-        fields: Vec<ObjectField>,
+        locals: &'p [(InternedStr<'p>, &'p Expr<'p>)],
+        asserts: &'p [Assert<'p>],
+        fields: &'p [ObjectField<'p>],
     },
     ObjectComp {
         is_top: bool,
-        locals: Rc<Vec<(InternedStr, RcExpr)>>,
-        field_name: RcExpr,
+        locals: &'p [(InternedStr<'p>, &'p Expr<'p>)],
+        field_name: &'p Expr<'p>,
         field_name_span: SpanId,
-        field_value: RcExpr,
-        comp_spec: Vec<CompSpecPart>,
+        field_value: &'p Expr<'p>,
+        comp_spec: &'p [CompSpecPart<'p>],
     },
-    Array(Vec<RcExpr>),
+    Array(&'p [&'p Expr<'p>]),
     ArrayComp {
-        value: RcExpr,
-        comp_spec: Vec<CompSpecPart>,
+        value: &'p Expr<'p>,
+        comp_spec: &'p [CompSpecPart<'p>],
     },
     Field {
-        object: RcExpr,
-        field_name: InternedStr,
+        object: &'p Expr<'p>,
+        field_name: InternedStr<'p>,
         expr_span: SpanId,
     },
     Index {
-        object: RcExpr,
-        index: RcExpr,
+        object: &'p Expr<'p>,
+        index: &'p Expr<'p>,
         expr_span: SpanId,
     },
     Slice {
-        array: RcExpr,
-        start_index: Option<RcExpr>,
-        end_index: Option<RcExpr>,
-        step: Option<RcExpr>,
+        array: &'p Expr<'p>,
+        start_index: Option<&'p Expr<'p>>,
+        end_index: Option<&'p Expr<'p>>,
+        step: Option<&'p Expr<'p>>,
         expr_span: SpanId,
     },
     SuperField {
         super_span: SpanId,
-        field_name: InternedStr,
+        field_name: InternedStr<'p>,
         expr_span: SpanId,
     },
     SuperIndex {
         super_span: SpanId,
-        index: RcExpr,
+        index: &'p Expr<'p>,
         expr_span: SpanId,
     },
     Call {
-        callee: RcExpr,
-        positional_args: Vec<RcExpr>,
-        named_args: Vec<(InternedStr, SpanId, RcExpr)>,
+        callee: &'p Expr<'p>,
+        positional_args: &'p [&'p Expr<'p>],
+        named_args: &'p [(InternedStr<'p>, SpanId, &'p Expr<'p>)],
         tailstrict: bool,
         span: SpanId,
     },
-    Var(InternedStr, SpanId),
+    Var(InternedStr<'p>, SpanId),
     SelfObj,
     TopObj,
     Local {
-        bindings: Vec<(InternedStr, RcExpr)>,
-        inner: RcExpr,
+        bindings: &'p [(InternedStr<'p>, &'p Expr<'p>)],
+        inner: &'p Expr<'p>,
     },
     If {
-        cond: RcExpr,
+        cond: &'p Expr<'p>,
         cond_span: SpanId,
-        then_body: RcExpr,
-        else_body: Option<RcExpr>,
+        then_body: &'p Expr<'p>,
+        else_body: Option<&'p Expr<'p>>,
     },
     Binary {
         op: ast::BinaryOp,
-        lhs: RcExpr,
-        rhs: RcExpr,
+        lhs: &'p Expr<'p>,
+        rhs: &'p Expr<'p>,
         span: SpanId,
     },
     Unary {
         op: ast::UnaryOp,
-        rhs: RcExpr,
+        rhs: &'p Expr<'p>,
         span: SpanId,
     },
     InSuper {
-        lhs: RcExpr,
+        lhs: &'p Expr<'p>,
         span: SpanId,
     },
     IdentityFunc,
     Func {
-        params: Rc<Vec<(InternedStr, Option<RcExpr>)>>,
-        body: RcExpr,
+        params: &'p [(InternedStr<'p>, Option<&'p Expr<'p>>)],
+        body: &'p Expr<'p>,
     },
     Error {
-        msg: RcExpr,
+        msg: &'p Expr<'p>,
         span: SpanId,
     },
     Assert {
-        assert: Assert,
-        inner: RcExpr,
+        assert: Assert<'p>,
+        inner: &'p Expr<'p>,
     },
     Import {
-        path: String,
+        path: &'p str,
         span: SpanId,
     },
     ImportStr {
-        path: String,
+        path: &'p str,
         span: SpanId,
     },
     ImportBin {
-        path: String,
+        path: &'p str,
         span: SpanId,
     },
 }
 
-impl Expr {
-    #[inline]
-    fn drop_take(&mut self) -> Self {
-        std::mem::replace(self, Self::Null)
-    }
-
-    fn drop_take_exprs(&mut self, out: &mut Vec<RcExpr>) {
-        match self.drop_take() {
-            Self::Null => {}
-            Self::Bool(_) => {}
-            Self::Number(_, _) => {}
-            Self::String(_) => {}
-            Self::Object {
-                is_top: _,
-                locals,
-                asserts,
-                fields,
-            } => {
-                if let Some(locals) = Rc::into_inner(locals) {
-                    for (_, v) in locals {
-                        out.push(v);
-                    }
-                }
-                if let Some(asserts) = Rc::into_inner(asserts) {
-                    for assert in asserts {
-                        out.push(assert.cond.clone());
-                        if let Some(msg) = assert.msg {
-                            out.push(msg);
-                        }
-                    }
-                }
-                for field in fields {
-                    out.push(field.value.clone());
-                }
-            }
-            Self::ObjectComp {
-                is_top: _,
-                locals,
-                field_name,
-                field_name_span: _,
-                field_value: _,
-                comp_spec,
-            } => {
-                if let Some(locals) = Rc::into_inner(locals) {
-                    for (_, v) in locals {
-                        out.push(v);
-                    }
-                }
-                out.push(field_name);
-                for part in comp_spec {
-                    match part {
-                        CompSpecPart::For {
-                            var: _,
-                            value,
-                            value_span: _,
-                        } => {
-                            out.push(value);
-                        }
-                        CompSpecPart::If { cond, cond_span: _ } => {
-                            out.push(cond);
-                        }
-                    }
-                }
-            }
-            Self::Array(items) => {
-                for item in items {
-                    out.push(item);
-                }
-            }
-            Self::ArrayComp { value, comp_spec } => {
-                out.push(value);
-                for part in comp_spec {
-                    match part {
-                        CompSpecPart::For {
-                            var: _,
-                            value,
-                            value_span: _,
-                        } => {
-                            out.push(value);
-                        }
-                        CompSpecPart::If { cond, cond_span: _ } => {
-                            out.push(cond);
-                        }
-                    }
-                }
-            }
-            Self::Field {
-                object,
-                field_name: _,
-                expr_span: _,
-            } => {
-                out.push(object);
-            }
-            Self::Index {
-                object,
-                index,
-                expr_span: _,
-            } => {
-                out.push(object);
-                out.push(index);
-            }
-            Self::Slice {
-                array,
-                start_index,
-                end_index,
-                step,
-                expr_span: _,
-            } => {
-                out.push(array);
-                if let Some(start_index) = start_index {
-                    out.push(start_index);
-                }
-                if let Some(end_index) = end_index {
-                    out.push(end_index);
-                }
-                if let Some(step) = step {
-                    out.push(step);
-                }
-            }
-            Self::SuperField {
-                super_span: _,
-                field_name: _,
-                expr_span: _,
-            } => {}
-            Self::SuperIndex {
-                super_span: _,
-                index,
-                expr_span: _,
-            } => {
-                out.push(index);
-            }
-            Self::Call {
-                callee,
-                positional_args,
-                named_args,
-                tailstrict: _,
-                span: _,
-            } => {
-                out.push(callee);
-                for arg in positional_args {
-                    out.push(arg);
-                }
-                for (_, _, arg) in named_args {
-                    out.push(arg);
-                }
-            }
-            Self::Var(_, _) => {}
-            Self::SelfObj => {}
-            Self::TopObj => {}
-            Self::Local { bindings, inner } => {
-                for (_, v) in bindings {
-                    out.push(v);
-                }
-                out.push(inner);
-            }
-            Self::If {
-                cond,
-                cond_span: _,
-                then_body,
-                else_body,
-            } => {
-                out.push(cond);
-                out.push(then_body);
-                if let Some(else_body) = else_body {
-                    out.push(else_body);
-                }
-            }
-            Self::Binary {
-                op: _,
-                lhs,
-                rhs,
-                span: _,
-            } => {
-                out.push(lhs);
-                out.push(rhs);
-            }
-            Self::Unary {
-                op: _,
-                rhs,
-                span: _,
-            } => {
-                out.push(rhs);
-            }
-            Self::InSuper { lhs, span: _ } => {
-                out.push(lhs);
-            }
-            Self::IdentityFunc => {}
-            Self::Func { params: _, body } => {
-                out.push(body);
-            }
-            Self::Error { msg, span: _ } => {
-                out.push(msg);
-            }
-            Self::Assert { assert, inner } => {
-                out.push(assert.cond.clone());
-                if let Some(msg) = assert.msg {
-                    out.push(msg);
-                }
-                out.push(inner);
-            }
-            Self::Import { path: _, span: _ } => {}
-            Self::ImportStr { path: _, span: _ } => {}
-            Self::ImportBin { path: _, span: _ } => {}
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub(super) struct RcExpr {
-    inner: Rc<Expr>,
-}
-
-impl Drop for RcExpr {
-    fn drop(&mut self) {
-        if matches!(*self.inner, Expr::Null) {
-            return;
-        }
-
-        if let Some(inner) = Rc::get_mut(&mut self.inner) {
-            // Avoid stack overflow when there is too much nesting
-            let mut queue = Vec::new();
-            inner.drop_take_exprs(&mut queue);
-            while let Some(mut cur) = queue.pop() {
-                if let Some(cur) = Rc::get_mut(&mut cur.inner) {
-                    cur.drop_take_exprs(&mut queue);
-                }
-            }
-        }
-    }
-}
-
-impl RcExpr {
-    #[inline]
-    pub(super) fn new(inner: Expr) -> Self {
-        Self {
-            inner: Rc::new(inner),
-        }
-    }
-}
-
-impl std::ops::Deref for RcExpr {
-    type Target = Expr;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-#[derive(Debug)]
-pub(super) struct Assert {
+#[derive(Copy, Clone, Debug)]
+pub(super) struct Assert<'p> {
     pub(super) span: SpanId,
-    pub(super) cond: RcExpr,
+    pub(super) cond: &'p Expr<'p>,
     pub(super) cond_span: SpanId,
-    pub(super) msg: Option<RcExpr>,
+    pub(super) msg: Option<&'p Expr<'p>>,
 }
 
-#[derive(Clone, Debug)]
-pub(super) struct ObjectField {
-    pub(super) name: FieldName,
+#[derive(Copy, Clone, Debug)]
+pub(super) struct ObjectField<'p> {
+    pub(super) name: FieldName<'p>,
     pub(super) name_span: SpanId,
     pub(super) plus: bool,
     pub(super) visibility: ast::Visibility,
-    pub(super) value: RcExpr,
+    pub(super) value: &'p Expr<'p>,
 }
 
-#[derive(Clone, Debug)]
-pub(super) enum FieldName {
-    Fix(InternedStr),
-    Dyn(RcExpr),
+#[derive(Copy, Clone, Debug)]
+pub(super) enum FieldName<'p> {
+    Fix(InternedStr<'p>),
+    Dyn(&'p Expr<'p>),
 }
 
-#[derive(Debug)]
-pub(super) enum CompSpecPart {
+#[derive(Copy, Clone, Debug)]
+pub(super) enum CompSpecPart<'p> {
     For {
-        var: InternedStr,
-        value: RcExpr,
+        var: InternedStr<'p>,
+        value: &'p Expr<'p>,
         value_span: SpanId,
     },
     If {
-        cond: RcExpr,
+        cond: &'p Expr<'p>,
         cond_span: SpanId,
     },
 }

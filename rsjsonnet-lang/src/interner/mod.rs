@@ -3,10 +3,11 @@
 //! # Example
 //!
 //! ```
+//! let arena = rsjsonnet_lang::arena::Arena::new();
 //! let interner = rsjsonnet_lang::interner::StrInterner::new();
 //!
-//! let hello1 = interner.intern("hello");
-//! let world1 = interner.intern("world");
+//! let hello1 = interner.intern(&arena, "hello");
+//! let world1 = interner.intern(&arena, "world");
 //!
 //! // Interned strings preserve their value
 //! assert_eq!(hello1.value(), "hello");
@@ -21,52 +22,49 @@
 //!
 //! // Interning a string again will return a reference to
 //! // the existing interned string
-//! let hello3 = interner.intern("hello");
+//! let hello3 = interner.intern(&arena, "hello");
 //! assert_eq!(hello1, hello3);
 //! ```
 
-use std::rc::Rc;
+use crate::arena::Arena;
 
 mod inner;
 
-impl inner::Internable for str {
+impl<'a> inner::Internable<'a> for str {
     type Key = str;
-    type Container = Box<str>;
+    type Container = &'a str;
 
     #[inline]
-    fn get(this: &Box<str>) -> &str {
+    fn get(this: &&'a str) -> &'a str {
         this
     }
 
     #[inline]
-    fn key(this: &Box<str>) -> &str {
+    fn key<'b>(this: &'b &'a str) -> &'b str {
         this
     }
 }
 
-impl inner::InternAs<str> for &str {
+impl<'a> inner::InternAs<'a, str> for &str {
     #[inline]
     fn key(&self) -> &str {
         self
     }
 
     #[inline]
-    fn convert(self) -> Rc<Box<str>> {
-        Rc::new(self.into())
+    fn convert(self, arena: &'a Arena) -> &'a &'a str {
+        arena.alloc(arena.alloc_str(self))
     }
 }
 
 /// The string interner. See the [module level documentation](self) for more.
-pub struct StrInterner {
-    inner: inner::Interner<str>,
+pub struct StrInterner<'a> {
+    inner: inner::Interner<'a, str>,
 }
 
-/// A reference counted interned string.
+/// An interned string.
 ///
-/// Cloning will increase the reference count and is equivalent to calling
-/// [`StrInterner::intern`] with the same string value.
-///
-/// Also implements [`Eq`], [`Ord`] and [`Hash`](std::hash::Hash). Note that
+/// Implements [`Eq`], [`Ord`] and [`Hash`](std::hash::Hash). Note that
 /// comparison and hashing is done on the internal pointer value, not the actual
 /// string value. This means that:
 ///
@@ -75,13 +73,14 @@ pub struct StrInterner {
 /// * [`Ord`] should not be relied to be deterministic.
 ///
 /// ```
+/// let arena = rsjsonnet_lang::arena::Arena::new();
 /// let interner = rsjsonnet_lang::interner::StrInterner::new();
 ///
-/// let a1 = interner.intern("a");
-/// let b1 = interner.intern("b");
+/// let a1 = interner.intern(&arena, "a");
+/// let b1 = interner.intern(&arena, "b");
 ///
-/// let a2 = interner.intern("a");
-/// let b2 = interner.intern("b");
+/// let a2 = interner.intern(&arena, "a");
+/// let b2 = interner.intern(&arena, "b");
 ///
 /// // Of course, they are equal.
 /// assert_eq!(a1, a2);
@@ -94,19 +93,19 @@ pub struct StrInterner {
 /// let cmp2 = a2.cmp(&b2);
 /// assert_eq!(cmp1, cmp2);
 /// ```
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct InternedStr {
-    inner: inner::Interned<str>,
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct InternedStr<'a> {
+    inner: inner::Interned<'a, str>,
 }
 
-impl Default for StrInterner {
+impl Default for StrInterner<'_> {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl StrInterner {
+impl<'a> StrInterner<'a> {
     /// Creates a new [`StrInterner`].
     pub fn new() -> Self {
         Self {
@@ -119,14 +118,15 @@ impl StrInterner {
     /// # Example
     ///
     /// ```
+    /// let arena = rsjsonnet_lang::arena::Arena::new();
     /// let interner = rsjsonnet_lang::interner::StrInterner::new();
     ///
-    /// let hello = interner.intern("hello");
+    /// let hello = interner.intern(&arena, "hello");
     /// assert_eq!(hello.value(), "hello");
     /// ```
-    pub fn intern(&self, value: &str) -> InternedStr {
+    pub fn intern(&self, arena: &'a Arena, value: &str) -> InternedStr<'a> {
         InternedStr {
-            inner: self.inner.intern(value),
+            inner: self.inner.intern(arena, value),
         }
     }
 
@@ -135,9 +135,10 @@ impl StrInterner {
     /// # Example
     ///
     /// ```
+    /// let arena = rsjsonnet_lang::arena::Arena::new();
     /// let interner = rsjsonnet_lang::interner::StrInterner::new();
     ///
-    /// let hello1 = interner.intern("hello");
+    /// let hello1 = interner.intern(&arena, "hello");
     /// assert_eq!(hello1.value(), "hello");
     ///
     /// let hello2 = interner.get_interned("hello").unwrap();
@@ -146,27 +147,22 @@ impl StrInterner {
     /// let world = interner.get_interned("world");
     /// assert!(world.is_none()); // Not previously interned
     /// ```
-    pub fn get_interned(&self, value: &str) -> Option<InternedStr> {
+    pub fn get_interned(&self, value: &str) -> Option<InternedStr<'a>> {
         self.inner
             .get_interned(value)
             .map(|v| InternedStr { inner: v })
     }
-
-    /// Removes all non-referenced interned strings.
-    pub fn gc(&self) {
-        self.inner.gc();
-    }
 }
 
-impl InternedStr {
+impl<'a> InternedStr<'a> {
     /// Returns the underlying string value.
     #[inline]
-    pub fn value(&self) -> &str {
+    pub fn value(&self) -> &'a str {
         self.inner.value()
     }
 }
 
-impl std::fmt::Debug for InternedStr {
+impl std::fmt::Debug for InternedStr<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.value().fmt(f)
     }
@@ -174,10 +170,10 @@ impl std::fmt::Debug for InternedStr {
 
 /// Similar to [`InternedStr`], but [`Ord`] and [`PartialOrd`] will compare the
 /// actual string values.
-#[derive(Clone, PartialEq, Eq)]
-pub(crate) struct SortedInternedStr(pub(crate) InternedStr);
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub(crate) struct SortedInternedStr<'a>(pub(crate) InternedStr<'a>);
 
-impl PartialOrd for SortedInternedStr {
+impl PartialOrd for SortedInternedStr<'_> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
@@ -204,7 +200,7 @@ impl PartialOrd for SortedInternedStr {
     }
 }
 
-impl Ord for SortedInternedStr {
+impl Ord for SortedInternedStr<'_> {
     #[inline]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.0.value().cmp(other.0.value())

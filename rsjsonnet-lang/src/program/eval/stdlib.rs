@@ -10,7 +10,7 @@ use super::{
 };
 use crate::gc::{Gc, GcView};
 
-impl Evaluator<'_> {
+impl<'p> Evaluator<'_, 'p> {
     pub(super) fn do_std_ext_var(&mut self) -> Result<(), Box<EvalError>> {
         let arg = self.value_stack.pop().unwrap();
         let name = self.expect_std_func_arg_string(arg, "extVar", 0)?;
@@ -125,8 +125,8 @@ impl Evaluator<'_> {
             .str_interner
             .get_interned(&field_name)
             .is_some_and(|field_name| {
-                object.has_field(0, &field_name)
-                    && (inc_hidden || object.field_is_visible(&field_name))
+                object.has_field(0, field_name)
+                    && (inc_hidden || object.field_is_visible(field_name))
             });
 
         self.value_stack.push(ValueData::Bool(has_field));
@@ -926,9 +926,7 @@ impl Evaluator<'_> {
         let main_name = self.program.intern_str("main");
         let sections_name = self.program.intern_str("sections");
 
-        let Some(sections_thunk) = self
-            .program
-            .find_object_field_thunk(&ini, 0, &sections_name)
+        let Some(sections_thunk) = self.program.find_object_field_thunk(&ini, 0, sections_name)
         else {
             return Err(self.report_error(EvalErrorKind::Other {
                 span: None,
@@ -936,7 +934,7 @@ impl Evaluator<'_> {
             }));
         };
 
-        let main_thunk = self.program.find_object_field_thunk(&ini, 0, &main_name);
+        let main_thunk = self.program.find_object_field_thunk(&ini, 0, main_name);
 
         self.string_stack.push(String::new());
         self.state_stack.push(State::StringToValue);
@@ -963,9 +961,9 @@ impl Evaluator<'_> {
         let visible_fields: Vec<_> = object
             .get_fields_order()
             .iter()
-            .filter_map(|(name, visible)| visible.then_some(name))
+            .filter_map(|&(name, visible)| visible.then_some(name))
             .collect();
-        for field_name in visible_fields.iter().rev() {
+        for &field_name in visible_fields.iter().rev() {
             let field_thunk = self
                 .program
                 .find_object_field_thunk(&object, 0, field_name)
@@ -998,15 +996,13 @@ impl Evaluator<'_> {
         let visible_fields: Vec<_> = object
             .get_fields_order()
             .iter()
-            .filter_map(|(name, visible)| visible.then_some(name))
+            .filter_map(|&(name, visible)| visible.then_some(name))
             .collect();
 
         for &field_name in visible_fields.iter().rev() {
             self.state_stack.push(State::AppendToString('\n'.into()));
 
-            self.push_trace_item(TraceItem::ManifestObjectField {
-                name: field_name.clone(),
-            });
+            self.push_trace_item(TraceItem::ManifestObjectField { name: field_name });
             self.state_stack.push(State::ManifestPython);
             let field_thunk = self
                 .program
@@ -1117,7 +1113,7 @@ impl Evaluator<'_> {
 
     fn prepare_manifest_xml_jsonml_array(
         &mut self,
-        array: GcView<ArrayData>,
+        array: GcView<ArrayData<'p>>,
     ) -> Result<(), Box<EvalError>> {
         let Some(item0) = array.first() else {
             return Err(self.report_error(EvalErrorKind::Other {
@@ -1136,7 +1132,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_manifest_xml_jsonml_item_0(
         &mut self,
-        array: GcView<ArrayData>,
+        array: GcView<ArrayData<'p>>,
     ) -> Result<(), Box<EvalError>> {
         let item_value = self.value_stack.pop().unwrap();
         let ValueData::String(tag) = item_value else {
@@ -1193,10 +1189,10 @@ impl Evaluator<'_> {
                 let visible_fields: Vec<_> = object
                     .get_fields_order()
                     .iter()
-                    .filter_map(|(name, visible)| visible.then_some(name))
+                    .filter_map(|&(name, visible)| visible.then_some(name))
                     .collect();
 
-                for field_name in visible_fields.iter().rev() {
+                for &field_name in visible_fields.iter().rev() {
                     let field_thunk = self
                         .program
                         .find_object_field_thunk(&object, 0, field_name)
@@ -1299,7 +1295,10 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    pub(super) fn do_std_member(&mut self, value: GcView<ThunkData>) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_member(
+        &mut self,
+        value: GcView<ThunkData<'p>>,
+    ) -> Result<(), Box<EvalError>> {
         let arr_or_str = self.value_stack.pop().unwrap();
         match arr_or_str {
             ValueData::String(s) => {
@@ -1341,7 +1340,7 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    pub(super) fn do_std_member_array(&mut self, array: GcView<ArrayData>, index: usize) {
+    pub(super) fn do_std_member_array(&mut self, array: GcView<ArrayData<'p>>, index: usize) {
         let equal = self.bool_stack.pop().unwrap();
         if equal {
             *self.value_stack.last_mut().unwrap() = ValueData::Bool(true);
@@ -1363,7 +1362,10 @@ impl Evaluator<'_> {
         }
     }
 
-    pub(super) fn do_std_count(&mut self, value: GcView<ThunkData>) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_count(
+        &mut self,
+        value: GcView<ThunkData<'p>>,
+    ) -> Result<(), Box<EvalError>> {
         let array = self.value_stack.pop().unwrap();
         let array = self.expect_std_func_arg_array(array, "count", 0)?;
 
@@ -1388,7 +1390,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_count_inner(
         &mut self,
-        array: GcView<ArrayData>,
+        array: GcView<ArrayData<'p>>,
         index: usize,
         mut count: usize,
     ) {
@@ -1414,7 +1416,10 @@ impl Evaluator<'_> {
         }
     }
 
-    pub(super) fn do_std_find(&mut self, value: GcView<ThunkData>) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_find(
+        &mut self,
+        value: GcView<ThunkData<'p>>,
+    ) -> Result<(), Box<EvalError>> {
         let array = self.value_stack.pop().unwrap();
         let array = self.expect_std_func_arg_array(array, "find", 1)?;
 
@@ -1436,7 +1441,7 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    pub(super) fn do_std_find_inner(&mut self, array: GcView<ArrayData>, index: usize) {
+    pub(super) fn do_std_find_inner(&mut self, array: GcView<ArrayData<'p>>, index: usize) {
         let equal = self.bool_stack.pop().unwrap();
         if equal {
             self.array_stack.last_mut().unwrap().push(
@@ -1599,7 +1604,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_filter_check(
         &mut self,
-        item: GcView<ThunkData>,
+        item: GcView<ThunkData<'p>>,
     ) -> Result<(), Box<EvalError>> {
         let cond_value = self.value_stack.pop().unwrap();
         let ValueData::Bool(cond_value) = cond_value else {
@@ -1619,7 +1624,10 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    pub(super) fn do_std_foldl(&mut self, init: GcView<ThunkData>) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_foldl(
+        &mut self,
+        init: GcView<ThunkData<'p>>,
+    ) -> Result<(), Box<EvalError>> {
         let arr_value = self.value_stack.pop().unwrap();
         let func_value = self.value_stack.pop().unwrap();
 
@@ -1646,8 +1654,8 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_foldl_item(
         &mut self,
-        func: GcView<FuncData>,
-        item: GcView<ThunkData>,
+        func: GcView<FuncData<'p>>,
+        item: GcView<ThunkData<'p>>,
     ) -> Result<(), Box<EvalError>> {
         let acc = self.value_stack.pop().unwrap();
         let acc = self.program.gc_alloc_view(ThunkData::new_done(acc));
@@ -1657,7 +1665,10 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    pub(super) fn do_std_foldr(&mut self, init: GcView<ThunkData>) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_foldr(
+        &mut self,
+        init: GcView<ThunkData<'p>>,
+    ) -> Result<(), Box<EvalError>> {
         let arr_value = self.value_stack.pop().unwrap();
         let func_value = self.value_stack.pop().unwrap();
 
@@ -1684,8 +1695,8 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_foldr_item(
         &mut self,
-        func: GcView<FuncData>,
-        item: GcView<ThunkData>,
+        func: GcView<FuncData<'p>>,
+        item: GcView<ThunkData<'p>>,
     ) -> Result<(), Box<EvalError>> {
         let acc = self.value_stack.pop().unwrap();
         let acc = self.program.gc_alloc_view(ThunkData::new_done(acc));
@@ -1808,7 +1819,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_join_array_item(
         &mut self,
-        sep: GcView<ArrayData>,
+        sep: GcView<ArrayData<'p>>,
     ) -> Result<(), Box<EvalError>> {
         let item = self.value_stack.pop().unwrap();
         if !matches!(item, ValueData::Null) {
@@ -1903,14 +1914,18 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    pub(super) fn do_std_sort_set_key(&mut self, keys: Rc<Vec<OnceCell<ValueData>>>, index: usize) {
+    pub(super) fn do_std_sort_set_key(
+        &mut self,
+        keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
+        index: usize,
+    ) {
         let value = self.value_stack.pop().unwrap();
         keys[index].set(value).ok().unwrap();
     }
 
     pub(super) fn do_std_sort_compare(
         &mut self,
-        keys: Rc<Vec<OnceCell<ValueData>>>,
+        keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
         lhs: usize,
         rhs: usize,
     ) {
@@ -1921,7 +1936,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_sort_slice(
         &mut self,
-        keys: Rc<Vec<OnceCell<ValueData>>>,
+        keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
         sorted: Rc<Vec<Cell<usize>>>,
         range: std::ops::Range<usize>,
     ) {
@@ -1957,7 +1972,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_sort_quick_sort_1(
         &mut self,
-        keys: Rc<Vec<OnceCell<ValueData>>>,
+        keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
         sorted: Rc<Vec<Cell<usize>>>,
         range: std::ops::Range<usize>,
     ) {
@@ -1982,7 +1997,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_sort_quick_sort_2(
         &mut self,
-        keys: Rc<Vec<OnceCell<ValueData>>>,
+        keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
         sorted: Rc<Vec<Cell<usize>>>,
         range: std::ops::Range<usize>,
     ) {
@@ -2036,7 +2051,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_sort_merge_prepare(
         &mut self,
-        keys: Rc<Vec<OnceCell<ValueData>>>,
+        keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
         sorted: Rc<Vec<Cell<usize>>>,
         range: std::ops::Range<usize>,
         mid: usize,
@@ -2054,7 +2069,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_sort_merge_pre_compare(
         &mut self,
-        keys: Rc<Vec<OnceCell<ValueData>>>,
+        keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
         sorted: Rc<Vec<Cell<usize>>>,
         start: usize,
         unmerged: Rc<(Cell<usize>, Box<[usize]>, Cell<usize>, Box<[usize]>)>,
@@ -2088,7 +2103,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_sort_merge_post_compare(
         &mut self,
-        keys: Rc<Vec<OnceCell<ValueData>>>,
+        keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
         sorted: Rc<Vec<Cell<usize>>>,
         start: usize,
         unmerged: Rc<(Cell<usize>, Box<[usize]>, Cell<usize>, Box<[usize]>)>,
@@ -2116,7 +2131,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_sort_finish(
         &mut self,
-        orig_array: GcView<ArrayData>,
+        orig_array: GcView<ArrayData<'p>>,
         sorted: Rc<Vec<Cell<usize>>>,
     ) {
         let new_array = sorted.iter().map(|i| orig_array[i.get()].clone()).collect();
@@ -2155,8 +2170,8 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_uniq_compare_item(
         &mut self,
-        keyf: GcView<FuncData>,
-        item: GcView<ThunkData>,
+        keyf: GcView<FuncData<'p>>,
+        item: GcView<ThunkData<'p>>,
         is_last: bool,
     ) -> Result<(), Box<EvalError>> {
         self.state_stack
@@ -2174,7 +2189,7 @@ impl Evaluator<'_> {
         self.value_stack.insert(self.value_stack.len() - 2, value);
     }
 
-    pub(super) fn do_std_uniq_check_item(&mut self, item: GcView<ThunkData>) {
+    pub(super) fn do_std_uniq_check_item(&mut self, item: GcView<ThunkData<'p>>) {
         let is_equal = self.bool_stack.pop().unwrap();
         if !is_equal {
             let array = self.array_stack.last_mut().unwrap();
@@ -2199,7 +2214,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_all_item(
         &mut self,
-        array: GcView<ArrayData>,
+        array: GcView<ArrayData<'p>>,
         index: usize,
     ) -> Result<(), Box<EvalError>> {
         let item_value = self.value_stack.pop().unwrap();
@@ -2246,7 +2261,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_any_item(
         &mut self,
-        array: GcView<ArrayData>,
+        array: GcView<ArrayData<'p>>,
         index: usize,
     ) -> Result<(), Box<EvalError>> {
         let item_value = self.value_stack.pop().unwrap();
@@ -2322,8 +2337,8 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_set_uniq(
         &mut self,
-        orig_array: GcView<ArrayData>,
-        keys: Rc<Vec<OnceCell<ValueData>>>,
+        orig_array: GcView<ArrayData<'p>>,
+        keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
         sorted: Rc<Vec<Cell<usize>>>,
     ) {
         let mut new_array = Vec::with_capacity(orig_array.len());
@@ -2343,8 +2358,8 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_set_uniq_compare_item(
         &mut self,
-        orig_array: GcView<ArrayData>,
-        keys: Rc<Vec<OnceCell<ValueData>>>,
+        orig_array: GcView<ArrayData<'p>>,
+        keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
         sorted: Rc<Vec<Cell<usize>>>,
         index: usize,
     ) {
@@ -2362,7 +2377,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_set_uniq_check_item(
         &mut self,
-        orig_array: GcView<ArrayData>,
+        orig_array: GcView<ArrayData<'p>>,
         sorted: Rc<Vec<Cell<usize>>>,
         index: usize,
     ) {
@@ -2404,9 +2419,9 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_set_inter_aux(
         &mut self,
-        keyf: GcView<FuncData>,
-        a: GcView<ArrayData>,
-        b: GcView<ArrayData>,
+        keyf: GcView<FuncData<'p>>,
+        a: GcView<ArrayData<'p>>,
+        b: GcView<ArrayData<'p>>,
         mut i: usize,
         mut j: usize,
     ) -> Result<(), Box<EvalError>> {
@@ -2477,9 +2492,9 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_set_union_aux(
         &mut self,
-        keyf: GcView<FuncData>,
-        a: GcView<ArrayData>,
-        b: GcView<ArrayData>,
+        keyf: GcView<FuncData<'p>>,
+        a: GcView<ArrayData<'p>>,
+        b: GcView<ArrayData<'p>>,
         mut i: usize,
         mut j: usize,
     ) -> Result<(), Box<EvalError>> {
@@ -2554,9 +2569,9 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_set_diff_aux(
         &mut self,
-        keyf: GcView<FuncData>,
-        a: GcView<ArrayData>,
-        b: GcView<ArrayData>,
+        keyf: GcView<FuncData<'p>>,
+        a: GcView<ArrayData<'p>>,
+        b: GcView<ArrayData<'p>>,
         mut i: usize,
         mut j: usize,
     ) -> Result<(), Box<EvalError>> {
@@ -2598,7 +2613,10 @@ impl Evaluator<'_> {
         Ok(())
     }
 
-    pub(super) fn do_std_set_member(&mut self, x: GcView<ThunkData>) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_set_member(
+        &mut self,
+        x: GcView<ThunkData<'p>>,
+    ) -> Result<(), Box<EvalError>> {
         let keyf = self.value_stack.pop().unwrap();
         let arr = self.value_stack.pop().unwrap();
 
@@ -2625,8 +2643,8 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_set_member_slice(
         &mut self,
-        keyf: GcView<FuncData>,
-        arr: GcView<ArrayData>,
+        keyf: GcView<FuncData<'p>>,
+        arr: GcView<ArrayData<'p>>,
         start: usize,
         end: usize,
     ) -> Result<(), Box<EvalError>> {
@@ -2649,8 +2667,8 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_set_member_check(
         &mut self,
-        keyf: GcView<FuncData>,
-        arr: GcView<ArrayData>,
+        keyf: GcView<FuncData<'p>>,
+        arr: GcView<ArrayData<'p>>,
         start: usize,
         end: usize,
         mid: usize,
@@ -2733,7 +2751,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_std_base64_array(
         &mut self,
-        input: GcView<ArrayData>,
+        input: GcView<ArrayData<'p>>,
         mut bytes: Vec<u8>,
     ) -> Result<(), Box<EvalError>> {
         let item_value = self.value_stack.pop().unwrap();
@@ -2844,7 +2862,7 @@ impl Evaluator<'_> {
         let msg = self.expect_std_func_arg_string(arg, "trace", 0)?;
 
         let stack = self.get_stack_trace();
-        if let Some(callbacks) = self.callbacks.as_deref_mut() {
+        if let Some(callbacks) = self.callbacks.as_mut() {
             callbacks.trace(self.program, &msg, &stack);
         }
 

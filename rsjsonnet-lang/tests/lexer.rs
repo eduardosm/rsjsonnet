@@ -7,36 +7,42 @@
 )]
 #![forbid(unsafe_code)]
 
+use rsjsonnet_lang::arena::Arena;
 use rsjsonnet_lang::interner::{InternedStr, StrInterner};
 use rsjsonnet_lang::lexer::{LexError, Lexer};
 use rsjsonnet_lang::span::{SpanContextId, SpanId, SpanManager};
 use rsjsonnet_lang::token::{Number, STokenKind, Token, TokenKind};
 
 #[must_use]
-struct LexerTest<'a, F: FnOnce(&mut Session, Option<LexError>, &[Token])> {
+struct LexerTest<'a, F: for<'p> FnOnce(&mut Session<'p>, Option<LexError>, &[Token<'p, 'p>])> {
     input: &'a [u8],
     check: F,
 }
 
-struct Session {
-    str_interner: StrInterner,
+struct Session<'p> {
+    arena: &'p Arena,
+    str_interner: StrInterner<'p>,
     span_mgr: SpanManager,
     span_ctx: SpanContextId,
 }
 
-impl<F: FnOnce(&mut Session, Option<LexError>, &[Token])> LexerTest<'_, F> {
+impl<F: for<'p> FnOnce(&mut Session<'p>, Option<LexError>, &[Token<'p, 'p>])> LexerTest<'_, F> {
     fn run(self) {
+        let arena = Arena::new();
         let str_interner = StrInterner::new();
         let mut span_mgr = SpanManager::new();
         let (span_ctx, _) = span_mgr.insert_source_context(self.input.len());
 
         let mut session = Session {
+            arena: &arena,
             str_interner,
             span_mgr,
             span_ctx,
         };
 
         let mut lexer = Lexer::new(
+            &arena,
+            &arena,
             &session.str_interner,
             &mut session.span_mgr,
             span_ctx,
@@ -63,19 +69,19 @@ impl<F: FnOnce(&mut Session, Option<LexError>, &[Token])> LexerTest<'_, F> {
     }
 }
 
-impl Session {
+impl<'p> Session<'p> {
     fn intern_span(&mut self, start: usize, end: usize) -> SpanId {
         self.span_mgr.intern_span(self.span_ctx, start, end)
     }
 
-    fn intern_str(&self, s: &str) -> InternedStr {
-        self.str_interner.intern(s)
+    fn intern_str(&self, s: &str) -> InternedStr<'p> {
+        self.str_interner.intern(self.arena, s)
     }
 }
 
 fn test_no_error<const N: usize>(
     input: &[u8],
-    expected_tokens: impl FnOnce(&mut Session) -> [Token; N],
+    expected_tokens: impl for<'p> FnOnce(&mut Session<'p>) -> [Token<'p, 'p>; N],
 ) {
     LexerTest {
         input,
@@ -281,7 +287,7 @@ fn test_other_op() {
         [
             Token {
                 span: session.intern_span(0, 3),
-                kind: TokenKind::OtherOp("+:/".into()),
+                kind: TokenKind::OtherOp("+:/"),
             },
             Token {
                 span: session.intern_span(3, 3),
@@ -293,7 +299,7 @@ fn test_other_op() {
         [
             Token {
                 span: session.intern_span(0, 3),
-                kind: TokenKind::OtherOp("+:/".into()),
+                kind: TokenKind::OtherOp("+:/"),
             },
             Token {
                 span: session.intern_span(3, 4),
@@ -345,7 +351,7 @@ fn test_other_op() {
             },
             Token {
                 span: session.intern_span(1, 11),
-                kind: TokenKind::TextBlock("a\n".into()),
+                kind: TokenKind::TextBlock("a\n"),
             },
             Token {
                 span: session.intern_span(11, 11),
@@ -479,7 +485,7 @@ fn test_multi_line_comment() {
 
 #[test]
 fn test_number() {
-    fn test(input: &[u8], number: Number) {
+    fn test(input: &[u8], number: Number<'_>) {
         LexerTest {
             input,
             check: |session, error, tokens| {
@@ -505,42 +511,42 @@ fn test_number() {
     test(
         b"0",
         Number {
-            digits: "0".into(),
+            digits: "0",
             exp: 0,
         },
     );
     test(
         b"1",
         Number {
-            digits: "1".into(),
+            digits: "1",
             exp: 0,
         },
     );
     test(
         b"12",
         Number {
-            digits: "12".into(),
+            digits: "12",
             exp: 0,
         },
     );
     test(
         b"0.0",
         Number {
-            digits: "00".into(),
+            digits: "00",
             exp: -1,
         },
     );
     test(
         b"1.0",
         Number {
-            digits: "10".into(),
+            digits: "10",
             exp: -1,
         },
     );
     test(
         b"0.1",
         Number {
-            digits: "01".into(),
+            digits: "01",
             exp: -1,
         },
     );
@@ -548,35 +554,35 @@ fn test_number() {
     test(
         b"1.2",
         Number {
-            digits: "12".into(),
+            digits: "12",
             exp: -1,
         },
     );
     test(
         b"1e10",
         Number {
-            digits: "1".into(),
+            digits: "1",
             exp: 10,
         },
     );
     test(
         b"1e+10",
         Number {
-            digits: "1".into(),
+            digits: "1",
             exp: 10,
         },
     );
     test(
         b"1e-10",
         Number {
-            digits: "1".into(),
+            digits: "1",
             exp: -10,
         },
     );
     test(
         b"1.2e-10",
         Number {
-            digits: "12".into(),
+            digits: "12",
             exp: -11,
         },
     );
@@ -678,7 +684,7 @@ fn test_string() {
                     [
                         Token {
                             span: session.intern_span(0, input.len()),
-                            kind: TokenKind::String(expected.into()),
+                            kind: TokenKind::String(expected),
                         },
                         Token {
                             span: session.intern_span(input.len(), input.len()),
@@ -865,7 +871,7 @@ fn test_text_block() {
                     [
                         Token {
                             span: session.intern_span(0, input.len()),
-                            kind: TokenKind::TextBlock(expected.into()),
+                            kind: TokenKind::TextBlock(expected),
                         },
                         Token {
                             span: session.intern_span(input.len(), input.len()),

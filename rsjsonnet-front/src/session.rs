@@ -1,40 +1,35 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use rsjsonnet_lang::arena::Arena;
 use rsjsonnet_lang::interner::InternedStr;
 use rsjsonnet_lang::program::{ImportError, LoadError, NativeError, Program, Thunk, Value};
 use rsjsonnet_lang::span::{SourceId, SpanId};
 
 use crate::src_manager::SrcManager;
 
-type NativeFunc = Box<dyn FnMut(&mut Program, &[Value]) -> Result<Value, String>>;
+type NativeFunc<'p> = Box<dyn FnMut(&mut Program<'p>, &[Value<'p>]) -> Result<Value<'p>, String>>;
 
-pub struct Session {
-    program: Program,
-    inner: SessionInner,
+pub struct Session<'p> {
+    program: Program<'p>,
+    inner: SessionInner<'p>,
 }
 
-struct SessionInner {
+struct SessionInner<'p> {
     src_mgr: SrcManager,
     source_paths: HashMap<SourceId, PathBuf>,
-    source_cache: HashMap<PathBuf, Thunk>,
+    source_cache: HashMap<PathBuf, Thunk<'p>>,
     search_paths: Vec<PathBuf>,
-    native_funcs: HashMap<InternedStr, NativeFunc>,
+    native_funcs: HashMap<InternedStr<'p>, NativeFunc<'p>>,
     custom_stack_trace: Vec<String>,
     max_trace: usize,
     #[cfg(feature = "crossterm")]
     colored_output: bool,
 }
 
-impl Default for Session {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Session {
-    pub fn new() -> Self {
-        let program = Program::new();
+impl<'p> Session<'p> {
+    pub fn new(arena: &'p Arena) -> Self {
+        let program = Program::new(arena);
         let (stdlib_src_id, stdlib_data) = program.get_stdlib_source();
 
         let mut src_mgr = SrcManager::new();
@@ -59,14 +54,14 @@ impl Session {
     /// Returns a reference to the underlying `Program`.
     #[must_use]
     #[inline]
-    pub fn program(&self) -> &Program {
+    pub fn program(&self) -> &Program<'p> {
         &self.program
     }
 
     /// Returns a mutable reference to the underlying `Program`.
     #[must_use]
     #[inline]
-    pub fn program_mut(&mut self) -> &mut Program {
+    pub fn program_mut(&mut self) -> &mut Program<'p> {
         &mut self.program
     }
 
@@ -89,7 +84,8 @@ impl Session {
     /// # Example
     ///
     /// ```
-    /// let mut session = rsjsonnet_front::Session::new();
+    /// let arena = rsjsonnet_lang::arena::Arena::new();
+    /// let mut session = rsjsonnet_front::Session::new(&arena);
     ///
     /// session.add_native_func("MyFunc", &["arg"], |_, [arg]| {
     ///     let Some(arg) = arg.to_string() else {
@@ -119,12 +115,12 @@ impl Session {
         params: &[&str; N],
         mut func: F,
     ) where
-        F: FnMut(&mut Program, &[Value; N]) -> Result<Value, String> + 'static,
+        F: FnMut(&mut Program<'p>, &[Value<'p>; N]) -> Result<Value<'p>, String> + 'static,
     {
         let name = self.program.intern_str(name);
         let params: Vec<_> = params.iter().map(|p| self.program.intern_str(p)).collect();
 
-        self.program.register_native_func(name.clone(), &params);
+        self.program.register_native_func(name, &params);
         self.inner.native_funcs.insert(
             name,
             Box::new(move |program, args| func(program, args.try_into().unwrap())),
@@ -138,7 +134,7 @@ impl Session {
     ///
     /// In case of failure, the error is printed to stderr and `None` is
     /// returned.
-    pub fn load_virt_file(&mut self, repr_path: &str, data: Vec<u8>) -> Option<Thunk> {
+    pub fn load_virt_file(&mut self, repr_path: &str, data: Vec<u8>) -> Option<Thunk<'p>> {
         self.inner
             .load_virt_file(&mut self.program, repr_path, data)
     }
@@ -147,7 +143,7 @@ impl Session {
     ///
     /// In case of failure, the error is printed to stderr and `None` is
     /// returned.
-    pub fn load_real_file(&mut self, path: &Path) -> Option<Thunk> {
+    pub fn load_real_file(&mut self, path: &Path) -> Option<Thunk<'p>> {
         self.inner.load_real_file(&mut self.program, path)
     }
 
@@ -155,7 +151,7 @@ impl Session {
     ///
     /// In case of failure, the error is printed to stderr and `None` is
     /// returned.
-    pub fn eval_value(&mut self, thunk: &Thunk) -> Option<Value> {
+    pub fn eval_value(&mut self, thunk: &Thunk<'p>) -> Option<Value<'p>> {
         match self.program.eval_value(thunk, &mut self.inner) {
             Ok(v) => Some(v),
             Err(e) => {
@@ -171,10 +167,10 @@ impl Session {
     /// returned.
     pub fn eval_call(
         &mut self,
-        func: &Thunk,
-        pos_args: &[Thunk],
-        named_args: &[(InternedStr, Thunk)],
-    ) -> Option<Value> {
+        func: &Thunk<'p>,
+        pos_args: &[Thunk<'p>],
+        named_args: &[(InternedStr<'p>, Thunk<'p>)],
+    ) -> Option<Value<'p>> {
         match self
             .program
             .eval_call(func, pos_args, named_args, &mut self.inner)
@@ -191,7 +187,7 @@ impl Session {
     ///
     /// In case of failure, the error is printed to stderr and `None` is
     /// returned.
-    pub fn manifest_json(&mut self, value: &Value, multiline: bool) -> Option<String> {
+    pub fn manifest_json(&mut self, value: &Value<'p>, multiline: bool) -> Option<String> {
         match self.program.manifest_json(value, multiline) {
             Ok(s) => Some(s),
             Err(e) => {
@@ -221,13 +217,13 @@ impl Session {
     }
 }
 
-impl SessionInner {
+impl<'p> SessionInner<'p> {
     fn load_virt_file(
         &mut self,
-        program: &mut Program,
+        program: &mut Program<'p>,
         repr_path: &str,
         data: Vec<u8>,
-    ) -> Option<Thunk> {
+    ) -> Option<Thunk<'p>> {
         let (span_ctx, source_id) = program.span_manager_mut().insert_source_context(data.len());
 
         self.src_mgr
@@ -243,7 +239,7 @@ impl SessionInner {
         }
     }
 
-    fn load_real_file(&mut self, program: &mut Program, path: &Path) -> Option<Thunk> {
+    fn load_real_file(&mut self, program: &mut Program<'p>, path: &Path) -> Option<Thunk<'p>> {
         let norm_path = match path.canonicalize() {
             Ok(p) => p,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -287,7 +283,7 @@ impl SessionInner {
         }
     }
 
-    fn find_import(&self, program: &Program, from: SpanId, path: &str) -> Option<PathBuf> {
+    fn find_import(&self, program: &Program<'p>, from: SpanId, path: &str) -> Option<PathBuf> {
         let path = Path::new(path);
         if path.is_absolute() {
             if path.exists() {
@@ -326,7 +322,7 @@ impl SessionInner {
         crate::print::output_stderr_plain(msg);
     }
 
-    fn print_load_error(&self, program: &Program, error: &LoadError) {
+    fn print_load_error(&self, program: &Program<'p>, error: &LoadError) {
         match error {
             LoadError::Lex(e) => {
                 let msg =
@@ -346,7 +342,7 @@ impl SessionInner {
         }
     }
 
-    fn print_eval_error(&self, program: &Program, error: &rsjsonnet_lang::program::EvalError) {
+    fn print_eval_error(&self, program: &Program<'p>, error: &rsjsonnet_lang::program::EvalError) {
         self.print_rich_message(&crate::report::eval::render_error_kind(
             &error.kind,
             program.span_manager(),
@@ -368,7 +364,7 @@ impl SessionInner {
 
     fn print_stack_trace(
         &self,
-        program: &Program,
+        program: &Program<'p>,
         stack: &[rsjsonnet_lang::program::EvalStackTraceItem],
     ) {
         if stack.len() <= self.max_trace {
@@ -403,13 +399,13 @@ impl SessionInner {
     }
 }
 
-impl rsjsonnet_lang::program::Callbacks for SessionInner {
+impl<'p> rsjsonnet_lang::program::Callbacks<'p> for SessionInner<'p> {
     fn import(
         &mut self,
-        program: &mut Program,
+        program: &mut Program<'p>,
         from: SpanId,
         path: &str,
-    ) -> Result<Thunk, ImportError> {
+    ) -> Result<Thunk<'p>, ImportError> {
         let Some(full_path) = self.find_import(program, from, path) else {
             self.print_error(format_args!("import {path:?} not found in search path"));
             return Err(ImportError);
@@ -422,7 +418,7 @@ impl rsjsonnet_lang::program::Callbacks for SessionInner {
 
     fn import_str(
         &mut self,
-        program: &mut Program,
+        program: &mut Program<'p>,
         from: SpanId,
         path: &str,
     ) -> Result<String, ImportError> {
@@ -442,7 +438,7 @@ impl rsjsonnet_lang::program::Callbacks for SessionInner {
 
     fn import_bin(
         &mut self,
-        program: &mut Program,
+        program: &mut Program<'p>,
         from: SpanId,
         path: &str,
     ) -> Result<Vec<u8>, ImportError> {
@@ -462,7 +458,7 @@ impl rsjsonnet_lang::program::Callbacks for SessionInner {
 
     fn trace(
         &mut self,
-        program: &mut Program,
+        program: &mut Program<'p>,
         message: &str,
         stack: &[rsjsonnet_lang::program::EvalStackTraceItem],
     ) {
@@ -478,11 +474,11 @@ impl rsjsonnet_lang::program::Callbacks for SessionInner {
 
     fn native_call(
         &mut self,
-        program: &mut Program,
-        name: &InternedStr,
-        args: &[Value],
-    ) -> Result<Value, NativeError> {
-        let native_func = &mut self.native_funcs.get_mut(name).unwrap();
+        program: &mut Program<'p>,
+        name: InternedStr<'p>,
+        args: &[Value<'p>],
+    ) -> Result<Value<'p>, NativeError> {
+        let native_func = &mut self.native_funcs.get_mut(&name).unwrap();
         match native_func(program, args) {
             Ok(v) => Ok(v),
             Err(e) => {

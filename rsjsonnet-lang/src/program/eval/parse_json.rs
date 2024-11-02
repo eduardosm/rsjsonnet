@@ -5,13 +5,13 @@ use crate::gc::Gc;
 use crate::interner::InternedStr;
 use crate::{ast, FHashMap};
 
-pub(super) struct ParseError {
+pub(super) struct ParseError<'p> {
     line: usize,
     column: usize,
-    kind: ParseErrorKind,
+    kind: ParseErrorKind<'p>,
 }
 
-impl std::fmt::Display for ParseError {
+impl std::fmt::Display for ParseError<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -23,7 +23,7 @@ impl std::fmt::Display for ParseError {
     }
 }
 
-enum ParseErrorKind {
+enum ParseErrorKind<'p> {
     ExpectedValue,
     ExpectedEof,
     Expected1(char),
@@ -34,10 +34,10 @@ enum ParseErrorKind {
     InvalidChrInString,
     InvalidStringEscape,
     ExpectedObjectKey,
-    RepeatedFieldName(InternedStr),
+    RepeatedFieldName(InternedStr<'p>),
 }
 
-impl std::fmt::Display for ParseErrorKind {
+impl std::fmt::Display for ParseErrorKind<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ExpectedValue => write!(f, "expected value"),
@@ -57,10 +57,13 @@ impl std::fmt::Display for ParseErrorKind {
     }
 }
 
-pub(super) fn parse_json(program: &mut Program, s: &str) -> Result<ValueData, ParseError> {
-    enum StackItem {
-        Array(Vec<Gc<ThunkData>>),
-        Object(FHashMap<InternedStr, ObjectField>, InternedStr),
+pub(super) fn parse_json<'p>(
+    program: &mut Program<'p>,
+    s: &str,
+) -> Result<ValueData<'p>, ParseError<'p>> {
+    enum StackItem<'p> {
+        Array(Vec<Gc<ThunkData<'p>>>),
+        Object(FHashMap<InternedStr<'p>, ObjectField<'p>>, InternedStr<'p>),
     }
 
     let mut lexer = Lexer {
@@ -149,9 +152,8 @@ pub(super) fn parse_json(program: &mut Program, s: &str) -> Result<ValueData, Pa
                                 });
                             }
                             std::collections::hash_map::Entry::Occupied(entry) => {
-                                return Err(lexer.get_error(ParseErrorKind::RepeatedFieldName(
-                                    entry.key().clone(),
-                                )));
+                                return Err(lexer
+                                    .get_error(ParseErrorKind::RepeatedFieldName(*entry.key())));
                             }
                         }
 
@@ -194,7 +196,7 @@ struct Lexer<'a> {
 
 impl Lexer<'_> {
     #[inline]
-    fn get_error(&self, kind: ParseErrorKind) -> ParseError {
+    fn get_error<'p>(&self, kind: ParseErrorKind<'p>) -> ParseError<'p> {
         ParseError {
             line: self.line,
             column: self.column,
@@ -281,7 +283,7 @@ impl Lexer<'_> {
         }
     }
 
-    fn lex_number(&mut self) -> Result<Option<f64>, ParseError> {
+    fn lex_number<'p>(&mut self) -> Result<Option<f64>, ParseError<'p>> {
         enum State {
             Start,
             Minus,
@@ -421,7 +423,7 @@ impl Lexer<'_> {
         }
     }
 
-    fn lex_string(&mut self) -> Result<Option<String>, ParseError> {
+    fn lex_string<'p>(&mut self) -> Result<Option<String>, ParseError<'p>> {
         if !self.eat_char('"') {
             return Ok(None);
         }

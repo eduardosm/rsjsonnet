@@ -50,7 +50,7 @@ impl ManifestJsonFormat {
     }
 }
 
-impl Evaluator<'_> {
+impl<'p> Evaluator<'_, 'p> {
     pub(super) fn do_manifest_ini_section(&mut self) -> Result<(), Box<EvalError>> {
         let ValueData::Object(object) = self.value_stack.pop().unwrap() else {
             return Err(self.report_error(EvalErrorKind::Other {
@@ -63,7 +63,7 @@ impl Evaluator<'_> {
         let visible_fields: Vec<_> = object
             .get_fields_order()
             .iter()
-            .filter_map(|(name, visible)| visible.then_some(name))
+            .filter_map(|&(name, visible)| visible.then_some(name))
             .collect();
         for &field_name in visible_fields.iter().rev() {
             let field_thunk = self
@@ -71,9 +71,8 @@ impl Evaluator<'_> {
                 .find_object_field_thunk(&object, 0, field_name)
                 .unwrap();
 
-            self.state_stack.push(State::ManifestIniSectionItem {
-                name: field_name.clone(),
-            });
+            self.state_stack
+                .push(State::ManifestIniSectionItem { name: field_name });
             self.state_stack.push(State::DoThunk(field_thunk));
         }
         self.check_object_asserts(&object);
@@ -83,7 +82,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_manifest_ini_section_item(
         &mut self,
-        name: InternedStr,
+        name: InternedStr<'p>,
     ) -> Result<(), Box<EvalError>> {
         let value = self.value_stack.pop().unwrap();
         if let ValueData::Array(array) = value {
@@ -148,7 +147,7 @@ impl Evaluator<'_> {
                 let visible_fields: Vec<_> = object
                     .get_fields_order()
                     .iter()
-                    .filter_map(|(name, visible)| visible.then_some(name))
+                    .filter_map(|&(name, visible)| visible.then_some(name))
                     .collect();
                 if visible_fields.is_empty() {
                     result.push_str("{}");
@@ -162,9 +161,7 @@ impl Evaluator<'_> {
                             self.state_stack.push(State::AppendToString(", ".into()));
                         }
 
-                        self.push_trace_item(TraceItem::ManifestObjectField {
-                            name: field_name.clone(),
-                        });
+                        self.push_trace_item(TraceItem::ManifestObjectField { name: field_name });
                         self.state_stack.push(State::ManifestPython);
                         let field_thunk = self
                             .program
@@ -262,7 +259,7 @@ impl Evaluator<'_> {
                 let visible_fields: Vec<_> = object
                     .get_fields_order()
                     .iter()
-                    .filter_map(|(name, visible)| visible.then_some(name))
+                    .filter_map(|&(name, visible)| visible.then_some(name))
                     .collect();
                 if visible_fields.is_empty() {
                     if let Some(ref empty_object) = format.empty_object {
@@ -296,9 +293,7 @@ impl Evaluator<'_> {
                             self.state_stack.push(State::AppendToString(tmp));
                         }
 
-                        self.push_trace_item(TraceItem::ManifestObjectField {
-                            name: field_name.clone(),
-                        });
+                        self.push_trace_item(TraceItem::ManifestObjectField { name: field_name });
                         self.state_stack.push(State::ManifestJson {
                             format: format.clone(),
                             depth: depth + 1,
@@ -438,7 +433,7 @@ impl Evaluator<'_> {
                 let visible_fields: Vec<_> = object
                     .get_fields_order()
                     .iter()
-                    .filter_map(|(name, visible)| visible.then_some(name))
+                    .filter_map(|&(name, visible)| visible.then_some(name))
                     .collect();
                 if visible_fields.is_empty() {
                     if parent_is_array || parent_is_object {
@@ -458,9 +453,7 @@ impl Evaluator<'_> {
                             self.state_stack.push(State::AppendToString("\n".into()));
                         }
 
-                        self.push_trace_item(TraceItem::ManifestObjectField {
-                            name: field_name.clone(),
-                        });
+                        self.push_trace_item(TraceItem::ManifestObjectField { name: field_name });
                         self.state_stack.push(State::ManifestYamlDoc {
                             indent_array_in_object,
                             quote_keys,
@@ -516,7 +509,7 @@ impl Evaluator<'_> {
 
     pub(super) fn do_manifest_toml_peek_sub_table_array_item(
         &mut self,
-        array: GcView<ArrayData>,
+        array: GcView<ArrayData<'p>>,
         index: usize,
     ) {
         let value = self.value_stack.pop().unwrap();
@@ -536,9 +529,9 @@ impl Evaluator<'_> {
 
     pub(super) fn prepare_manifest_toml_table(
         &mut self,
-        object: GcView<ObjectData>,
+        object: GcView<ObjectData<'p>>,
         has_header: bool,
-        path: Rc<[InternedStr]>,
+        path: Rc<[InternedStr<'p>]>,
         indent: Rc<str>,
     ) {
         self.state_stack.push(State::ManifestTomlTable {
@@ -551,9 +544,9 @@ impl Evaluator<'_> {
         let visible_fields: Vec<_> = object
             .get_fields_order()
             .iter()
-            .filter_map(|(name, visible)| visible.then_some(name))
+            .filter_map(|&(name, visible)| visible.then_some(name))
             .collect();
-        for field_name in visible_fields.iter().rev() {
+        for &field_name in visible_fields.iter().rev() {
             let field_thunk = self
                 .program
                 .find_object_field_thunk(&object, 0, field_name)
@@ -567,16 +560,16 @@ impl Evaluator<'_> {
 
     pub(super) fn do_manifest_toml_table(
         &mut self,
-        object: GcView<ObjectData>,
+        object: GcView<ObjectData<'p>>,
         has_header: bool,
-        path: Rc<[InternedStr]>,
+        path: Rc<[InternedStr<'p>]>,
         indent: Rc<str>,
     ) {
         let visible_fields: Vec<_> = object
             .get_fields_order()
             .iter()
             .filter(|&&(_, visible)| visible)
-            .map(|(name, _)| {
+            .map(|&(name, _)| {
                 // Check if the field is an object or an array of objects
                 let (_, field) = object.find_field(0, name).unwrap();
                 let field_value = field.thunk.get().unwrap().view().get_value().unwrap();
@@ -613,13 +606,11 @@ impl Evaluator<'_> {
 
             let sub_path: Rc<[_]> = path
                 .iter()
+                .copied()
                 .chain(std::iter::once(field_name))
-                .cloned()
                 .collect();
 
-            self.push_trace_item(TraceItem::ManifestObjectField {
-                name: field_name.clone(),
-            });
+            self.push_trace_item(TraceItem::ManifestObjectField { name: field_name });
 
             match field_value {
                 ValueData::Array(array) => {
@@ -702,9 +693,7 @@ impl Evaluator<'_> {
                 .find_object_field_thunk(&object, 0, field_name)
                 .unwrap();
 
-            self.push_trace_item(TraceItem::ManifestObjectField {
-                name: field_name.clone(),
-            });
+            self.push_trace_item(TraceItem::ManifestObjectField { name: field_name });
             self.state_stack.push(State::ManifestTomlValue {
                 indent: indent.clone(),
                 depth: path.len(),
@@ -802,7 +791,7 @@ impl Evaluator<'_> {
                 let visible_fields: Vec<_> = object
                     .get_fields_order()
                     .iter()
-                    .filter_map(|(name, visible)| visible.then_some(name))
+                    .filter_map(|&(name, visible)| visible.then_some(name))
                     .collect();
                 if visible_fields.is_empty() {
                     result.push_str("{  }");
@@ -815,9 +804,7 @@ impl Evaluator<'_> {
                             self.state_stack.push(State::AppendToString(", ".into()));
                         }
 
-                        self.push_trace_item(TraceItem::ManifestObjectField {
-                            name: field_name.clone(),
-                        });
+                        self.push_trace_item(TraceItem::ManifestObjectField { name: field_name });
                         self.state_stack.push(State::ManifestTomlValue {
                             indent: indent.clone(),
                             depth: depth + 1,

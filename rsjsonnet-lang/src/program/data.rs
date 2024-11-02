@@ -7,40 +7,34 @@ use crate::gc::{Gc, GcTrace, GcTraceCtx, GcView};
 use crate::interner::{InternedStr, SortedInternedStr};
 use crate::{ast, FHashMap};
 
-impl Program {
-    pub(super) fn try_value_from_expr(&self, expr: &ir::Expr) -> Option<ValueData> {
+impl<'p> Program<'p> {
+    pub(super) fn try_value_from_expr(&self, expr: &'p ir::Expr<'p>) -> Option<ValueData<'p>> {
         match *expr {
             ir::Expr::Null => Some(ValueData::Null),
             ir::Expr::Bool(value) => Some(ValueData::Bool(value)),
             ir::Expr::Number(value, _) if value.is_finite() => Some(ValueData::Number(value)),
-            ir::Expr::String(ref s) => Some(ValueData::String(s.clone())),
-            ir::Expr::Array(ref items) if items.is_empty() => {
-                Some(ValueData::Array(Gc::from(&self.empty_array)))
-            }
+            ir::Expr::String(s) => Some(ValueData::String(s.into())),
+            ir::Expr::Array([]) => Some(ValueData::Array(Gc::from(&self.empty_array))),
             _ => None,
         }
     }
 
     pub(super) fn new_pending_expr_thunk(
         &self,
-        expr: ir::RcExpr,
-        env: Gc<ThunkEnv>,
-        func_name: Option<&InternedStr>,
-    ) -> Gc<ThunkData> {
-        let thunk = if let ir::Expr::Func {
-            ref params,
-            ref body,
-        } = *expr
-        {
+        expr: &'p ir::Expr<'p>,
+        env: Gc<ThunkEnv<'p>>,
+        func_name: Option<InternedStr<'p>>,
+    ) -> Gc<ThunkData<'p>> {
+        let thunk = if let ir::Expr::Func { params, body } = *expr {
             ThunkData::new_done(ValueData::Function(self.gc_alloc(FuncData::new(
-                params.clone(),
+                params,
                 FuncKind::Normal {
-                    name: func_name.cloned(),
-                    body: body.clone(),
+                    name: func_name,
+                    body,
                     env,
                 },
             ))))
-        } else if let Some(value) = self.try_value_from_expr(&expr) {
+        } else if let Some(value) = self.try_value_from_expr(expr) {
             ThunkData::new_done(value)
         } else {
             ThunkData::new_pending_expr(expr, env)
@@ -51,8 +45,8 @@ impl Program {
     #[inline]
     pub(super) fn make_value_array(
         &mut self,
-        items: impl IntoIterator<Item = ValueData>,
-    ) -> Gc<ArrayData> {
+        items: impl IntoIterator<Item = ValueData<'p>>,
+    ) -> Gc<ArrayData<'p>> {
         let items: Box<[_]> = items
             .into_iter()
             .map(|v| self.gc_alloc(ThunkData::new_done(v)))
@@ -67,9 +61,9 @@ impl Program {
     #[inline]
     pub(super) fn concat_arrays(
         &mut self,
-        lhs: &GcView<ArrayData>,
-        rhs: &GcView<ArrayData>,
-    ) -> Gc<ArrayData> {
+        lhs: &GcView<ArrayData<'p>>,
+        rhs: &GcView<ArrayData<'p>>,
+    ) -> Gc<ArrayData<'p>> {
         if lhs.is_empty() {
             Gc::from(rhs)
         } else if rhs.is_empty() {
@@ -85,11 +79,11 @@ impl Program {
     #[inline]
     pub(super) fn slice_array(
         &mut self,
-        array: &GcView<ArrayData>,
+        array: &GcView<ArrayData<'p>>,
         start: usize,
         end: usize,
         step: usize,
-    ) -> Gc<ArrayData> {
+    ) -> Gc<ArrayData<'p>> {
         let items: Box<[_]> = array
             .iter()
             .skip(start)
@@ -106,17 +100,17 @@ impl Program {
 
     fn init_object_env(
         &self,
-        object: &GcView<ObjectData>,
+        object: &GcView<ObjectData<'p>>,
         core_i: usize,
-        base_env: &Gc<ThunkEnv>,
-    ) -> Gc<ThunkEnv> {
+        base_env: &Gc<ThunkEnv<'p>>,
+    ) -> Gc<ThunkEnv<'p>> {
         let core = object.get_core(core_i);
         let env = self.gc_alloc_view(ThunkEnv::new());
         let mut env_data = ThunkEnvData::new(Some(base_env.clone()));
-        for (local_name, local_value) in core.locals.iter() {
+        for &(local_name, local_value) in core.locals.iter() {
             env_data.set_var(
-                local_name.clone(),
-                self.new_pending_expr_thunk(local_value.clone(), Gc::from(&env), Some(local_name)),
+                local_name,
+                self.new_pending_expr_thunk(local_value, Gc::from(&env), Some(local_name)),
             );
         }
         let top_obj = if core.is_top {
@@ -133,7 +127,11 @@ impl Program {
         Gc::from(&env)
     }
 
-    fn get_object_core_env(&self, object: &GcView<ObjectData>, core_i: usize) -> Gc<ThunkEnv> {
+    fn get_object_core_env(
+        &self,
+        object: &GcView<ObjectData<'p>>,
+        core_i: usize,
+    ) -> Gc<ThunkEnv<'p>> {
         let core = object.get_core(core_i);
         core.env
             .get_or_init(|| self.init_object_env(object, core_i, core.base_env.as_ref().unwrap()))
@@ -142,10 +140,10 @@ impl Program {
 
     pub(super) fn find_object_field_thunk(
         &self,
-        object: &GcView<ObjectData>,
+        object: &GcView<ObjectData<'p>>,
         core_i: usize,
-        name: &InternedStr,
-    ) -> Option<GcView<ThunkData>> {
+        name: InternedStr<'p>,
+    ) -> Option<GcView<ThunkData<'p>>> {
         let (core_i, field) = object.find_field(core_i, name)?;
         let thunk = field.thunk.get_or_init(|| {
             let (expr, plus) = field.expr.as_ref().unwrap();
@@ -155,9 +153,9 @@ impl Program {
                 self.get_object_core_env(object, core_i)
             };
             let thunk = if *plus {
-                ThunkData::new_pending_field_plus(expr.clone(), name.clone(), env)
+                ThunkData::new_pending_field_plus(expr, name, env)
             } else {
-                ThunkData::new_pending_expr(expr.clone(), env)
+                ThunkData::new_pending_expr(expr, env)
             };
             self.gc_alloc(thunk)
         });
@@ -166,25 +164,29 @@ impl Program {
 
     pub(super) fn get_object_assert_env(
         &self,
-        object: &GcView<ObjectData>,
+        object: &GcView<ObjectData<'p>>,
         core_i: usize,
         _assert_i: usize,
-    ) -> GcView<ThunkEnv> {
+    ) -> GcView<ThunkEnv<'p>> {
         self.get_object_core_env(object, core_i).view()
     }
 
-    pub(super) fn extend_object(&mut self, lhs: &ObjectData, rhs: &ObjectData) -> Gc<ObjectData> {
-        let clone_core = |core: &ObjectCore| -> ObjectCore {
+    pub(super) fn extend_object(
+        &mut self,
+        lhs: &ObjectData<'p>,
+        rhs: &ObjectData<'p>,
+    ) -> Gc<ObjectData<'p>> {
+        let clone_core = |core: &ObjectCore<'p>| -> ObjectCore<'p> {
             let new_fields = core
                 .fields
                 .iter()
                 .map(|(name, field)| {
                     (
-                        name.clone(),
+                        *name,
                         ObjectField {
                             base_env: field.base_env.clone(),
                             visibility: field.visibility,
-                            expr: field.expr.clone(),
+                            expr: field.expr,
                             thunk: match field.expr {
                                 Some(_) => OnceCell::new(),
                                 None => field.thunk.clone(),
@@ -196,11 +198,11 @@ impl Program {
 
             ObjectCore {
                 is_top: core.is_top,
-                locals: core.locals.clone(),
+                locals: core.locals,
                 base_env: core.base_env.clone(),
                 env: OnceCell::new(),
                 fields: new_fields,
-                asserts: core.asserts.clone(),
+                asserts: core.asserts,
             }
         };
 
@@ -220,11 +222,11 @@ impl Program {
     }
 }
 
-pub(super) struct ThunkData {
-    state: RefCell<ThunkState>,
+pub(super) struct ThunkData<'p> {
+    state: RefCell<ThunkState<'p>>,
 }
 
-impl GcTrace for ThunkData {
+impl GcTrace for ThunkData<'_> {
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
@@ -233,16 +235,16 @@ impl GcTrace for ThunkData {
     }
 }
 
-impl ThunkData {
+impl<'p> ThunkData<'p> {
     #[inline]
-    pub(super) fn new_done(value: ValueData) -> Self {
+    pub(super) fn new_done(value: ValueData<'p>) -> Self {
         Self {
             state: RefCell::new(ThunkState::Done(value)),
         }
     }
 
     #[inline]
-    pub(super) fn new_pending_expr(expr: ir::RcExpr, env: Gc<ThunkEnv>) -> Self {
+    pub(super) fn new_pending_expr(expr: &'p ir::Expr<'p>, env: Gc<ThunkEnv<'p>>) -> Self {
         Self {
             state: RefCell::new(ThunkState::Pending(PendingThunk::Expr { expr, env })),
         }
@@ -250,9 +252,9 @@ impl ThunkData {
 
     #[inline]
     pub(super) fn new_pending_field_plus(
-        expr: ir::RcExpr,
-        field: InternedStr,
-        env: Gc<ThunkEnv>,
+        expr: &'p ir::Expr<'p>,
+        field: InternedStr<'p>,
+        env: Gc<ThunkEnv<'p>>,
     ) -> Self {
         Self {
             state: RefCell::new(ThunkState::Pending(PendingThunk::FieldPlus {
@@ -263,20 +265,19 @@ impl ThunkData {
         }
     }
 
-    #[inline]
-    pub(super) fn new_pending_call(func: Gc<FuncData>, args: Box<[Gc<Self>]>) -> Self {
+    pub(super) fn new_pending_call(func: Gc<FuncData<'p>>, args: Box<[Gc<Self>]>) -> Self {
         Self {
             state: RefCell::new(ThunkState::Pending(PendingThunk::Call { func, args })),
         }
     }
 
     #[inline]
-    pub(super) fn state(&self) -> std::cell::Ref<'_, ThunkState> {
+    pub(super) fn state(&self) -> std::cell::Ref<'_, ThunkState<'p>> {
         self.state.borrow()
     }
 
     #[inline]
-    pub(crate) fn switch_state(&self) -> ThunkState {
+    pub(crate) fn switch_state(&self) -> ThunkState<'p> {
         let mut state = self.state.borrow_mut();
         match *state {
             ThunkState::Done(ref value) => ThunkState::Done(value.clone()),
@@ -286,14 +287,14 @@ impl ThunkData {
     }
 
     #[inline]
-    pub(super) fn set_done(&self, value: ValueData) {
+    pub(super) fn set_done(&self, value: ValueData<'p>) {
         let mut state = self.state.borrow_mut();
         assert!(matches!(*state, ThunkState::InProgress));
         *state = ThunkState::Done(value);
     }
 
     #[inline]
-    pub(super) fn get_value(&self) -> Option<ValueData> {
+    pub(super) fn get_value(&self) -> Option<ValueData<'p>> {
         match *self.state.borrow() {
             ThunkState::Done(ref value) => Some(value.clone()),
             _ => None,
@@ -301,13 +302,13 @@ impl ThunkData {
     }
 }
 
-pub(super) enum ThunkState {
-    Done(ValueData),
-    Pending(PendingThunk),
+pub(super) enum ThunkState<'p> {
+    Done(ValueData<'p>),
+    Pending(PendingThunk<'p>),
     InProgress,
 }
 
-impl GcTrace for ThunkState {
+impl GcTrace for ThunkState<'_> {
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
@@ -320,23 +321,23 @@ impl GcTrace for ThunkState {
     }
 }
 
-pub(super) enum PendingThunk {
+pub(super) enum PendingThunk<'p> {
     Expr {
-        expr: ir::RcExpr,
-        env: Gc<ThunkEnv>,
+        expr: &'p ir::Expr<'p>,
+        env: Gc<ThunkEnv<'p>>,
     },
     FieldPlus {
-        expr: ir::RcExpr,
-        field: InternedStr,
-        env: Gc<ThunkEnv>,
+        expr: &'p ir::Expr<'p>,
+        field: InternedStr<'p>,
+        env: Gc<ThunkEnv<'p>>,
     },
     Call {
-        func: Gc<FuncData>,
-        args: Box<[Gc<ThunkData>]>,
+        func: Gc<FuncData<'p>>,
+        args: Box<[Gc<ThunkData<'p>>]>,
     },
 }
 
-impl GcTrace for PendingThunk {
+impl GcTrace for PendingThunk<'_> {
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
@@ -353,17 +354,17 @@ impl GcTrace for PendingThunk {
 }
 
 #[derive(Clone)]
-pub(super) enum ValueData {
+pub(super) enum ValueData<'p> {
     Null,
     Bool(bool),
     Number(f64),
     String(Rc<str>),
-    Array(Gc<ArrayData>),
-    Object(Gc<ObjectData>),
-    Function(Gc<FuncData>),
+    Array(Gc<ArrayData<'p>>),
+    Object(Gc<ObjectData<'p>>),
+    Function(Gc<FuncData<'p>>),
 }
 
-impl GcTrace for ValueData {
+impl GcTrace for ValueData<'_> {
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
@@ -377,7 +378,7 @@ impl GcTrace for ValueData {
     }
 }
 
-impl ValueData {
+impl ValueData<'_> {
     pub(super) fn from_char(chr: char) -> Self {
         let mut buf = [0; 4];
         let chr_str: &str = chr.encode_utf8(&mut buf);
@@ -398,16 +399,16 @@ impl ValueData {
     }
 }
 
-pub(super) type ArrayData = Box<[Gc<ThunkData>]>;
+pub(super) type ArrayData<'p> = Box<[Gc<ThunkData<'p>>]>;
 
-pub(super) struct ObjectData {
-    pub(super) self_core: ObjectCore,
-    pub(super) super_cores: Vec<ObjectCore>,
-    pub(super) fields_order: OnceCell<Box<[(InternedStr, bool)]>>,
+pub(super) struct ObjectData<'p> {
+    pub(super) self_core: ObjectCore<'p>,
+    pub(super) super_cores: Vec<ObjectCore<'p>>,
+    pub(super) fields_order: OnceCell<Box<[(InternedStr<'p>, bool)]>>,
     pub(super) asserts_checked: Cell<bool>,
 }
 
-impl GcTrace for ObjectData {
+impl GcTrace for ObjectData<'_> {
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
@@ -417,17 +418,17 @@ impl GcTrace for ObjectData {
     }
 }
 
-impl ObjectData {
+impl<'p> ObjectData<'p> {
     #[inline]
-    pub(super) fn new_simple(fields: FHashMap<InternedStr, ObjectField>) -> Self {
+    pub(super) fn new_simple(fields: FHashMap<InternedStr<'p>, ObjectField<'p>>) -> Self {
         Self {
             self_core: ObjectCore {
                 is_top: false,
-                locals: Rc::new(Vec::new()),
+                locals: &[],
                 base_env: None,
                 env: OnceCell::new(),
                 fields,
-                asserts: Rc::new(Vec::new()),
+                asserts: &[],
             },
             super_cores: Vec::new(),
             fields_order: OnceCell::new(),
@@ -436,7 +437,7 @@ impl ObjectData {
     }
 
     #[inline]
-    pub(super) fn get_core(&self, core_i: usize) -> &ObjectCore {
+    pub(super) fn get_core(&self, core_i: usize) -> &ObjectCore<'p> {
         if core_i == 0 {
             &self.self_core
         } else {
@@ -447,38 +448,38 @@ impl ObjectData {
     pub(super) fn find_field(
         &self,
         mut core_i: usize,
-        name: &InternedStr,
-    ) -> Option<(usize, &ObjectField)> {
+        name: InternedStr<'p>,
+    ) -> Option<(usize, &ObjectField<'p>)> {
         if core_i == 0 {
-            if let Some(field) = self.self_core.fields.get(name) {
+            if let Some(field) = self.self_core.fields.get(&name) {
                 return Some((0, field));
             }
             core_i += 1;
         }
         for (sub_i, core) in self.super_cores[(core_i - 1)..].iter().enumerate() {
-            if let Some(field) = core.fields.get(name) {
+            if let Some(field) = core.fields.get(&name) {
                 return Some((core_i + sub_i, field));
             }
         }
         None
     }
 
-    pub(super) fn has_field(&self, core_i: usize, name: &InternedStr) -> bool {
+    pub(super) fn has_field(&self, core_i: usize, name: InternedStr<'p>) -> bool {
         self.find_field(core_i, name).is_some()
     }
 
-    pub(super) fn get_fields_order(&self) -> &[(InternedStr, bool)] {
+    pub(super) fn get_fields_order(&self) -> &[(InternedStr<'p>, bool)] {
         self.fields_order.get_or_init(|| {
             let mut all_fields = BTreeMap::new();
             all_fields.extend(
                 self.self_core
                     .fields
                     .iter()
-                    .map(|(n, f)| (SortedInternedStr(n.clone()), f.visibility)),
+                    .map(|(n, f)| (SortedInternedStr(*n), f.visibility)),
             );
             for core in self.super_cores.iter() {
                 for (n, f) in core.fields.iter() {
-                    match all_fields.entry(SortedInternedStr(n.clone())) {
+                    match all_fields.entry(SortedInternedStr(*n)) {
                         std::collections::btree_map::Entry::Vacant(entry) => {
                             entry.insert(f.visibility);
                         }
@@ -497,8 +498,8 @@ impl ObjectData {
         })
     }
 
-    pub(super) fn field_is_visible(&self, name: &InternedStr) -> bool {
-        if let Some(field) = self.self_core.fields.get(name) {
+    pub(super) fn field_is_visible(&self, name: InternedStr<'p>) -> bool {
+        if let Some(field) = self.self_core.fields.get(&name) {
             match field.visibility {
                 ast::Visibility::Default => {}
                 ast::Visibility::Hidden => return false,
@@ -506,7 +507,7 @@ impl ObjectData {
             }
         }
         for core in self.super_cores.iter() {
-            if let Some(field) = core.fields.get(name) {
+            if let Some(field) = core.fields.get(&name) {
                 match field.visibility {
                     ast::Visibility::Default => {}
                     ast::Visibility::Hidden => return false,
@@ -518,16 +519,16 @@ impl ObjectData {
     }
 }
 
-pub(super) struct ObjectCore {
+pub(super) struct ObjectCore<'p> {
     pub(super) is_top: bool,
-    pub(super) locals: Rc<Vec<(InternedStr, ir::RcExpr)>>,
-    pub(super) base_env: Option<Gc<ThunkEnv>>,
-    pub(super) env: OnceCell<Gc<ThunkEnv>>,
-    pub(super) fields: FHashMap<InternedStr, ObjectField>,
-    pub(super) asserts: Rc<Vec<ir::Assert>>,
+    pub(super) locals: &'p [(InternedStr<'p>, &'p ir::Expr<'p>)],
+    pub(super) base_env: Option<Gc<ThunkEnv<'p>>>,
+    pub(super) env: OnceCell<Gc<ThunkEnv<'p>>>,
+    pub(super) fields: FHashMap<InternedStr<'p>, ObjectField<'p>>,
+    pub(super) asserts: &'p [ir::Assert<'p>],
 }
 
-impl GcTrace for ObjectCore {
+impl GcTrace for ObjectCore<'_> {
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
@@ -540,14 +541,14 @@ impl GcTrace for ObjectCore {
     }
 }
 
-pub(super) struct ObjectField {
-    pub(super) base_env: Option<Gc<ThunkEnv>>,
+pub(super) struct ObjectField<'p> {
+    pub(super) base_env: Option<Gc<ThunkEnv<'p>>>,
     pub(super) visibility: ast::Visibility,
-    pub(super) expr: Option<(ir::RcExpr, bool)>,
-    pub(super) thunk: OnceCell<Gc<ThunkData>>,
+    pub(super) expr: Option<(&'p ir::Expr<'p>, bool)>,
+    pub(super) thunk: OnceCell<Gc<ThunkData<'p>>>,
 }
 
-impl GcTrace for ObjectField {
+impl GcTrace for ObjectField<'_> {
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
@@ -557,12 +558,12 @@ impl GcTrace for ObjectField {
     }
 }
 
-pub(super) struct FuncData {
-    pub(super) params: FuncParams,
-    pub(super) kind: FuncKind,
+pub(super) struct FuncData<'p> {
+    pub(super) params: FuncParams<'p>,
+    pub(super) kind: FuncKind<'p>,
 }
 
-impl GcTrace for FuncData {
+impl GcTrace for FuncData<'_> {
     #[inline]
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
@@ -572,14 +573,14 @@ impl GcTrace for FuncData {
     }
 }
 
-impl FuncData {
+impl<'p> FuncData<'p> {
     pub(super) fn new(
-        params_order: Rc<Vec<(InternedStr, Option<ir::RcExpr>)>>,
-        kind: FuncKind,
+        params_order: &'p [(InternedStr<'p>, Option<&'p ir::Expr<'p>>)],
+        kind: FuncKind<'p>,
     ) -> Self {
         let mut params_by_name = FHashMap::default();
-        for (i, (name, _)) in params_order.iter().enumerate() {
-            let prev = params_by_name.insert(name.clone(), i);
+        for (i, &(name, _)) in params_order.iter().enumerate() {
+            let prev = params_by_name.insert(name, i);
             assert!(prev.is_none(), "repeated parameter name: {name:?}");
         }
         Self {
@@ -592,27 +593,27 @@ impl FuncData {
     }
 }
 
-pub(super) struct FuncParams {
-    pub(super) order: Rc<Vec<(InternedStr, Option<ir::RcExpr>)>>,
-    pub(super) by_name: FHashMap<InternedStr, usize>,
+pub(super) struct FuncParams<'p> {
+    pub(super) order: &'p [(InternedStr<'p>, Option<&'p ir::Expr<'p>>)],
+    pub(super) by_name: FHashMap<InternedStr<'p>, usize>,
 }
 
-pub(super) enum FuncKind {
+pub(super) enum FuncKind<'p> {
     Normal {
-        name: Option<InternedStr>,
-        body: ir::RcExpr,
-        env: Gc<ThunkEnv>,
+        name: Option<InternedStr<'p>>,
+        body: &'p ir::Expr<'p>,
+        env: Gc<ThunkEnv<'p>>,
     },
     BuiltIn {
-        name: InternedStr,
+        name: InternedStr<'p>,
         kind: BuiltInFunc,
     },
     Native {
-        name: InternedStr,
+        name: InternedStr<'p>,
     },
 }
 
-impl GcTrace for FuncKind {
+impl GcTrace for FuncKind<'_> {
     #[inline]
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
@@ -737,11 +738,11 @@ pub(super) enum BuiltInFunc {
     Mod,
 }
 
-pub(super) struct ThunkEnv {
-    data: OnceCell<ThunkEnvData>,
+pub(super) struct ThunkEnv<'p> {
+    data: OnceCell<ThunkEnvData<'p>>,
 }
 
-impl GcTrace for ThunkEnv {
+impl GcTrace for ThunkEnv<'_> {
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
@@ -750,16 +751,16 @@ impl GcTrace for ThunkEnv {
     }
 }
 
-impl From<ThunkEnvData> for ThunkEnv {
+impl<'p> From<ThunkEnvData<'p>> for ThunkEnv<'p> {
     #[inline]
-    fn from(data: ThunkEnvData) -> Self {
+    fn from(data: ThunkEnvData<'p>) -> Self {
         Self {
             data: OnceCell::from(data),
         }
     }
 }
 
-impl ThunkEnv {
+impl<'p> ThunkEnv<'p> {
     #[inline]
     pub(super) fn new() -> Self {
         Self {
@@ -768,24 +769,24 @@ impl ThunkEnv {
     }
 
     #[inline]
-    pub(super) fn set_data(&self, data: ThunkEnvData) {
+    pub(super) fn set_data(&self, data: ThunkEnvData<'p>) {
         self.data.set(data).ok().expect("env data already set");
     }
 
     #[inline]
-    fn data(&self) -> &ThunkEnvData {
+    fn data(&self) -> &ThunkEnvData<'p> {
         self.data.get().expect("env data not set")
     }
 
-    pub(super) fn get_var(&self, name: &InternedStr) -> Gc<ThunkData> {
+    pub(super) fn get_var(&self, name: InternedStr<'p>) -> Gc<ThunkData<'p>> {
         let data = self.data();
-        if let Some(var) = data.vars.get(name) {
+        if let Some(var) = data.vars.get(&name) {
             var.clone()
         } else {
             let mut env = data.parent.as_ref().map(Gc::view);
             while let Some(parent) = env {
                 let parent = parent.data();
-                if let Some(var) = parent.vars.get(name) {
+                if let Some(var) = parent.vars.get(&name) {
                     return var.clone();
                 }
                 env = parent.parent.as_ref().map(Gc::view);
@@ -794,26 +795,26 @@ impl ThunkEnv {
         }
     }
 
-    pub(super) fn get_object(&self) -> (Gc<ObjectData>, usize) {
+    pub(super) fn get_object(&self) -> (Gc<ObjectData<'p>>, usize) {
         let data = self.data();
         let object = data.object.as_ref().unwrap();
         (object.object.clone(), object.core_i)
     }
 
-    pub(super) fn get_top_object(&self) -> Gc<ObjectData> {
+    pub(super) fn get_top_object(&self) -> Gc<ObjectData<'p>> {
         let data = self.data();
         let object = data.object.as_ref().unwrap();
         object.top.clone()
     }
 }
 
-pub(super) struct ThunkEnvData {
-    parent: Option<Gc<ThunkEnv>>,
-    vars: FHashMap<InternedStr, Gc<ThunkData>>,
-    object: Option<ThunkEnvObject>,
+pub(super) struct ThunkEnvData<'p> {
+    parent: Option<Gc<ThunkEnv<'p>>>,
+    vars: FHashMap<InternedStr<'p>, Gc<ThunkData<'p>>>,
+    object: Option<ThunkEnvObject<'p>>,
 }
 
-impl GcTrace for ThunkEnvData {
+impl GcTrace for ThunkEnvData<'_> {
     #[inline]
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
@@ -828,13 +829,13 @@ impl GcTrace for ThunkEnvData {
 }
 
 #[derive(Clone)]
-pub(super) struct ThunkEnvObject {
-    pub(super) object: Gc<ObjectData>,
+pub(super) struct ThunkEnvObject<'p> {
+    pub(super) object: Gc<ObjectData<'p>>,
     pub(super) core_i: usize,
-    pub(super) top: Gc<ObjectData>,
+    pub(super) top: Gc<ObjectData<'p>>,
 }
 
-impl GcTrace for ThunkEnvObject {
+impl GcTrace for ThunkEnvObject<'_> {
     #[inline]
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
@@ -845,9 +846,9 @@ impl GcTrace for ThunkEnvObject {
     }
 }
 
-impl ThunkEnvData {
+impl<'p> ThunkEnvData<'p> {
     #[inline]
-    pub(super) fn new(parent: Option<Gc<ThunkEnv>>) -> Self {
+    pub(super) fn new(parent: Option<Gc<ThunkEnv<'p>>>) -> Self {
         let object = parent.as_ref().and_then(|p| p.view().data().object.clone());
         Self {
             parent,
@@ -857,16 +858,16 @@ impl ThunkEnvData {
     }
 
     #[inline]
-    pub(super) fn set_var(&mut self, name: InternedStr, thunk: Gc<ThunkData>) {
+    pub(super) fn set_var(&mut self, name: InternedStr<'p>, thunk: Gc<ThunkData<'p>>) {
         self.vars.insert(name, thunk);
     }
 
     #[inline]
-    pub(super) fn set_object(&mut self, obj_data: ThunkEnvObject) {
+    pub(super) fn set_object(&mut self, obj_data: ThunkEnvObject<'p>) {
         self.object = Some(obj_data);
     }
 
-    fn get_top_object(&self) -> Gc<ObjectData> {
+    fn get_top_object(&self) -> Gc<ObjectData<'p>> {
         let object = self.object.as_ref().unwrap();
         object.top.clone()
     }
