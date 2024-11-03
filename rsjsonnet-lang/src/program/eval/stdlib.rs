@@ -88,11 +88,7 @@ impl<'p> Evaluator<'_, 'p> {
             ValueData::Array(array) => array.view().len(),
             ValueData::Object(object) => {
                 let object = object.view();
-                object
-                    .get_fields_order()
-                    .iter()
-                    .filter_map(|(name, visible)| visible.then_some(name))
-                    .count()
+                object.get_visible_fields_order().count()
             }
             ValueData::Function(func) => func.view().params.order.len(),
             _ => {
@@ -129,10 +125,7 @@ impl<'p> Evaluator<'_, 'p> {
             }
             ValueData::Object(object) => {
                 let object = object.view();
-                let visible_fields = object
-                    .get_fields_order()
-                    .iter()
-                    .filter_map(|&(name, visible)| visible.then_some(name));
+                let visible_fields = object.get_visible_fields_order();
 
                 self.object_stack
                     .push(ObjectData::new_simple(FHashMap::default()));
@@ -1043,12 +1036,8 @@ impl<'p> Evaluator<'_, 'p> {
         };
         let object = object.view();
 
-        let visible_fields: Vec<_> = object
-            .get_fields_order()
-            .iter()
-            .filter_map(|&(name, visible)| visible.then_some(name))
-            .collect();
-        for &field_name in visible_fields.iter().rev() {
+        let visible_fields = object.get_visible_fields_order();
+        for field_name in visible_fields.rev() {
             let field_thunk = self
                 .program
                 .find_object_field_thunk(&object, 0, field_name)
@@ -1078,13 +1067,9 @@ impl<'p> Evaluator<'_, 'p> {
         self.string_stack.push(String::new());
         self.state_stack.push(State::StringToValue);
 
-        let visible_fields: Vec<_> = object
-            .get_fields_order()
-            .iter()
-            .filter_map(|&(name, visible)| visible.then_some(name))
-            .collect();
+        let visible_fields = object.get_visible_fields_order();
 
-        for &field_name in visible_fields.iter().rev() {
+        for field_name in visible_fields.rev() {
             self.state_stack.push(State::AppendToString('\n'.into()));
 
             self.push_trace_item(TraceItem::ManifestObjectField { name: field_name });
@@ -1271,13 +1256,9 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::AppendToString('>'.into()));
 
                 let object = object.view();
-                let visible_fields: Vec<_> = object
-                    .get_fields_order()
-                    .iter()
-                    .filter_map(|&(name, visible)| visible.then_some(name))
-                    .collect();
+                let visible_fields = object.get_visible_fields_order();
 
-                for &field_name in visible_fields.iter().rev() {
+                for field_name in visible_fields.rev() {
                     let field_thunk = self
                         .program
                         .find_object_field_thunk(&object, 0, field_name)
