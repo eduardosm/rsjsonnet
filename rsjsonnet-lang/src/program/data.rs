@@ -500,6 +500,15 @@ impl<'p> ObjectData<'p> {
         })
     }
 
+    #[inline]
+    pub(super) fn get_visible_fields_order(
+        &self,
+    ) -> impl DoubleEndedIterator<Item = InternedStr<'p>> + '_ {
+        self.get_fields_order()
+            .iter()
+            .filter_map(|&(name, visible)| visible.then_some(name))
+    }
+
     pub(super) fn field_is_visible(&self, name: InternedStr<'p>) -> bool {
         if let Some(field) = self.self_layer.fields.get(&name) {
             match field.visibility {

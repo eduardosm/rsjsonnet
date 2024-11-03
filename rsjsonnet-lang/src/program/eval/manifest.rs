@@ -60,12 +60,8 @@ impl<'p> Evaluator<'_, 'p> {
         };
         let object = object.view();
 
-        let visible_fields: Vec<_> = object
-            .get_fields_order()
-            .iter()
-            .filter_map(|&(name, visible)| visible.then_some(name))
-            .collect();
-        for &field_name in visible_fields.iter().rev() {
+        let visible_fields = object.get_visible_fields_order();
+        for field_name in visible_fields.rev() {
             let field_thunk = self
                 .program
                 .find_object_field_thunk(&object, 0, field_name)
@@ -141,11 +137,7 @@ impl<'p> Evaluator<'_, 'p> {
             }
             ValueData::Object(object) => {
                 let object = object.view();
-                let visible_fields: Vec<_> = object
-                    .get_fields_order()
-                    .iter()
-                    .filter_map(|&(name, visible)| visible.then_some(name))
-                    .collect();
+                let visible_fields: Vec<_> = object.get_visible_fields_order().collect();
                 if visible_fields.is_empty() {
                     result.push_str("{}");
                 } else {
@@ -253,11 +245,7 @@ impl<'p> Evaluator<'_, 'p> {
             }
             ValueData::Object(object) => {
                 let object = object.view();
-                let visible_fields: Vec<_> = object
-                    .get_fields_order()
-                    .iter()
-                    .filter_map(|&(name, visible)| visible.then_some(name))
-                    .collect();
+                let visible_fields: Vec<_> = object.get_visible_fields_order().collect();
                 if visible_fields.is_empty() {
                     if let Some(ref empty_object) = format.empty_object {
                         result.push_str(empty_object);
@@ -427,11 +415,7 @@ impl<'p> Evaluator<'_, 'p> {
             }
             ValueData::Object(object) => {
                 let object = object.view();
-                let visible_fields: Vec<_> = object
-                    .get_fields_order()
-                    .iter()
-                    .filter_map(|&(name, visible)| visible.then_some(name))
-                    .collect();
+                let visible_fields: Vec<_> = object.get_visible_fields_order().collect();
                 if visible_fields.is_empty() {
                     if parent_is_array || parent_is_object {
                         result.push(' ');
@@ -538,12 +522,8 @@ impl<'p> Evaluator<'_, 'p> {
             indent,
         });
 
-        let visible_fields: Vec<_> = object
-            .get_fields_order()
-            .iter()
-            .filter_map(|&(name, visible)| visible.then_some(name))
-            .collect();
-        for &field_name in visible_fields.iter().rev() {
+        let visible_fields = object.get_visible_fields_order();
+        for field_name in visible_fields.rev() {
             let field_thunk = self
                 .program
                 .find_object_field_thunk(&object, 0, field_name)
@@ -563,10 +543,8 @@ impl<'p> Evaluator<'_, 'p> {
         indent: Rc<str>,
     ) {
         let visible_fields: Vec<_> = object
-            .get_fields_order()
-            .iter()
-            .filter(|&&(_, visible)| visible)
-            .map(|&(name, _)| {
+            .get_visible_fields_order()
+            .map(|name| {
                 // Check if the field is an object or an array of objects
                 let (_, field) = object.find_field(0, name).unwrap();
                 let field_value = field.thunk.get().unwrap().view().get_value().unwrap();
@@ -785,11 +763,7 @@ impl<'p> Evaluator<'_, 'p> {
             }
             ValueData::Object(object) => {
                 let object = object.view();
-                let visible_fields: Vec<_> = object
-                    .get_fields_order()
-                    .iter()
-                    .filter_map(|&(name, visible)| visible.then_some(name))
-                    .collect();
+                let visible_fields: Vec<_> = object.get_visible_fields_order().collect();
                 if visible_fields.is_empty() {
                     result.push_str("{  }");
                 } else {

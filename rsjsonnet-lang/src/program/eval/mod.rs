@@ -997,20 +997,8 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                         (ValueData::Object(lhs), ValueData::Object(rhs)) => {
                             let lhs = lhs.view();
                             let rhs = rhs.view();
-                            let lhs_fields: Vec<_> = lhs
-                                .get_fields_order()
-                                .iter()
-                                .rev()
-                                .filter_map(|(name, visible)| visible.then_some(name))
-                                .cloned()
-                                .collect();
-                            let rhs_fields: Vec<_> = rhs
-                                .get_fields_order()
-                                .iter()
-                                .rev()
-                                .filter_map(|(name, visible)| visible.then_some(name))
-                                .cloned()
-                                .collect();
+                            let lhs_fields: Vec<_> = lhs.get_visible_fields_order().rev().collect();
+                            let rhs_fields: Vec<_> = rhs.get_visible_fields_order().rev().collect();
 
                             if lhs_fields == rhs_fields {
                                 let mut fields = lhs_fields;
