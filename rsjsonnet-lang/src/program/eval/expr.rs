@@ -3,7 +3,7 @@ use std::cell::{Cell, OnceCell};
 use super::super::{
     ir, FuncData, FuncKind, ImportError, ObjectCore, ObjectData, ThunkEnv, ThunkEnvData, ValueData,
 };
-use super::{EvalError, EvalErrorKind, EvalErrorValueType, Evaluator, State, TraceItem};
+use super::{EvalErrorKind, EvalErrorValueType, EvalResult, Evaluator, State, TraceItem};
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
 use crate::span::SpanId;
@@ -14,7 +14,7 @@ impl<'p> Evaluator<'_, 'p> {
         &mut self,
         expr: &'p ir::Expr<'p>,
         env: GcView<ThunkEnv<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         match *expr {
             ir::Expr::Null => {
                 self.value_stack.push(ValueData::Null);
@@ -513,7 +513,7 @@ impl<'p> Evaluator<'_, 'p> {
         object: &GcView<ObjectData<'p>>,
         field_name: InternedStr<'p>,
         expr_span: SpanId,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         if let Some(field_thunk) = self.program.find_object_field_thunk(object, 0, field_name) {
             if object.asserts_checked.get() {
                 self.want_thunk_direct(field_thunk, || TraceItem::ObjectField {
@@ -543,7 +543,7 @@ impl<'p> Evaluator<'_, 'p> {
         super_span: SpanId,
         field_name: InternedStr<'p>,
         expr_span: SpanId,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let (object, core_i) = env.get_object();
         let object = object.view();
         if core_i == object.super_cores.len() {
@@ -576,7 +576,7 @@ impl<'p> Evaluator<'_, 'p> {
         step: Option<f64>,
         is_func: bool,
         span: Option<SpanId>,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let start = if let Some(start) = start {
             if !start.is_finite() || start.trunc() != start || start < 0.0 {
                 return Err(self.report_error(EvalErrorKind::Other {
@@ -650,7 +650,7 @@ impl<'p> Evaluator<'_, 'p> {
         &mut self,
         span: Option<SpanId>,
         op: ast::BinaryOp,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let rhs = self.value_stack.pop().unwrap();
         let lhs = self.value_stack.pop().unwrap();
         match (op, lhs, rhs) {

@@ -2,7 +2,7 @@ use std::fmt::Write as _;
 use std::rc::Rc;
 
 use super::super::{ArrayData, ObjectData, ValueData};
-use super::{EvalError, EvalErrorKind, Evaluator, State, TraceItem};
+use super::{EvalErrorKind, EvalResult, Evaluator, State, TraceItem};
 use crate::gc::GcView;
 use crate::interner::InternedStr;
 
@@ -51,7 +51,7 @@ impl ManifestJsonFormat {
 }
 
 impl<'p> Evaluator<'_, 'p> {
-    pub(super) fn do_manifest_ini_section(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_manifest_ini_section(&mut self) -> EvalResult<()> {
         let ValueData::Object(object) = self.value_stack.pop().unwrap() else {
             return Err(self.report_error(EvalErrorKind::Other {
                 span: None,
@@ -80,10 +80,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_manifest_ini_section_item(
-        &mut self,
-        name: InternedStr<'p>,
-    ) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_manifest_ini_section_item(&mut self, name: InternedStr<'p>) -> EvalResult<()> {
         let value = self.value_stack.pop().unwrap();
         if let ValueData::Array(array) = value {
             let array = array.view();
@@ -105,7 +102,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_manifest_python(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_manifest_python(&mut self) -> EvalResult<()> {
         let value = self.value_stack.pop().unwrap();
         let result = self.string_stack.last_mut().unwrap();
         match value {
@@ -190,7 +187,7 @@ impl<'p> Evaluator<'_, 'p> {
         &mut self,
         format: Rc<ManifestJsonFormat>,
         depth: usize,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let value = self.value_stack.pop().unwrap();
         let result = self.string_stack.last_mut().unwrap();
         match value {
@@ -333,7 +330,7 @@ impl<'p> Evaluator<'_, 'p> {
         depth: usize,
         parent_is_array: bool,
         parent_is_object: bool,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let value = self.value_stack.pop().unwrap();
         let result = self.string_stack.last_mut().unwrap();
         let indent = "  ";
@@ -721,7 +718,7 @@ impl<'p> Evaluator<'_, 'p> {
         indent: Rc<str>,
         depth: usize,
         single_line: bool,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let value = self.value_stack.pop().unwrap();
         let result = self.string_stack.last_mut().unwrap();
         match value {

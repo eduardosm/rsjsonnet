@@ -24,6 +24,10 @@ mod stdlib;
 use manifest::ManifestJsonFormat;
 use state::State;
 
+// `EvalError` is boxed to reduce the size of `Result`s returned by internal
+// functions.
+type EvalResult<T> = Result<T, Box<EvalError>>;
+
 pub(super) struct Evaluator<'a, 'p> {
     program: &'a mut Program<'p>,
     callbacks: Option<&'a mut dyn Callbacks<'p>>,
@@ -101,13 +105,11 @@ struct CompSpec<'p> {
 }
 
 impl<'p, 'a> Evaluator<'a, 'p> {
-    // `EvalError` is boxed to reduce the size of `Result`s returned by internal
-    // functions.
     pub(super) fn eval(
         program: &'a mut Program<'p>,
         callbacks: Option<&'a mut dyn Callbacks<'p>>,
         input: EvalInput<'p>,
-    ) -> Result<EvalOutput<'p>, Box<EvalError>> {
+    ) -> EvalResult<EvalOutput<'p>> {
         let mut this = Self {
             program,
             callbacks,
@@ -170,7 +172,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
         Ok(this.output)
     }
 
-    fn run(&mut self) -> Result<(), Box<EvalError>> {
+    fn run(&mut self) -> EvalResult<()> {
         while let Some(state) = self.state_stack.pop() {
             match state {
                 State::TraceItem(_) => {
@@ -1611,7 +1613,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
         visibility: ast::Visibility,
         value: &'p ir::Expr<'p>,
         base_env: Option<Gc<ThunkEnv<'p>>>,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let object = self.object_stack.last_mut().unwrap();
         match object.self_core.fields.entry(name) {
             HashMapEntry::Occupied(_) => Err(self.report_error(EvalErrorKind::RepeatedFieldName {
@@ -1672,11 +1674,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
         }
     }
 
-    fn check_number_value(
-        &mut self,
-        value: f64,
-        span: Option<SpanId>,
-    ) -> Result<(), Box<EvalError>> {
+    fn check_number_value(&mut self, value: f64, span: Option<SpanId>) -> EvalResult<()> {
         match value.classify() {
             std::num::FpCategory::Nan => Err(self.report_error(EvalErrorKind::NumberNan { span })),
             std::num::FpCategory::Infinite => {
@@ -1694,7 +1692,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
         value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<bool, Box<EvalError>> {
+    ) -> EvalResult<bool> {
         match value {
             ValueData::Bool(b) => Ok(b),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -1712,7 +1710,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
         value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<f64, Box<EvalError>> {
+    ) -> EvalResult<f64> {
         match value {
             ValueData::Number(n) => Ok(n),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -1730,7 +1728,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
         value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<Option<f64>, Box<EvalError>> {
+    ) -> EvalResult<Option<f64>> {
         match value {
             ValueData::Null => Ok(None),
             ValueData::Number(n) => Ok(Some(n)),
@@ -1749,7 +1747,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
         value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<Rc<str>, Box<EvalError>> {
+    ) -> EvalResult<Rc<str>> {
         match value {
             ValueData::String(s) => Ok(s),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -1767,7 +1765,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
         value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<GcView<ArrayData<'p>>, Box<EvalError>> {
+    ) -> EvalResult<GcView<ArrayData<'p>>> {
         match value {
             ValueData::Array(arr) => Ok(arr.view()),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -1785,7 +1783,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
         value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<GcView<ObjectData<'p>>, Box<EvalError>> {
+    ) -> EvalResult<GcView<ObjectData<'p>>> {
         match value {
             ValueData::Object(obj) => Ok(obj.view()),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -1803,7 +1801,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
         value: ValueData<'p>,
         func_name: &str,
         arg_index: usize,
-    ) -> Result<GcView<FuncData<'p>>, Box<EvalError>> {
+    ) -> EvalResult<GcView<FuncData<'p>>> {
         match value {
             ValueData::Function(func) => Ok(func.view()),
             value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {

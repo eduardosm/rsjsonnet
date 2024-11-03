@@ -5,13 +5,13 @@ use std::rc::Rc;
 use super::super::{ArrayData, FuncData, ThunkData, ValueData};
 use super::manifest::{escape_string_json, escape_string_python};
 use super::{
-    float, parse_num_radix, EvalError, EvalErrorKind, EvalErrorValueType, Evaluator,
+    float, parse_num_radix, EvalErrorKind, EvalErrorValueType, EvalResult, Evaluator,
     ManifestJsonFormat, ParseNumRadixError, State, TraceItem,
 };
 use crate::gc::{Gc, GcView};
 
 impl<'p> Evaluator<'_, 'p> {
-    pub(super) fn do_std_ext_var(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_ext_var(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let name = self.expect_std_func_arg_string(arg, "extVar", 0)?;
         let thunk = self
@@ -79,7 +79,7 @@ impl<'p> Evaluator<'_, 'p> {
             .push(ValueData::Bool(matches!(arg, ValueData::String(_))));
     }
 
-    pub(super) fn do_std_length(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_length(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let length = match arg {
             ValueData::String(s) => s.chars().count(),
@@ -111,7 +111,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_object_has_ex(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_object_has_ex(&mut self) -> EvalResult<()> {
         let inc_hidden = self.value_stack.pop().unwrap();
         let field_name = self.value_stack.pop().unwrap();
         let object = self.value_stack.pop().unwrap();
@@ -134,7 +134,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_object_fields_ex(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_object_fields_ex(&mut self) -> EvalResult<()> {
         let inc_hidden = self.value_stack.pop().unwrap();
         let object = self.value_stack.pop().unwrap();
 
@@ -158,7 +158,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_primitive_equals(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_primitive_equals(&mut self) -> EvalResult<()> {
         let rhs = self.value_stack.pop().unwrap();
         let lhs = self.value_stack.pop().unwrap();
         match (lhs, rhs) {
@@ -199,7 +199,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_compare_array(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_compare_array(&mut self) -> EvalResult<()> {
         let rhs = &self.value_stack[self.value_stack.len() - 1];
         let lhs = &self.value_stack[self.value_stack.len() - 2];
         if !matches!(lhs, ValueData::Array(_)) {
@@ -223,7 +223,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_exponent(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_exponent(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "exponent", 0)?;
         let (_, exp) = float::frexp(arg);
@@ -231,7 +231,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_mantissa(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_mantissa(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "mantissa", 0)?;
         let (mant, _) = float::frexp(arg);
@@ -239,21 +239,21 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_floor(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_floor(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "floor", 0)?;
         self.value_stack.push(ValueData::Number(arg.floor()));
         Ok(())
     }
 
-    pub(super) fn do_std_ceil(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_ceil(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "ceil", 0)?;
         self.value_stack.push(ValueData::Number(arg.ceil()));
         Ok(())
     }
 
-    pub(super) fn do_std_modulo(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_modulo(&mut self) -> EvalResult<()> {
         let rhs = self.value_stack.pop().unwrap();
         let lhs = self.value_stack.pop().unwrap();
 
@@ -270,7 +270,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_pow(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_pow(&mut self) -> EvalResult<()> {
         let rhs = self.value_stack.pop().unwrap();
         let lhs = self.value_stack.pop().unwrap();
 
@@ -284,7 +284,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_exp(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_exp(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "exp", 0)?;
         let r = arg.exp();
@@ -293,7 +293,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_log(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_log(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "log", 0)?;
         let r = arg.ln();
@@ -302,7 +302,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_sqrt(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_sqrt(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "sqrt", 0)?;
         let r = arg.sqrt();
@@ -311,7 +311,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_sin(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_sin(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "sin", 0)?;
         let r = arg.sin();
@@ -320,7 +320,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_cos(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_cos(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "cos", 0)?;
         let r = arg.cos();
@@ -329,7 +329,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_tan(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_tan(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "tan", 0)?;
         let r = arg.tan();
@@ -338,7 +338,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_asin(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_asin(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "asin", 0)?;
         let r = arg.asin();
@@ -347,7 +347,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_acos(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_acos(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "acos", 0)?;
         let r = arg.acos();
@@ -356,7 +356,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_atan(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_atan(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "atan", 0)?;
         let r = arg.atan();
@@ -403,13 +403,13 @@ impl<'p> Evaluator<'_, 'p> {
         });
     }
 
-    pub(super) fn do_std_assert_equal_fail_2(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_assert_equal_fail_2(&mut self) -> EvalResult<()> {
         let rhs = self.string_stack.pop().unwrap();
         let lhs = self.string_stack.pop().unwrap();
         Err(self.report_error(EvalErrorKind::AssertEqualFailed { lhs, rhs }))
     }
 
-    pub(super) fn do_std_codepoint(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_codepoint(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_string(arg, "codepoint", 0)?;
 
@@ -432,7 +432,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_char(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_char(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "char", 0)?;
         let arg = arg.trunc();
@@ -449,7 +449,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_substr(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_substr(&mut self) -> EvalResult<()> {
         let len_value = self.value_stack.pop().unwrap();
         let from_value = self.value_stack.pop().unwrap();
         let str_value = self.value_stack.pop().unwrap();
@@ -480,7 +480,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_find_substr(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_find_substr(&mut self) -> EvalResult<()> {
         let str = self.value_stack.pop().unwrap();
         let pat = self.value_stack.pop().unwrap();
 
@@ -510,7 +510,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_starts_with(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_starts_with(&mut self) -> EvalResult<()> {
         let b = self.value_stack.pop().unwrap();
         let a = self.value_stack.pop().unwrap();
 
@@ -522,7 +522,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_ends_with(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_ends_with(&mut self) -> EvalResult<()> {
         let b = self.value_stack.pop().unwrap();
         let a = self.value_stack.pop().unwrap();
 
@@ -534,7 +534,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_split(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_split(&mut self) -> EvalResult<()> {
         let c_value = self.value_stack.pop().unwrap();
         let str_value = self.value_stack.pop().unwrap();
 
@@ -558,7 +558,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_split_limit(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_split_limit(&mut self) -> EvalResult<()> {
         let maxsplits_value = self.value_stack.pop().unwrap();
         let c_value = self.value_stack.pop().unwrap();
         let str_value = self.value_stack.pop().unwrap();
@@ -612,7 +612,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_split_limit_r(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_split_limit_r(&mut self) -> EvalResult<()> {
         let maxsplits_value = self.value_stack.pop().unwrap();
         let c_value = self.value_stack.pop().unwrap();
         let str_value = self.value_stack.pop().unwrap();
@@ -667,7 +667,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_str_replace(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_str_replace(&mut self) -> EvalResult<()> {
         let to = self.value_stack.pop().unwrap();
         let from = self.value_stack.pop().unwrap();
         let s = self.value_stack.pop().unwrap();
@@ -682,7 +682,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_ascii_upper(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_ascii_upper(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_string(arg, "asciiUpper", 0)?;
         let r = arg.to_ascii_uppercase();
@@ -690,7 +690,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_ascii_lower(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_ascii_lower(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_string(arg, "asciiLower", 0)?;
         let r = arg.to_ascii_lowercase();
@@ -698,7 +698,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_string_chars(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_string_chars(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_string(arg, "stringChars", 0)?;
         let array = self
@@ -759,7 +759,7 @@ impl<'p> Evaluator<'_, 'p> {
         self.value_stack.push(ValueData::String(escaped.into()));
     }
 
-    pub(super) fn do_std_parse_int(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_parse_int(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let s = self.expect_std_func_arg_string(arg, "parseInt", 0)?;
 
@@ -788,7 +788,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_parse_octal(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_parse_octal(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let s = self.expect_std_func_arg_string(arg, "parseOctal", 0)?;
 
@@ -811,7 +811,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_parse_hex(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_parse_hex(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let s = self.expect_std_func_arg_string(arg, "parseHex", 0)?;
 
@@ -834,7 +834,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_parse_json(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_parse_json(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let s = self.expect_std_func_arg_string(arg, "parseJson", 0)?;
         match super::parse_json::parse_json(self.program, &s) {
@@ -851,7 +851,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_parse_yaml(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_parse_yaml(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let s = self.expect_std_func_arg_string(arg, "parseYaml", 0)?;
         match super::parse_yaml::parse_yaml(self.program, &s) {
@@ -868,7 +868,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_encode_utf8(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_encode_utf8(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let s = self.expect_std_func_arg_string(arg, "encodeUTF8", 0)?;
         let array = self
@@ -878,7 +878,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_decode_utf8(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_decode_utf8(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let array = self.expect_std_func_arg_array(arg, "decodeUTF8", 0)?;
 
@@ -892,7 +892,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_decode_utf8_check_item(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_decode_utf8_check_item(&mut self) -> EvalResult<()> {
         let item = self.value_stack.pop().unwrap();
         let ValueData::Number(value) = item else {
             return Err(self.report_error(EvalErrorKind::Other {
@@ -919,7 +919,7 @@ impl<'p> Evaluator<'_, 'p> {
         self.value_stack.push(ValueData::String(s.into()));
     }
 
-    pub(super) fn do_std_manifest_ini(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_manifest_ini(&mut self) -> EvalResult<()> {
         let ini = self.value_stack.pop().unwrap();
         let ini = self.expect_std_func_arg_object(ini, "manifestIni", 0)?;
 
@@ -949,7 +949,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_manifest_ini_sections(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_manifest_ini_sections(&mut self) -> EvalResult<()> {
         let ValueData::Object(object) = self.value_stack.pop().unwrap() else {
             return Err(self.report_error(EvalErrorKind::Other {
                 span: None,
@@ -986,7 +986,7 @@ impl<'p> Evaluator<'_, 'p> {
         self.state_stack.push(State::ManifestPython);
     }
 
-    pub(super) fn do_std_manifest_python_vars(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_manifest_python_vars(&mut self) -> EvalResult<()> {
         let value = self.value_stack.pop().unwrap();
         let object = self.expect_std_func_arg_object(value, "manifestPythonVars", 0)?;
 
@@ -1019,7 +1019,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_manifest_json_ex(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_manifest_json_ex(&mut self) -> EvalResult<()> {
         let key_val_sep = self.value_stack.pop().unwrap();
         let newline = self.value_stack.pop().unwrap();
         let indent = self.value_stack.pop().unwrap();
@@ -1038,7 +1038,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_manifest_yaml_doc(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_manifest_yaml_doc(&mut self) -> EvalResult<()> {
         let quote_keys = self.value_stack.pop().unwrap();
         let indent_array_in_object = self.value_stack.pop().unwrap();
 
@@ -1059,7 +1059,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_manifest_yaml_stream(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_manifest_yaml_stream(&mut self) -> EvalResult<()> {
         let quote_keys = self.value_stack.pop().unwrap();
         let c_document_end = self.value_stack.pop().unwrap();
         let indent_array_in_object = self.value_stack.pop().unwrap();
@@ -1100,7 +1100,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_manifest_xml_jsonml(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_manifest_xml_jsonml(&mut self) -> EvalResult<()> {
         let value = self.value_stack.pop().unwrap();
         let array = self.expect_std_func_arg_array(value, "manifestXmlJsonml", 0)?;
 
@@ -1114,7 +1114,7 @@ impl<'p> Evaluator<'_, 'p> {
     fn prepare_manifest_xml_jsonml_array(
         &mut self,
         array: GcView<ArrayData<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let Some(item0) = array.first() else {
             return Err(self.report_error(EvalErrorKind::Other {
                 span: None,
@@ -1133,7 +1133,7 @@ impl<'p> Evaluator<'_, 'p> {
     pub(super) fn do_std_manifest_xml_jsonml_item_0(
         &mut self,
         array: GcView<ArrayData<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let item_value = self.value_stack.pop().unwrap();
         let ValueData::String(tag) = item_value else {
             return Err(self.report_error(EvalErrorKind::Other {
@@ -1166,7 +1166,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_manifest_xml_jsonml_item_1(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_manifest_xml_jsonml_item_1(&mut self) -> EvalResult<()> {
         let item_value = self.value_stack.pop().unwrap();
         match item_value {
             ValueData::String(s) => {
@@ -1217,7 +1217,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    pub(super) fn do_std_manifest_xml_jsonml_item_n(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_manifest_xml_jsonml_item_n(&mut self) -> EvalResult<()> {
         let item_value = self.value_stack.pop().unwrap();
         match item_value {
             ValueData::String(s) => {
@@ -1236,7 +1236,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    pub(super) fn do_std_manifest_toml_ex(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_manifest_toml_ex(&mut self) -> EvalResult<()> {
         let indent = self.value_stack.pop().unwrap();
         let value = self.value_stack.pop().unwrap();
 
@@ -1251,7 +1251,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_make_array(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_make_array(&mut self) -> EvalResult<()> {
         let func_value = self.value_stack.pop().unwrap();
         let sz_value = self.value_stack.pop().unwrap();
 
@@ -1295,10 +1295,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_member(
-        &mut self,
-        value: GcView<ThunkData<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_member(&mut self, value: GcView<ThunkData<'p>>) -> EvalResult<()> {
         let arr_or_str = self.value_stack.pop().unwrap();
         match arr_or_str {
             ValueData::String(s) => {
@@ -1330,7 +1327,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    pub(super) fn do_std_member_string(&mut self, string: Rc<str>) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_member_string(&mut self, string: Rc<str>) -> EvalResult<()> {
         let needle = self.value_stack.pop().unwrap();
         let needle = self.expect_std_func_arg_string(needle, "member", 1)?;
 
@@ -1362,10 +1359,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    pub(super) fn do_std_count(
-        &mut self,
-        value: GcView<ThunkData<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_count(&mut self, value: GcView<ThunkData<'p>>) -> EvalResult<()> {
         let array = self.value_stack.pop().unwrap();
         let array = self.expect_std_func_arg_array(array, "count", 0)?;
 
@@ -1416,10 +1410,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    pub(super) fn do_std_find(
-        &mut self,
-        value: GcView<ThunkData<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_find(&mut self, value: GcView<ThunkData<'p>>) -> EvalResult<()> {
         let array = self.value_stack.pop().unwrap();
         let array = self.expect_std_func_arg_array(array, "find", 1)?;
 
@@ -1468,7 +1459,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    pub(super) fn do_std_map(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_map(&mut self) -> EvalResult<()> {
         let arr_value = self.value_stack.pop().unwrap();
         let func_value = self.value_stack.pop().unwrap();
 
@@ -1522,7 +1513,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    pub(super) fn do_std_map_with_index(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_map_with_index(&mut self) -> EvalResult<()> {
         let arr_value = self.value_stack.pop().unwrap();
         let func_value = self.value_stack.pop().unwrap();
 
@@ -1583,7 +1574,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    pub(super) fn do_std_filter(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_filter(&mut self) -> EvalResult<()> {
         let arr_value = self.value_stack.pop().unwrap();
         let func_value = self.value_stack.pop().unwrap();
 
@@ -1602,10 +1593,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_filter_check(
-        &mut self,
-        item: GcView<ThunkData<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_filter_check(&mut self, item: GcView<ThunkData<'p>>) -> EvalResult<()> {
         let cond_value = self.value_stack.pop().unwrap();
         let ValueData::Bool(cond_value) = cond_value else {
             return Err(self.report_error(EvalErrorKind::Other {
@@ -1624,10 +1612,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_foldl(
-        &mut self,
-        init: GcView<ThunkData<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_foldl(&mut self, init: GcView<ThunkData<'p>>) -> EvalResult<()> {
         let arr_value = self.value_stack.pop().unwrap();
         let func_value = self.value_stack.pop().unwrap();
 
@@ -1656,7 +1641,7 @@ impl<'p> Evaluator<'_, 'p> {
         &mut self,
         func: GcView<FuncData<'p>>,
         item: GcView<ThunkData<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let acc = self.value_stack.pop().unwrap();
         let acc = self.program.gc_alloc_view(ThunkData::new_done(acc));
 
@@ -1665,10 +1650,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_foldr(
-        &mut self,
-        init: GcView<ThunkData<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_foldr(&mut self, init: GcView<ThunkData<'p>>) -> EvalResult<()> {
         let arr_value = self.value_stack.pop().unwrap();
         let func_value = self.value_stack.pop().unwrap();
 
@@ -1697,7 +1679,7 @@ impl<'p> Evaluator<'_, 'p> {
         &mut self,
         func: GcView<FuncData<'p>>,
         item: GcView<ThunkData<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let acc = self.value_stack.pop().unwrap();
         let acc = self.program.gc_alloc_view(ThunkData::new_done(acc));
 
@@ -1706,7 +1688,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_range(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_range(&mut self) -> EvalResult<()> {
         let to = self.value_stack.pop().unwrap();
         let from = self.value_stack.pop().unwrap();
 
@@ -1735,7 +1717,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_slice(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_slice(&mut self) -> EvalResult<()> {
         let step = self.value_stack.pop().unwrap();
         let end = self.value_stack.pop().unwrap();
         let start = self.value_stack.pop().unwrap();
@@ -1748,7 +1730,7 @@ impl<'p> Evaluator<'_, 'p> {
         self.do_slice(indexable, start, end, step, true, None)
     }
 
-    pub(super) fn do_std_join(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_join(&mut self) -> EvalResult<()> {
         let arr = self.value_stack.pop().unwrap();
         let sep = self.value_stack.pop().unwrap();
 
@@ -1787,7 +1769,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    pub(super) fn do_std_join_str_item(&mut self, sep: Rc<str>) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_join_str_item(&mut self, sep: Rc<str>) -> EvalResult<()> {
         let item = self.value_stack.pop().unwrap();
         if !matches!(item, ValueData::Null) {
             let ValueData::String(item) = item else {
@@ -1817,10 +1799,7 @@ impl<'p> Evaluator<'_, 'p> {
         self.value_stack.push(ValueData::String(s.into()));
     }
 
-    pub(super) fn do_std_join_array_item(
-        &mut self,
-        sep: GcView<ArrayData<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_join_array_item(&mut self, sep: GcView<ArrayData<'p>>) -> EvalResult<()> {
         let item = self.value_stack.pop().unwrap();
         if !matches!(item, ValueData::Null) {
             let ValueData::Array(item) = item else {
@@ -1853,7 +1832,7 @@ impl<'p> Evaluator<'_, 'p> {
         ));
     }
 
-    pub(super) fn do_std_reverse(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_reverse(&mut self) -> EvalResult<()> {
         let value = self.value_stack.pop().unwrap();
         let reverse = match value {
             ValueData::String(s) => ValueData::Array(
@@ -1877,7 +1856,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_sort(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_sort(&mut self) -> EvalResult<()> {
         let keyf = self.value_stack.pop().unwrap();
         let arr = self.value_stack.pop().unwrap();
 
@@ -2139,7 +2118,7 @@ impl<'p> Evaluator<'_, 'p> {
             .push(ValueData::Array(self.program.gc_alloc(new_array)));
     }
 
-    pub(super) fn do_std_uniq(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_uniq(&mut self) -> EvalResult<()> {
         let keyf = self.value_stack.pop().unwrap();
         let arr = self.value_stack.pop().unwrap();
 
@@ -2173,7 +2152,7 @@ impl<'p> Evaluator<'_, 'p> {
         keyf: GcView<FuncData<'p>>,
         item: GcView<ThunkData<'p>>,
         is_last: bool,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         self.state_stack
             .push(State::StdUniqCheckItem { item: item.clone() });
         self.state_stack.push(State::EqualsValue);
@@ -2197,7 +2176,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    pub(super) fn do_std_all(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_all(&mut self) -> EvalResult<()> {
         let arr = self.value_stack.pop().unwrap();
 
         let array = self.expect_std_func_arg_array(arr, "all", 0)?;
@@ -2216,7 +2195,7 @@ impl<'p> Evaluator<'_, 'p> {
         &mut self,
         array: GcView<ArrayData<'p>>,
         index: usize,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let item_value = self.value_stack.pop().unwrap();
         let ValueData::Bool(item_value) = item_value else {
             return Err(self.report_error(EvalErrorKind::Other {
@@ -2244,7 +2223,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_any(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_any(&mut self) -> EvalResult<()> {
         let arr = self.value_stack.pop().unwrap();
 
         let array = self.expect_std_func_arg_array(arr, "any", 0)?;
@@ -2263,7 +2242,7 @@ impl<'p> Evaluator<'_, 'p> {
         &mut self,
         array: GcView<ArrayData<'p>>,
         index: usize,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let item_value = self.value_stack.pop().unwrap();
         let ValueData::Bool(item_value) = item_value else {
             return Err(self.report_error(EvalErrorKind::Other {
@@ -2291,7 +2270,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_set(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_set(&mut self) -> EvalResult<()> {
         let keyf = self.value_stack.pop().unwrap();
         let arr = self.value_stack.pop().unwrap();
 
@@ -2388,7 +2367,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    pub(super) fn do_std_set_inter(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_set_inter(&mut self) -> EvalResult<()> {
         let keyf = self.value_stack.pop().unwrap();
         let b = self.value_stack.pop().unwrap();
         let a = self.value_stack.pop().unwrap();
@@ -2424,7 +2403,7 @@ impl<'p> Evaluator<'_, 'p> {
         b: GcView<ArrayData<'p>>,
         mut i: usize,
         mut j: usize,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let cmp_ord = self.cmp_ord_stack.pop().unwrap();
         let result_array = self.array_stack.last_mut().unwrap();
         match cmp_ord {
@@ -2460,7 +2439,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_set_union(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_set_union(&mut self) -> EvalResult<()> {
         let keyf = self.value_stack.pop().unwrap();
         let b = self.value_stack.pop().unwrap();
         let a = self.value_stack.pop().unwrap();
@@ -2497,7 +2476,7 @@ impl<'p> Evaluator<'_, 'p> {
         b: GcView<ArrayData<'p>>,
         mut i: usize,
         mut j: usize,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let cmp_ord = self.cmp_ord_stack.pop().unwrap();
         let result_array = self.array_stack.last_mut().unwrap();
         match cmp_ord {
@@ -2539,7 +2518,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_set_diff(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_set_diff(&mut self) -> EvalResult<()> {
         let keyf = self.value_stack.pop().unwrap();
         let b = self.value_stack.pop().unwrap();
         let a = self.value_stack.pop().unwrap();
@@ -2574,7 +2553,7 @@ impl<'p> Evaluator<'_, 'p> {
         b: GcView<ArrayData<'p>>,
         mut i: usize,
         mut j: usize,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let cmp_ord = self.cmp_ord_stack.pop().unwrap();
         let result_array = self.array_stack.last_mut().unwrap();
         match cmp_ord {
@@ -2613,10 +2592,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_set_member(
-        &mut self,
-        x: GcView<ThunkData<'p>>,
-    ) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_set_member(&mut self, x: GcView<ThunkData<'p>>) -> EvalResult<()> {
         let keyf = self.value_stack.pop().unwrap();
         let arr = self.value_stack.pop().unwrap();
 
@@ -2647,7 +2623,7 @@ impl<'p> Evaluator<'_, 'p> {
         arr: GcView<ArrayData<'p>>,
         start: usize,
         end: usize,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let mid = start + (end - start) / 2;
 
         self.value_stack
@@ -2672,7 +2648,7 @@ impl<'p> Evaluator<'_, 'p> {
         start: usize,
         end: usize,
         mid: usize,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let cmp_ord = self.cmp_ord_stack.pop().unwrap();
         match cmp_ord {
             std::cmp::Ordering::Equal => {
@@ -2710,7 +2686,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_base64(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_base64(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         match arg {
             ValueData::String(s) => {
@@ -2753,7 +2729,7 @@ impl<'p> Evaluator<'_, 'p> {
         &mut self,
         input: GcView<ArrayData<'p>>,
         mut bytes: Vec<u8>,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let item_value = self.value_stack.pop().unwrap();
         let ValueData::Number(item_value) = item_value else {
             return Err(self.report_error(EvalErrorKind::Other {
@@ -2787,7 +2763,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_base64_decode_bytes(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_base64_decode_bytes(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_string(arg, "base64DecodeBytes", 0)?;
 
@@ -2807,7 +2783,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_base64_decode(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_base64_decode(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_string(arg, "base64Decode", 0)?;
 
@@ -2825,7 +2801,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_md5(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_md5(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_string(arg, "md5", 0)?;
 
@@ -2842,7 +2818,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_native(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_native(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let name = self.expect_std_func_arg_string(arg, "native", 0)?;
         let value = self
@@ -2857,7 +2833,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_trace(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_trace(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let msg = self.expect_std_func_arg_string(arg, "trace", 0)?;
 
@@ -2869,7 +2845,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_mod(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_mod(&mut self) -> EvalResult<()> {
         let rhs = self.value_stack.pop().unwrap();
         let lhs = self.value_stack.pop().unwrap();
 
@@ -2900,9 +2876,9 @@ impl<'p> Evaluator<'_, 'p> {
     }
 }
 
-fn encode_base64<I>(input: I) -> Result<String, Box<EvalError>>
+fn encode_base64<I>(input: I) -> EvalResult<String>
 where
-    I: IntoIterator<Item = Result<u8, Box<EvalError>>>,
+    I: IntoIterator<Item = EvalResult<u8>>,
 {
     let encmap = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
