@@ -1,0 +1,1 @@
+std.prune({ assert false })

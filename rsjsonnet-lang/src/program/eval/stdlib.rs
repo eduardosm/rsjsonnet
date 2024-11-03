@@ -149,6 +149,8 @@ impl<'p> Evaluator<'_, 'p> {
                     self.state_stack.push(State::StdPruneValue);
                     self.state_stack.push(State::DoThunk(field_thunk));
                 }
+
+                self.check_object_asserts(&object);
             }
             value => {
                 self.value_stack.push(value);
