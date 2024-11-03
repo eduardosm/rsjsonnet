@@ -641,6 +641,7 @@ pub(super) enum BuiltInFunc {
     IsObject,
     IsString,
     Length,
+    Prune,
     ObjectHasEx,
     ObjectFieldsEx,
     PrimitiveEquals,

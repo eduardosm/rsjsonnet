@@ -380,6 +380,11 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                         self.program.gc_alloc(array.into_boxed_slice()),
                     ));
                 }
+                State::ObjectToValue => {
+                    let object = self.object_stack.pop().unwrap();
+                    let object = self.program.gc_alloc(object);
+                    self.value_stack.push(ValueData::Object(object));
+                }
                 State::Slice {
                     span,
                     has_start,
@@ -1325,6 +1330,9 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                 State::StdIsObject => self.do_std_is_object(),
                 State::StdIsString => self.do_std_is_string(),
                 State::StdLength => self.do_std_length()?,
+                State::StdPruneValue => self.do_std_prune_value(),
+                State::StdPruneArrayItem => self.do_std_prune_array_item(),
+                State::StdPruneObjectField { name } => self.do_std_prune_object_field(name),
                 State::StdObjectHasEx => self.do_std_object_has_ex()?,
                 State::StdObjectFieldsEx => self.do_std_object_fields_ex()?,
                 State::StdPrimitiveEquals => self.do_std_primitive_equals()?,
