@@ -1,0 +1,12 @@
+error: assertion failed
+ --> object_assert_failed.jsonnet:1:13
+  |
+1 | std.prune({ assert false })
+  |             ^^^^^^^^^^^^
+note: while evaluating call to `prune`
+ --> object_assert_failed.jsonnet:1:1
+  |
+1 | std.prune({ assert false })
+  | ---------------------------
+note: during top-level value evaluation
+
