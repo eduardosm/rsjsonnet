@@ -78,6 +78,8 @@ std.assertEqual(
 
 std.assertEqual({ a: 1 } + { a: 2, b: self.a, c: super.a }, { a: 2, b: 2, c: 1 }) &&
 std.assertEqual({ a: 1 } + { a: 2, b: self["a"], c: super["a"] }, { a: 2, b: 2, c: 1 }) &&
+std.assertEqual({ a: 1, b: 0 } + { a: 2, b: super.a } + { a: 3, b: 2, c: super.b }, { a: 3, b: 2, c: 1 }) &&
+std.assertEqual({ a: 1, b: 0 } + { a: 2, b: super["a"] } + { a: 3, b: 2, c: super["b"] }, { a: 3, b: 2, c: 1 }) &&
 
 std.assertEqual({ a: "a" in super }, { a: false }) &&
 std.assertEqual({ a: "b" in super }, { a: false }) &&
