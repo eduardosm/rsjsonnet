@@ -1,7 +1,7 @@
 use std::cell::{Cell, OnceCell};
 
 use super::super::{
-    ir, FuncData, FuncKind, ImportError, ObjectCore, ObjectData, ThunkEnv, ThunkEnvData, ValueData,
+    ir, FuncData, FuncKind, ImportError, ObjectData, ObjectLayer, ThunkEnv, ThunkEnvData, ValueData,
 };
 use super::{EvalErrorKind, EvalErrorValueType, EvalResult, Evaluator, State, TraceItem};
 use crate::gc::{Gc, GcView};
@@ -36,7 +36,7 @@ impl<'p> Evaluator<'_, 'p> {
                 fields: ir_fields,
             } => {
                 self.object_stack.push(ObjectData {
-                    self_core: ObjectCore {
+                    self_layer: ObjectLayer {
                         is_top,
                         locals: ir_locals,
                         base_env: Some(Gc::from(&env)),
@@ -44,7 +44,7 @@ impl<'p> Evaluator<'_, 'p> {
                         fields: FHashMap::default(),
                         asserts: ir_asserts,
                     },
-                    super_cores: Vec::new(),
+                    super_layers: Vec::new(),
                     fields_order: OnceCell::new(),
                     asserts_checked: Cell::new(false),
                 });
@@ -544,16 +544,16 @@ impl<'p> Evaluator<'_, 'p> {
         field_name: InternedStr<'p>,
         expr_span: SpanId,
     ) -> EvalResult<()> {
-        let (object, core_i) = env.get_object();
+        let (object, layer_i) = env.get_object();
         let object = object.view();
-        if core_i == object.super_cores.len() {
+        if layer_i == object.super_layers.len() {
             return Err(
                 self.report_error(EvalErrorKind::SuperWithoutSuperObject { span: super_span })
             );
         }
         if let Some(field_thunk) =
             self.program
-                .find_object_field_thunk(&object, core_i + 1, field_name)
+                .find_object_field_thunk(&object, layer_i + 1, field_name)
         {
             self.want_thunk_direct(field_thunk, || TraceItem::ObjectField {
                 span: Some(expr_span),

@@ -101,56 +101,57 @@ impl<'p> Program<'p> {
     fn init_object_env(
         &self,
         object: &GcView<ObjectData<'p>>,
-        core_i: usize,
+        layer_i: usize,
         base_env: &Gc<ThunkEnv<'p>>,
     ) -> Gc<ThunkEnv<'p>> {
-        let core = object.get_core(core_i);
+        let layer = object.get_layer(layer_i);
         let env = self.gc_alloc_view(ThunkEnv::new());
         let mut env_data = ThunkEnvData::new(Some(base_env.clone()));
-        for &(local_name, local_value) in core.locals.iter() {
+        for &(local_name, local_value) in layer.locals.iter() {
             env_data.set_var(
                 local_name,
                 self.new_pending_expr_thunk(local_value, Gc::from(&env), Some(local_name)),
             );
         }
-        let top_obj = if core.is_top {
+        let top_obj = if layer.is_top {
             Gc::from(object)
         } else {
             env_data.get_top_object()
         };
         env_data.set_object(ThunkEnvObject {
             object: Gc::from(object),
-            core_i,
+            layer_i,
             top: top_obj,
         });
         env.set_data(env_data);
         Gc::from(&env)
     }
 
-    fn get_object_core_env(
+    fn get_object_layer_env(
         &self,
         object: &GcView<ObjectData<'p>>,
-        core_i: usize,
+        layer_i: usize,
     ) -> Gc<ThunkEnv<'p>> {
-        let core = object.get_core(core_i);
-        core.env
-            .get_or_init(|| self.init_object_env(object, core_i, core.base_env.as_ref().unwrap()))
+        let layer = object.get_layer(layer_i);
+        layer
+            .env
+            .get_or_init(|| self.init_object_env(object, layer_i, layer.base_env.as_ref().unwrap()))
             .clone()
     }
 
     pub(super) fn find_object_field_thunk(
         &self,
         object: &GcView<ObjectData<'p>>,
-        core_i: usize,
+        layer_i: usize,
         name: InternedStr<'p>,
     ) -> Option<GcView<ThunkData<'p>>> {
-        let (core_i, field) = object.find_field(core_i, name)?;
+        let (layer_i, field) = object.find_field(layer_i, name)?;
         let thunk = field.thunk.get_or_init(|| {
             let (expr, plus) = field.expr.as_ref().unwrap();
             let env = if let Some(base_env) = field.base_env.as_ref() {
-                self.init_object_env(object, core_i, base_env)
+                self.init_object_env(object, layer_i, base_env)
             } else {
-                self.get_object_core_env(object, core_i)
+                self.get_object_layer_env(object, layer_i)
             };
             let thunk = if *plus {
                 ThunkData::new_pending_field_plus(expr, name, env)
@@ -165,10 +166,10 @@ impl<'p> Program<'p> {
     pub(super) fn get_object_assert_env(
         &self,
         object: &GcView<ObjectData<'p>>,
-        core_i: usize,
+        layer_i: usize,
         _assert_i: usize,
     ) -> GcView<ThunkEnv<'p>> {
-        self.get_object_core_env(object, core_i).view()
+        self.get_object_layer_env(object, layer_i).view()
     }
 
     pub(super) fn extend_object(
@@ -176,8 +177,8 @@ impl<'p> Program<'p> {
         lhs: &ObjectData<'p>,
         rhs: &ObjectData<'p>,
     ) -> Gc<ObjectData<'p>> {
-        let clone_core = |core: &ObjectCore<'p>| -> ObjectCore<'p> {
-            let new_fields = core
+        let clone_layer = |layer: &ObjectLayer<'p>| -> ObjectLayer<'p> {
+            let new_fields = layer
                 .fields
                 .iter()
                 .map(|(name, field)| {
@@ -196,26 +197,27 @@ impl<'p> Program<'p> {
                 })
                 .collect();
 
-            ObjectCore {
-                is_top: core.is_top,
-                locals: core.locals,
-                base_env: core.base_env.clone(),
+            ObjectLayer {
+                is_top: layer.is_top,
+                locals: layer.locals,
+                base_env: layer.base_env.clone(),
                 env: OnceCell::new(),
                 fields: new_fields,
-                asserts: core.asserts,
+                asserts: layer.asserts,
             }
         };
 
-        let self_core = clone_core(&rhs.self_core);
+        let self_layer = clone_layer(&rhs.self_layer);
 
-        let mut super_cores = Vec::with_capacity(lhs.super_cores.len() + rhs.super_cores.len() + 1);
-        super_cores.extend(rhs.super_cores.iter().map(clone_core));
-        super_cores.push(clone_core(&lhs.self_core));
-        super_cores.extend(lhs.super_cores.iter().map(clone_core));
+        let mut super_layers =
+            Vec::with_capacity(lhs.super_layers.len() + rhs.super_layers.len() + 1);
+        super_layers.extend(rhs.super_layers.iter().map(clone_layer));
+        super_layers.push(clone_layer(&lhs.self_layer));
+        super_layers.extend(lhs.super_layers.iter().map(clone_layer));
 
         self.gc_alloc(ObjectData {
-            self_core,
-            super_cores,
+            self_layer,
+            super_layers,
             fields_order: OnceCell::new(),
             asserts_checked: Cell::new(false),
         })
@@ -402,8 +404,8 @@ impl ValueData<'_> {
 pub(super) type ArrayData<'p> = Box<[Gc<ThunkData<'p>>]>;
 
 pub(super) struct ObjectData<'p> {
-    pub(super) self_core: ObjectCore<'p>,
-    pub(super) super_cores: Vec<ObjectCore<'p>>,
+    pub(super) self_layer: ObjectLayer<'p>,
+    pub(super) super_layers: Vec<ObjectLayer<'p>>,
     pub(super) fields_order: OnceCell<Box<[(InternedStr<'p>, bool)]>>,
     pub(super) asserts_checked: Cell<bool>,
 }
@@ -413,8 +415,8 @@ impl GcTrace for ObjectData<'_> {
     where
         Self: 'a,
     {
-        self.self_core.trace(ctx);
-        self.super_cores.trace(ctx);
+        self.self_layer.trace(ctx);
+        self.super_layers.trace(ctx);
     }
 }
 
@@ -422,7 +424,7 @@ impl<'p> ObjectData<'p> {
     #[inline]
     pub(super) fn new_simple(fields: FHashMap<InternedStr<'p>, ObjectField<'p>>) -> Self {
         Self {
-            self_core: ObjectCore {
+            self_layer: ObjectLayer {
                 is_top: false,
                 locals: &[],
                 base_env: None,
@@ -430,55 +432,55 @@ impl<'p> ObjectData<'p> {
                 fields,
                 asserts: &[],
             },
-            super_cores: Vec::new(),
+            super_layers: Vec::new(),
             fields_order: OnceCell::new(),
             asserts_checked: Cell::new(true),
         }
     }
 
     #[inline]
-    pub(super) fn get_core(&self, core_i: usize) -> &ObjectCore<'p> {
-        if core_i == 0 {
-            &self.self_core
+    pub(super) fn get_layer(&self, layer_i: usize) -> &ObjectLayer<'p> {
+        if layer_i == 0 {
+            &self.self_layer
         } else {
-            &self.super_cores[core_i - 1]
+            &self.super_layers[layer_i - 1]
         }
     }
 
     pub(super) fn find_field(
         &self,
-        mut core_i: usize,
+        mut layer_i: usize,
         name: InternedStr<'p>,
     ) -> Option<(usize, &ObjectField<'p>)> {
-        if core_i == 0 {
-            if let Some(field) = self.self_core.fields.get(&name) {
+        if layer_i == 0 {
+            if let Some(field) = self.self_layer.fields.get(&name) {
                 return Some((0, field));
             }
-            core_i += 1;
+            layer_i += 1;
         }
-        for (sub_i, core) in self.super_cores[(core_i - 1)..].iter().enumerate() {
-            if let Some(field) = core.fields.get(&name) {
-                return Some((core_i + sub_i, field));
+        for (sub_i, layer) in self.super_layers[(layer_i - 1)..].iter().enumerate() {
+            if let Some(field) = layer.fields.get(&name) {
+                return Some((layer_i + sub_i, field));
             }
         }
         None
     }
 
-    pub(super) fn has_field(&self, core_i: usize, name: InternedStr<'p>) -> bool {
-        self.find_field(core_i, name).is_some()
+    pub(super) fn has_field(&self, layer_i: usize, name: InternedStr<'p>) -> bool {
+        self.find_field(layer_i, name).is_some()
     }
 
     pub(super) fn get_fields_order(&self) -> &[(InternedStr<'p>, bool)] {
         self.fields_order.get_or_init(|| {
             let mut all_fields = BTreeMap::new();
             all_fields.extend(
-                self.self_core
+                self.self_layer
                     .fields
                     .iter()
                     .map(|(n, f)| (SortedInternedStr(*n), f.visibility)),
             );
-            for core in self.super_cores.iter() {
-                for (n, f) in core.fields.iter() {
+            for layer in self.super_layers.iter() {
+                for (n, f) in layer.fields.iter() {
                     match all_fields.entry(SortedInternedStr(*n)) {
                         std::collections::btree_map::Entry::Vacant(entry) => {
                             entry.insert(f.visibility);
@@ -499,15 +501,15 @@ impl<'p> ObjectData<'p> {
     }
 
     pub(super) fn field_is_visible(&self, name: InternedStr<'p>) -> bool {
-        if let Some(field) = self.self_core.fields.get(&name) {
+        if let Some(field) = self.self_layer.fields.get(&name) {
             match field.visibility {
                 ast::Visibility::Default => {}
                 ast::Visibility::Hidden => return false,
                 ast::Visibility::ForceVisible => return true,
             }
         }
-        for core in self.super_cores.iter() {
-            if let Some(field) = core.fields.get(&name) {
+        for layer in self.super_layers.iter() {
+            if let Some(field) = layer.fields.get(&name) {
                 match field.visibility {
                     ast::Visibility::Default => {}
                     ast::Visibility::Hidden => return false,
@@ -519,7 +521,7 @@ impl<'p> ObjectData<'p> {
     }
 }
 
-pub(super) struct ObjectCore<'p> {
+pub(super) struct ObjectLayer<'p> {
     pub(super) is_top: bool,
     pub(super) locals: &'p [(InternedStr<'p>, &'p ir::Expr<'p>)],
     pub(super) base_env: Option<Gc<ThunkEnv<'p>>>,
@@ -528,7 +530,7 @@ pub(super) struct ObjectCore<'p> {
     pub(super) asserts: &'p [ir::Assert<'p>],
 }
 
-impl GcTrace for ObjectCore<'_> {
+impl GcTrace for ObjectLayer<'_> {
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
@@ -798,7 +800,7 @@ impl<'p> ThunkEnv<'p> {
     pub(super) fn get_object(&self) -> (Gc<ObjectData<'p>>, usize) {
         let data = self.data();
         let object = data.object.as_ref().unwrap();
-        (object.object.clone(), object.core_i)
+        (object.object.clone(), object.layer_i)
     }
 
     pub(super) fn get_top_object(&self) -> Gc<ObjectData<'p>> {
@@ -831,7 +833,7 @@ impl GcTrace for ThunkEnvData<'_> {
 #[derive(Clone)]
 pub(super) struct ThunkEnvObject<'p> {
     pub(super) object: Gc<ObjectData<'p>>,
-    pub(super) core_i: usize,
+    pub(super) layer_i: usize,
     pub(super) top: Gc<ObjectData<'p>>,
 }
 

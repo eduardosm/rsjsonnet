@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use super::{
     ir, ArrayData, Callbacks, EvalError, EvalErrorKind, EvalErrorValueType, EvalStackTraceItem,
-    FuncData, FuncKind, ObjectCore, ObjectData, ObjectField, PendingThunk, Program, ThunkData,
+    FuncData, FuncKind, ObjectData, ObjectField, ObjectLayer, PendingThunk, Program, ThunkData,
     ThunkEnv, ThunkEnvData, ThunkState, ValueData,
 };
 use crate::gc::{Gc, GcView};
@@ -199,12 +199,13 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                             }
                             PendingThunk::FieldPlus { expr, field, env } => {
                                 let env = env.view();
-                                let (object, core_i) = env.get_object();
+                                let (object, layer_i) = env.get_object();
                                 let object = object.view();
-                                if let Some(super_field) =
-                                    self.program
-                                        .find_object_field_thunk(&object, core_i + 1, field)
-                                {
+                                if let Some(super_field) = self.program.find_object_field_thunk(
+                                    &object,
+                                    layer_i + 1,
+                                    field,
+                                ) {
                                     self.state_stack.push(State::BinaryOp {
                                         span: None,
                                         op: ast::BinaryOp::Add,
@@ -712,7 +713,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                     let comp_spec = self.comp_spec_stack.pop().unwrap();
 
                     self.object_stack.push(ObjectData {
-                        self_core: ObjectCore {
+                        self_layer: ObjectLayer {
                             is_top,
                             locals: ir_locals,
                             base_env: None,
@@ -720,7 +721,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                             fields: FHashMap::default(),
                             asserts: &[],
                         },
-                        super_cores: Vec::new(),
+                        super_layers: Vec::new(),
                         fields_order: OnceCell::new(),
                         asserts_checked: Cell::new(true),
                     });
@@ -944,9 +945,9 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                         .str_interner
                         .get_interned(field_name)
                         .is_some_and(|field_name| {
-                            let (object, core_i) = env.get_object();
+                            let (object, layer_i) = env.get_object();
                             let object = object.view();
-                            object.has_field(core_i + 1, field_name)
+                            object.has_field(layer_i + 1, field_name)
                         });
 
                     self.value_stack.push(ValueData::Bool(has_field));
@@ -1615,7 +1616,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
         base_env: Option<Gc<ThunkEnv<'p>>>,
     ) -> EvalResult<()> {
         let object = self.object_stack.last_mut().unwrap();
-        match object.self_core.fields.entry(name) {
+        match object.self_layer.fields.entry(name) {
             HashMapEntry::Occupied(_) => Err(self.report_error(EvalErrorKind::RepeatedFieldName {
                 span: name_span,
                 name: name.value().into(),
@@ -1648,16 +1649,16 @@ impl<'p, 'a> Evaluator<'a, 'p> {
     fn check_object_asserts(&mut self, object: &GcView<ObjectData<'p>>) {
         if !object.asserts_checked.get() {
             object.asserts_checked.set(true);
-            let core_iter = object
-                .super_cores
+            let layer_iter = object
+                .super_layers
                 .iter()
                 .rev()
-                .chain(std::iter::once(&object.self_core));
-            for (i, core) in core_iter.enumerate() {
-                for (assert_i, assert) in core.asserts.iter().enumerate().rev() {
+                .chain(std::iter::once(&object.self_layer));
+            for (i, layer) in layer_iter.enumerate() {
+                for (assert_i, assert) in layer.asserts.iter().enumerate().rev() {
                     let env = self.program.get_object_assert_env(
                         object,
-                        object.super_cores.len() - i,
+                        object.super_layers.len() - i,
                         assert_i,
                     );
                     self.state_stack.push(State::Assert {
