@@ -10,7 +10,7 @@ use super::{
 };
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
-use crate::{ast, FHashMap};
+use crate::{ast, FHashSet};
 
 impl<'p> Evaluator<'_, 'p> {
     pub(super) fn do_std_ext_var(&mut self) -> EvalResult<()> {
@@ -127,8 +127,7 @@ impl<'p> Evaluator<'_, 'p> {
                 let object = object.view();
                 let visible_fields = object.get_visible_fields_order();
 
-                self.object_stack
-                    .push(ObjectData::new_simple(FHashMap::default()));
+                self.object_stack.push(ObjectData::new_empty());
                 self.state_stack.push(State::ObjectToValue);
 
                 for field_name in visible_fields.rev() {
@@ -2909,6 +2908,94 @@ impl<'p> Evaluator<'_, 'p> {
         }
 
         Ok(())
+    }
+
+    pub(super) fn do_std_merge_patch_value(&mut self) {
+        let patch = self.value_stack.pop().unwrap();
+        let target = self.value_stack.pop().unwrap();
+
+        if let ValueData::Object(patch) = patch {
+            let patch = patch.view();
+            let target = if let ValueData::Object(target) = target {
+                Some(target.view())
+            } else {
+                None
+            };
+
+            let patch_fields_order = patch.get_visible_fields_order();
+            let patch_fields: FHashSet<_> = patch_fields_order.clone().collect();
+            let mut target_fields = FHashSet::default();
+
+            let mut new_object = ObjectData::new_empty();
+            if let Some(ref target) = target {
+                target_fields = target.get_visible_fields_order().collect();
+                for &field_name in target_fields.iter() {
+                    if !patch_fields.contains(&field_name) {
+                        let field_thunk = self
+                            .program
+                            .find_object_field_thunk(target, 0, field_name)
+                            .unwrap();
+                        new_object.self_layer.fields.insert(
+                            field_name,
+                            ObjectField {
+                                base_env: None,
+                                visibility: ast::Visibility::Default,
+                                expr: None,
+                                thunk: OnceCell::from(Gc::from(&field_thunk)),
+                            },
+                        );
+                    }
+                }
+            }
+
+            self.state_stack.push(State::ObjectToValue);
+            self.object_stack.push(new_object);
+
+            for field_name in patch_fields_order.rev() {
+                let patch_field_thunk = self
+                    .program
+                    .find_object_field_thunk(&patch, 0, field_name)
+                    .unwrap();
+
+                self.state_stack
+                    .push(State::StdMergePatchField { name: field_name });
+                self.state_stack.push(State::StdMergePatchValue);
+                self.state_stack.push(State::DoThunk(patch_field_thunk));
+                if target_fields.contains(&field_name) {
+                    let target_field_thunk = self
+                        .program
+                        .find_object_field_thunk(target.as_ref().unwrap(), 0, field_name)
+                        .unwrap();
+
+                    self.state_stack.push(State::DoThunk(target_field_thunk));
+                } else {
+                    self.value_stack.push(ValueData::Null);
+                }
+            }
+
+            self.check_object_asserts(&patch);
+            if let Some(ref target) = target {
+                self.check_object_asserts(target);
+            }
+        } else {
+            self.value_stack.push(patch);
+        }
+    }
+
+    pub(super) fn do_std_merge_patch_field(&mut self, name: InternedStr<'p>) {
+        let value = self.value_stack.pop().unwrap();
+        let object = self.object_stack.last_mut().unwrap();
+        if !matches!(value, ValueData::Null) {
+            object.self_layer.fields.insert(
+                name,
+                ObjectField {
+                    base_env: None,
+                    visibility: ast::Visibility::Default,
+                    expr: None,
+                    thunk: OnceCell::from(self.program.gc_alloc(ThunkData::new_done(value))),
+                },
+            );
+        }
     }
 
     pub(super) fn do_std_mod(&mut self) -> EvalResult<()> {

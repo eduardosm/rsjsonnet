@@ -129,30 +129,6 @@ limitations under the License.
 
   manifestJsonMinified(value):: std.manifestJsonEx(value, '', '', ':'),
 
-  mergePatch(target, patch)::
-    if std.isObject(patch) then
-      local target_object =
-        if std.isObject(target) then target else {};
-
-      local target_fields =
-        if std.isObject(target_object) then std.objectFields(target_object) else [];
-
-      local null_fields = [k for k in std.objectFields(patch) if patch[k] == null];
-      local both_fields = std.setUnion(target_fields, std.objectFields(patch));
-
-      {
-        [k]:
-          if !std.objectHas(patch, k) then
-            target_object[k]
-          else if !std.objectHas(target_object, k) then
-            std.mergePatch(null, patch[k]) tailstrict
-          else
-            std.mergePatch(target_object[k], patch[k]) tailstrict
-        for k in std.setDiff(both_fields, null_fields)
-      }
-    else
-      patch,
-
   get(o, f, default=null, inc_hidden=true)::
     if std.objectHasEx(o, f, inc_hidden) then o[f] else default,
 

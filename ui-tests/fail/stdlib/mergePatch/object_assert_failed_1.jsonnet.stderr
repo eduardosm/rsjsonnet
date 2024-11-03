@@ -1,0 +1,12 @@
+error: assertion failed
+ --> object_assert_failed_1.jsonnet:1:18
+  |
+1 | std.mergePatch({ assert false }, {})
+  |                  ^^^^^^^^^^^^
+note: while evaluating call to `mergePatch`
+ --> object_assert_failed_1.jsonnet:1:1
+  |
+1 | std.mergePatch({ assert false }, {})
+  | ------------------------------------
+note: during top-level value evaluation
+

@@ -1551,9 +1551,11 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                 State::StdBase64DecodeBytes => self.do_std_base64_decode_bytes()?,
                 State::StdBase64Decode => self.do_std_base64_decode()?,
                 State::StdMd5 => self.do_std_md5()?,
+                State::StdMergePatchValue => self.do_std_merge_patch_value(),
+                State::StdMergePatchField { name } => self.do_std_merge_patch_field(name),
+                State::StdMod => self.do_std_mod()?,
                 State::StdNative => self.do_std_native()?,
                 State::StdTrace => self.do_std_trace()?,
-                State::StdMod => self.do_std_mod()?,
             }
 
             if self.stack_trace_len > self.program.max_stack {

@@ -6,6 +6,13 @@ std.assertEqual(std.mergePatch({ a: 1 }, { a: {} }), { a: {} }) &&
 std.assertEqual(std.mergePatch({ a: 1 }, { a: null }), {}) &&
 std.assertEqual(std.mergePatch({ a: { x: 1, y: 2 }, b: -1 }, { a: { x: 3 } }), { a: { x: 3, y: 2 }, b: -1 }) &&
 std.assertEqual(std.mergePatch({ a: { x: 1, y: 2 }, b: -1 }, { a: { x: null, y: null } }), { a: {}, b: -1 }) &&
+std.assertEqual(std.mergePatch({ a: null }, {}), { a: null }) &&
+std.assertEqual(std.mergePatch({ a: null }, { a: null }), {}) &&
+std.assertEqual(std.mergePatch({ a: null }, { b: null }), { a: null }) &&
+std.assertEqual(std.mergePatch(false, true), true) &&
+std.assertEqual(std.mergePatch(false, {}), {}) &&
+std.assertEqual(std.mergePatch(false, { a: 1 }), { a: 1 }) &&
+std.assertEqual(std.mergePatch(false, { a: null }), {}) &&
 
 // Examples from RFC 7396 (https://datatracker.ietf.org/doc/html/rfc7396)
 std.assertEqual(std.mergePatch({"a":"b"}, {"a":"c"}), {"a":"c"}) &&
