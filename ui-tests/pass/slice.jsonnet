@@ -39,6 +39,9 @@ std.assertEqual("string"[1::], "tring") &&
 std.assertEqual("string"[:5:], "strin") &&
 std.assertEqual("string"[::2], "srn") &&
 
+test("🧶🧺🧲🧢", 1, 3, null, "🧺🧲") &&
+test("🧶🧺🧲🧢", 0, 3, 2, "🧶🧲") &&
+
 // array slice
 
 local arr = ['a', 'r', 'r', 'a', 'y', '.'];

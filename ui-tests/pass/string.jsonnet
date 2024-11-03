@@ -11,6 +11,10 @@ std.assertEqual("string"[5], "g") &&
 
 std.assertEqual("\uEEEE\uFFFF"[0], "\uEEEE") &&
 std.assertEqual("\uEEEE\uFFFF"[1], "\uFFFF") &&
+std.assertEqual("🧶🧺🧲🧢"[0], "🧶") &&
+std.assertEqual("🧶🧺🧲🧢"[1], "🧺") &&
+std.assertEqual("🧶🧺🧲🧢"[2], "🧲") &&
+std.assertEqual("🧶🧺🧲🧢"[3], "🧢") &&
 
 std.assertEqual(null + "_", "null_") &&
 std.assertEqual(true + "_", "true_") &&
