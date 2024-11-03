@@ -36,6 +36,7 @@ pub(super) enum State<'p> {
     OutputValue,
     OutputString,
     ArrayToValue,
+    ObjectToValue,
     ManifestIniSection,
     ManifestIniSectionItem {
         name: InternedStr<'p>,
@@ -224,6 +225,11 @@ pub(super) enum State<'p> {
     StdIsObject,
     StdIsString,
     StdLength,
+    StdPruneValue,
+    StdPruneArrayItem,
+    StdPruneObjectField {
+        name: InternedStr<'p>,
+    },
     StdObjectHasEx,
     StdObjectFieldsEx,
     StdPrimitiveEquals,

@@ -2,13 +2,15 @@ use std::cell::{Cell, OnceCell};
 use std::fmt::Write as _;
 use std::rc::Rc;
 
-use super::super::{ArrayData, FuncData, ThunkData, ValueData};
 use super::manifest::{escape_string_json, escape_string_python};
 use super::{
-    float, parse_num_radix, EvalErrorKind, EvalErrorValueType, EvalResult, Evaluator,
-    ManifestJsonFormat, ParseNumRadixError, State, TraceItem,
+    float, parse_num_radix, ArrayData, EvalErrorKind, EvalErrorValueType, EvalResult, Evaluator,
+    FuncData, ManifestJsonFormat, ObjectData, ObjectField, ParseNumRadixError, State, ThunkData,
+    TraceItem, ValueData,
 };
 use crate::gc::{Gc, GcView};
+use crate::interner::InternedStr;
+use crate::{ast, FHashMap};
 
 impl<'p> Evaluator<'_, 'p> {
     pub(super) fn do_std_ext_var(&mut self) -> EvalResult<()> {
@@ -109,6 +111,87 @@ impl<'p> Evaluator<'_, 'p> {
         };
         self.value_stack.push(ValueData::Number(length as f64));
         Ok(())
+    }
+
+    pub(super) fn do_std_prune_value(&mut self) {
+        match self.value_stack.pop().unwrap() {
+            ValueData::Array(array) => {
+                let array = array.view();
+
+                self.array_stack.push(Vec::new());
+                self.state_stack.push(State::ArrayToValue);
+
+                for item in array.iter().rev() {
+                    self.state_stack.push(State::StdPruneArrayItem);
+                    self.state_stack.push(State::StdPruneValue);
+                    self.state_stack.push(State::DoThunk(item.view()));
+                }
+            }
+            ValueData::Object(object) => {
+                let object = object.view();
+                let visible_fields = object
+                    .get_fields_order()
+                    .iter()
+                    .filter_map(|&(name, visible)| visible.then_some(name));
+
+                self.object_stack
+                    .push(ObjectData::new_simple(FHashMap::default()));
+                self.state_stack.push(State::ObjectToValue);
+
+                for field_name in visible_fields.rev() {
+                    let field_thunk = self
+                        .program
+                        .find_object_field_thunk(&object, 0, field_name)
+                        .unwrap();
+
+                    self.state_stack
+                        .push(State::StdPruneObjectField { name: field_name });
+                    self.state_stack.push(State::StdPruneValue);
+                    self.state_stack.push(State::DoThunk(field_thunk));
+                }
+            }
+            value => {
+                self.value_stack.push(value);
+            }
+        }
+    }
+
+    pub(super) fn do_std_prune_array_item(&mut self) {
+        let item_value = self.value_stack.pop().unwrap();
+        let is_empty = match item_value {
+            ValueData::Null => true,
+            ValueData::Array(ref array) => array.view().is_empty(),
+            ValueData::Object(ref object) => object.view().self_layer.fields.is_empty(),
+            _ => false,
+        };
+        if !is_empty {
+            self.array_stack
+                .last_mut()
+                .unwrap()
+                .push(self.program.gc_alloc(ThunkData::new_done(item_value)));
+        }
+    }
+
+    pub(super) fn do_std_prune_object_field(&mut self, name: InternedStr<'p>) {
+        let item_value = self.value_stack.pop().unwrap();
+        let is_empty = match item_value {
+            ValueData::Null => true,
+            ValueData::Array(ref array) => array.view().is_empty(),
+            ValueData::Object(ref object) => object.view().self_layer.fields.is_empty(),
+            _ => false,
+        };
+        if !is_empty {
+            let object = self.object_stack.last_mut().unwrap();
+            object.self_layer.fields.insert(
+                name,
+                ObjectField {
+                    base_env: None,
+                    visibility: ast::Visibility::Default,
+                    expr: None,
+                    thunk: OnceCell::from(self.program.gc_alloc(ThunkData::new_done(item_value))),
+                },
+            );
+        }
     }
 
     pub(super) fn do_std_object_has_ex(&mut self) -> EvalResult<()> {

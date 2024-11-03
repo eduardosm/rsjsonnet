@@ -74,6 +74,7 @@ impl<'p> Program<'p> {
         add_simple("isObject", BuiltInFunc::IsObject, &["v"]);
         add_simple("isString", BuiltInFunc::IsString, &["v"]);
         add_simple("length", BuiltInFunc::Length, &["x"]);
+        add_simple("prune", BuiltInFunc::Prune, &["a"]);
         add_simple(
             "objectHasEx",
             BuiltInFunc::ObjectHasEx,
