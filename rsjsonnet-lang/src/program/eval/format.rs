@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use super::super::{ArrayData, ObjectData, ThunkData, ValueData};
 use super::manifest::ManifestJsonFormat;
-use super::{EvalError, EvalErrorKind, EvalErrorValueType, Evaluator, State};
+use super::{EvalError, EvalErrorKind, EvalErrorValueType, EvalResult, Evaluator, State};
 use crate::float;
 use crate::gc::GcView;
 
@@ -81,7 +81,7 @@ enum WidthTmp<'p> {
 }
 
 impl<'p> Evaluator<'_, 'p> {
-    pub(super) fn do_std_format(&mut self) -> Result<(), Box<EvalError>> {
+    pub(super) fn do_std_format(&mut self) -> EvalResult<()> {
         let vals = self.value_stack.pop().unwrap();
         let fmt = self.value_stack.pop().unwrap();
 
@@ -106,10 +106,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn parse_format_codes(
-        &mut self,
-        fmt: &str,
-    ) -> Result<Vec<FormatPart>, Box<EvalError>> {
+    pub(super) fn parse_format_codes(&mut self, fmt: &str) -> EvalResult<Vec<FormatPart>> {
         let mut parts = Vec::new();
         let mut rem = fmt;
         while !rem.is_empty() {
@@ -139,7 +136,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(parts)
     }
 
-    fn parse_format_mkey(&mut self, rem: &mut &str) -> Result<Option<String>, Box<EvalError>> {
+    fn parse_format_mkey(&mut self, rem: &mut &str) -> EvalResult<Option<String>> {
         if let Some(rem_cont) = rem.strip_prefix('(') {
             let Some(end) = rem_cont.find(')') else {
                 return Err(self.report_error(EvalErrorKind::Other {
@@ -185,10 +182,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(cflags)
     }
 
-    fn parse_format_field_width(
-        &mut self,
-        rem: &mut &str,
-    ) -> Result<Option<FieldWidth>, Box<EvalError>> {
+    fn parse_format_field_width(&mut self, rem: &mut &str) -> EvalResult<Option<FieldWidth>> {
         if let Some(rem_cont) = rem.strip_prefix('*') {
             *rem = rem_cont;
             Ok(Some(FieldWidth::External))
@@ -213,7 +207,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    fn parse_format_prec(&mut self, rem: &mut &str) -> Result<Option<FieldWidth>, Box<EvalError>> {
+    fn parse_format_prec(&mut self, rem: &mut &str) -> EvalResult<Option<FieldWidth>> {
         if let Some(rem_cont) = rem.strip_prefix('.') {
             if let Some(rem_cont) = rem_cont.strip_prefix('*') {
                 *rem = rem_cont;
@@ -252,10 +246,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    fn parse_format_length_modifier(
-        &mut self,
-        rem: &mut &str,
-    ) -> Result<Option<LenMod>, Box<EvalError>> {
+    fn parse_format_length_modifier(&mut self, rem: &mut &str) -> EvalResult<Option<LenMod>> {
         if let Some(rem_cont) = rem.strip_prefix('h') {
             *rem = rem_cont;
             Ok(Some(LenMod::H))
@@ -270,7 +261,7 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    fn parse_format_conv_type(&mut self, rem: &mut &str) -> Result<ConvType, Box<EvalError>> {
+    fn parse_format_conv_type(&mut self, rem: &mut &str) -> EvalResult<ConvType> {
         let conv_type = match rem.chars().next() {
             None => {
                 return Err(self.report_error(EvalErrorKind::Other {
@@ -335,7 +326,7 @@ impl<'p> Evaluator<'_, 'p> {
         array: GcView<ArrayData<'p>>,
         part_i: usize,
         mut array_i: usize,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         if part_i >= parts.len() {
             if array_i < array.len() {
                 return Err(self.report_error(EvalErrorKind::Other {
@@ -441,7 +432,7 @@ impl<'p> Evaluator<'_, 'p> {
         array: GcView<ArrayData<'p>>,
         part_i: usize,
         mut array_i: usize,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let FormatPart::Code(ref code) = parts[part_i] else {
             unreachable!();
         };
@@ -571,7 +562,7 @@ impl<'p> Evaluator<'_, 'p> {
         parts: Rc<Vec<FormatPart>>,
         object: GcView<ObjectData<'p>>,
         part_i: usize,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         if part_i >= parts.len() {
             let s = self.string_stack.pop().unwrap();
             self.value_stack.push(ValueData::String(s.into()));
@@ -716,7 +707,7 @@ impl<'p> Evaluator<'_, 'p> {
         part_i: usize,
         fw: u32,
         prec: u32,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let FormatPart::Code(ref code) = parts[part_i] else {
             unreachable!();
         };

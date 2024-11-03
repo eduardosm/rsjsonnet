@@ -1,7 +1,7 @@
 use super::super::{
     ir, BuiltInFunc, FuncData, FuncKind, FuncParams, ThunkData, ThunkEnv, ThunkEnvData,
 };
-use super::{EvalError, EvalErrorKind, Evaluator, State, TraceItem};
+use super::{EvalErrorKind, EvalResult, Evaluator, State, TraceItem};
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
 use crate::span::SpanId;
@@ -27,7 +27,7 @@ impl<'p> Evaluator<'_, 'p> {
         call_env: GcView<ThunkEnv<'p>>,
         func_env: Option<Gc<ThunkEnv<'p>>>,
         call_span: SpanId,
-    ) -> Result<Box<[Gc<ThunkData<'p>>]>, Box<EvalError>> {
+    ) -> EvalResult<Box<[Gc<ThunkData<'p>>]>> {
         self.check_call_args_generic(
             params,
             positional_args,
@@ -53,7 +53,7 @@ impl<'p> Evaluator<'_, 'p> {
         positional_args: &[GcView<ThunkData<'p>>],
         named_args: &[(InternedStr<'p>, GcView<ThunkData<'p>>)],
         func_env: Option<Gc<ThunkEnv<'p>>>,
-    ) -> Result<Box<[Gc<ThunkData<'p>>]>, Box<EvalError>> {
+    ) -> EvalResult<Box<[Gc<ThunkData<'p>>]>> {
         self.check_call_args_generic(
             params,
             positional_args,
@@ -79,7 +79,7 @@ impl<'p> Evaluator<'_, 'p> {
         named_arg_thunk: impl Fn(&Self, &NamedArg) -> Gc<ThunkData<'p>>,
         func_env: Option<Gc<ThunkEnv<'p>>>,
         call_span: Option<SpanId>,
-    ) -> Result<Box<[Gc<ThunkData<'p>>]>, Box<EvalError>> {
+    ) -> EvalResult<Box<[Gc<ThunkData<'p>>]>> {
         if positional_args.len() > params.order.len() {
             return Err(self.report_error(EvalErrorKind::TooManyCallArgs {
                 span: call_span,
@@ -182,7 +182,7 @@ impl<'p> Evaluator<'_, 'p> {
         positional_args: &[GcView<ThunkData<'p>>],
         named_args: &[(InternedStr<'p>, GcView<ThunkData<'p>>)],
         call_span: Option<SpanId>,
-    ) -> Result<(), Box<EvalError>> {
+    ) -> EvalResult<()> {
         let (func_name, func_env) = self.get_func_info(func);
         let args_thunks =
             self.check_call_thunk_args(&func.params, positional_args, named_args, func_env)?;
