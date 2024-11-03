@@ -767,6 +767,18 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::StdMd5);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
+            BuiltInFunc::MergePatch => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack.push(State::StdMergePatchValue);
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
+            BuiltInFunc::Mod => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack.push(State::StdMod);
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
             BuiltInFunc::Native => {
                 let [arg] = check_num_args(args);
                 self.state_stack.push(State::StdNative);
@@ -777,12 +789,6 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::StdTrace);
                 self.state_stack.push(State::DoThunk(arg0.view()));
                 self.state_stack.push(State::DoThunk(arg1.view()));
-            }
-            BuiltInFunc::Mod => {
-                let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdMod);
-                self.state_stack.push(State::DoThunk(arg1.view()));
-                self.state_stack.push(State::DoThunk(arg0.view()));
             }
         }
     }

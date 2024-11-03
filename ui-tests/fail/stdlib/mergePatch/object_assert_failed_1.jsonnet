@@ -1,0 +1,1 @@
+std.mergePatch({ assert false }, {})

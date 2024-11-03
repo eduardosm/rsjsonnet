@@ -521,7 +521,11 @@ pub(super) enum State<'p> {
     StdBase64DecodeBytes,
     StdBase64Decode,
     StdMd5,
+    StdMergePatchValue,
+    StdMergePatchField {
+        name: InternedStr<'p>,
+    },
+    StdMod,
     StdNative,
     StdTrace,
-    StdMod,
 }

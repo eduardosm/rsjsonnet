@@ -422,6 +422,23 @@ impl GcTrace for ObjectData<'_> {
 
 impl<'p> ObjectData<'p> {
     #[inline]
+    pub(super) fn new_empty() -> Self {
+        Self {
+            self_layer: ObjectLayer {
+                is_top: false,
+                locals: &[],
+                base_env: None,
+                env: OnceCell::new(),
+                fields: FHashMap::default(),
+                asserts: &[],
+            },
+            super_layers: Vec::new(),
+            fields_order: OnceCell::new(),
+            asserts_checked: Cell::new(true),
+        }
+    }
+
+    #[inline]
     pub(super) fn new_simple(fields: FHashMap<InternedStr<'p>, ObjectField<'p>>) -> Self {
         Self {
             self_layer: ObjectLayer {
@@ -503,7 +520,7 @@ impl<'p> ObjectData<'p> {
     #[inline]
     pub(super) fn get_visible_fields_order(
         &self,
-    ) -> impl DoubleEndedIterator<Item = InternedStr<'p>> + '_ {
+    ) -> impl DoubleEndedIterator<Item = InternedStr<'p>> + Clone + '_ {
         self.get_fields_order()
             .iter()
             .filter_map(|&(name, visible)| visible.then_some(name))
@@ -742,12 +759,14 @@ pub(super) enum BuiltInFunc {
     Base64DecodeBytes,
     Base64Decode,
     Md5,
+    // JSON Merge Patch
+    MergePatch,
+    // Other
+    Mod,
     // Native Functions
     Native,
     // Debugging
     Trace,
-    // Other
-    Mod,
 }
 
 pub(super) struct ThunkEnv<'p> {
