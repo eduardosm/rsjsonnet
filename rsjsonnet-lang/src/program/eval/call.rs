@@ -242,47 +242,56 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::ExtVar => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdExtVar);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_ext_var));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Type => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdType);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_type));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::IsArray => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdIsArray);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_is_array));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::IsBoolean => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdIsBoolean);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_is_boolean));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::IsFunction => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdIsFunction);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_is_function));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::IsNumber => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdIsNumber);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_is_number));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::IsObject => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdIsObject);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_is_object));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::IsString => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdIsString);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_is_string));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Length => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdLength);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_length));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Prune => {
@@ -292,20 +301,23 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::ObjectHasEx => {
                 let [arg0, arg1, arg2] = check_num_args(args);
-                self.state_stack.push(State::StdObjectHasEx);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_object_has_ex));
                 self.state_stack.push(State::DoThunk(arg2.view()));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::ObjectFieldsEx => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdObjectFieldsEx);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_object_fields_ex));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::PrimitiveEquals => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdPrimitiveEquals);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_primitive_equals));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
@@ -325,85 +337,89 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::CompareArray => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdCompareArray);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_compare_array));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::Exponent => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdExponent);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_exponent));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Mantissa => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdMantissa);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_mantissa));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Floor => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdFloor);
+                self.state_stack.push(State::FnFallible(Self::do_std_floor));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Ceil => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdCeil);
+                self.state_stack.push(State::FnFallible(Self::do_std_ceil));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Modulo => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdModulo);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_modulo));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::Pow => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdPow);
+                self.state_stack.push(State::FnFallible(Self::do_std_pow));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::Exp => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdExp);
+                self.state_stack.push(State::FnFallible(Self::do_std_exp));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Log => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdLog);
+                self.state_stack.push(State::FnFallible(Self::do_std_log));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Sqrt => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdSqrt);
+                self.state_stack.push(State::FnFallible(Self::do_std_sqrt));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Sin => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdSin);
+                self.state_stack.push(State::FnFallible(Self::do_std_sin));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Cos => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdCos);
+                self.state_stack.push(State::FnFallible(Self::do_std_cos));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Tan => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdTan);
+                self.state_stack.push(State::FnFallible(Self::do_std_tan));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Asin => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdAsin);
+                self.state_stack.push(State::FnFallible(Self::do_std_asin));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Acos => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdAcos);
+                self.state_stack.push(State::FnFallible(Self::do_std_acos));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Atan => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdAtan);
+                self.state_stack.push(State::FnFallible(Self::do_std_atan));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::AssertEqual => {
@@ -419,97 +435,111 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::Codepoint => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdCodepoint);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_codepoint));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Char => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdChar);
+                self.state_stack.push(State::FnFallible(Self::do_std_char));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Substr => {
                 let [arg0, arg1, arg2] = check_num_args(args);
-                self.state_stack.push(State::StdSubstr);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_substr));
                 self.state_stack.push(State::DoThunk(arg2.view()));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::FindSubstr => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdFindSubstr);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_find_substr));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::StartsWith => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdStartsWith);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_starts_with));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::EndsWith => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdEndsWith);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_ends_with));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::StripChars => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdStripChars);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_strip_chars));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::LStripChars => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdLStripChars);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_lstrip_chars));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::RStripChars => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdRStripChars);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_rstrip_chars));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::Split => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdSplit);
+                self.state_stack.push(State::FnFallible(Self::do_std_split));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::SplitLimit => {
                 let [arg0, arg1, arg2] = check_num_args(args);
-                self.state_stack.push(State::StdSplitLimit);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_split_limit));
                 self.state_stack.push(State::DoThunk(arg2.view()));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::SplitLimitR => {
                 let [arg0, arg1, arg2] = check_num_args(args);
-                self.state_stack.push(State::StdSplitLimitR);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_split_limit_r));
                 self.state_stack.push(State::DoThunk(arg2.view()));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::StrReplace => {
                 let [arg0, arg1, arg2] = check_num_args(args);
-                self.state_stack.push(State::StdStrReplace);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_str_replace));
                 self.state_stack.push(State::DoThunk(arg2.view()));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::AsciiUpper => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdAsciiUpper);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_ascii_upper));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::AsciiLower => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdAsciiLower);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_ascii_lower));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::StringChars => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdStringChars);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_string_chars));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Format => {
@@ -550,17 +580,20 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::ParseInt => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdParseInt);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_parse_int));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::ParseOctal => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdParseOctal);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_parse_octal));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::ParseHex => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdParseHex);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_parse_hex));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::ParseJson => {
@@ -633,7 +666,8 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::MakeArray => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdMakeArray);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_make_array));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
@@ -686,19 +720,20 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::Range => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdRange);
+                self.state_stack.push(State::FnFallible(Self::do_std_range));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::Repeat => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdRepeat);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_repeat));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::Slice => {
                 let [arg0, arg1, arg2, arg3] = check_num_args(args);
-                self.state_stack.push(State::StdSlice);
+                self.state_stack.push(State::FnFallible(Self::do_std_slice));
                 self.state_stack.push(State::DoThunk(arg3.view()));
                 self.state_stack.push(State::DoThunk(arg2.view()));
                 self.state_stack.push(State::DoThunk(arg1.view()));
@@ -712,7 +747,8 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::Reverse => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdReverse);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_reverse));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Sort => {
@@ -788,7 +824,7 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::Md5 => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdMd5);
+                self.state_stack.push(State::FnFallible(Self::do_std_md5));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::MergePatch => {
@@ -799,18 +835,19 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::Mod => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdMod);
+                self.state_stack.push(State::FnFallible(Self::do_std_mod));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::Native => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdNative);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_native));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::Trace => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdTrace);
+                self.state_stack.push(State::FnFallible(Self::do_std_trace));
                 self.state_stack.push(State::DoThunk(arg0.view()));
                 self.state_stack.push(State::DoThunk(arg1.view()));
             }

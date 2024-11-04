@@ -3,14 +3,16 @@ use std::rc::Rc;
 
 use super::super::{ir, ArrayData, FuncData, ObjectData, ThunkData, ThunkEnv, ValueData};
 use super::format::FormatPart;
-use super::{ManifestJsonFormat, TraceItem};
+use super::{EvalResult, Evaluator, ManifestJsonFormat, TraceItem};
 use crate::ast;
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
 use crate::span::SpanId;
 
 #[must_use]
-pub(super) enum State<'p> {
+pub(super) enum State<'a, 'p> {
+    FnInfallible(fn(&mut Evaluator<'a, 'p>)),
+    FnFallible(fn(&mut Evaluator<'a, 'p>) -> EvalResult<()>),
     // Do not push this directly! Use `Evaluator::push_trace_item` instead.
     TraceItem(TraceItem<'p>),
     // Do not push this directly! Use `Evaluator::delay_trace_item` instead.
@@ -216,59 +218,15 @@ pub(super) enum State<'p> {
         else_body: Option<&'p ir::Expr<'p>>,
         env: GcView<ThunkEnv<'p>>,
     },
-    StdExtVar,
-    StdType,
-    StdIsArray,
-    StdIsBoolean,
-    StdIsFunction,
-    StdIsNumber,
-    StdIsObject,
-    StdIsString,
-    StdLength,
     StdPruneValue,
     StdPruneArrayItem,
     StdPruneObjectField {
         name: InternedStr<'p>,
     },
-    StdObjectHasEx,
-    StdObjectFieldsEx,
-    StdPrimitiveEquals,
-    StdCompareArray,
-    StdExponent,
-    StdMantissa,
-    StdFloor,
-    StdCeil,
-    StdModulo,
-    StdPow,
-    StdExp,
-    StdLog,
-    StdSqrt,
-    StdSin,
-    StdCos,
-    StdTan,
-    StdAsin,
-    StdAcos,
-    StdAtan,
     StdAssertEqual,
     StdAssertEqualCheck,
     StdAssertEqualFail1,
     StdAssertEqualFail2,
-    StdCodepoint,
-    StdChar,
-    StdSubstr,
-    StdFindSubstr,
-    StdStartsWith,
-    StdEndsWith,
-    StdStripChars,
-    StdLStripChars,
-    StdRStripChars,
-    StdSplit,
-    StdSplitLimit,
-    StdSplitLimitR,
-    StdStrReplace,
-    StdAsciiUpper,
-    StdAsciiLower,
-    StdStringChars,
     StdFormat,
     StdFormatCodesArray1 {
         parts: Rc<Vec<FormatPart>>,
@@ -311,9 +269,6 @@ pub(super) enum State<'p> {
     StdEscapeStringBash,
     StdEscapeStringDollars,
     StdEscapeStringXml,
-    StdParseInt,
-    StdParseOctal,
-    StdParseHex,
     StdParseJson,
     StdParseYaml,
     StdEncodeUtf8,
@@ -334,7 +289,6 @@ pub(super) enum State<'p> {
     StdManifestXmlJsonmlItem1,
     StdManifestXmlJsonmlItemN,
     StdManifestTomlEx,
-    StdMakeArray,
     StdMember {
         value: GcView<ThunkData<'p>>,
     },
@@ -380,9 +334,6 @@ pub(super) enum State<'p> {
         func: GcView<FuncData<'p>>,
         item: GcView<ThunkData<'p>>,
     },
-    StdRange,
-    StdRepeat,
-    StdSlice,
     StdJoin,
     StdJoinStrItem {
         sep: Rc<str>,
@@ -392,7 +343,6 @@ pub(super) enum State<'p> {
         sep: GcView<ArrayData<'p>>,
     },
     StdJoinArrayFinish,
-    StdReverse,
     StdSort,
     StdSortSetKey {
         keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
@@ -524,12 +474,8 @@ pub(super) enum State<'p> {
     },
     StdBase64DecodeBytes,
     StdBase64Decode,
-    StdMd5,
     StdMergePatchValue,
     StdMergePatchField {
         name: InternedStr<'p>,
     },
-    StdMod,
-    StdNative,
-    StdTrace,
 }
