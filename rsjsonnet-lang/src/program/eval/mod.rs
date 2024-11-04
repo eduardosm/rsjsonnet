@@ -554,12 +554,6 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                         }));
                     }
                 }
-                State::FinishObject => {
-                    let object = self.object_stack.pop().unwrap();
-                    let object = self.program.gc_alloc(object);
-
-                    self.value_stack.push(ValueData::Object(object));
-                }
                 State::InitCompSpec {
                     var_name,
                     value,

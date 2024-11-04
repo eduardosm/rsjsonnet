@@ -101,7 +101,6 @@ pub(super) enum State<'a, 'p> {
         value: &'p ir::Expr<'p>,
         base_env: Option<Gc<ThunkEnv<'p>>>,
     },
-    FinishObject,
     Field {
         span: SpanId,
         field_name: InternedStr<'p>,

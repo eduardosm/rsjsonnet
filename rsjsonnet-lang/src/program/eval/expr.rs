@@ -49,7 +49,7 @@ impl<'p> Evaluator<'_, 'p> {
                     asserts_checked: Cell::new(false),
                 });
 
-                self.state_stack.push(State::FinishObject);
+                self.state_stack.push(State::ObjectToValue);
 
                 for field in ir_fields.iter().rev() {
                     match field.name {
