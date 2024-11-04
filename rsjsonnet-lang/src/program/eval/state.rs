@@ -35,8 +35,6 @@ pub(super) enum State<'a, 'p> {
     CmpOrdToIntValueThreeWay,
     InvertBool,
     AppendToString(String),
-    OutputValue,
-    OutputString,
     ArrayToValue,
     ObjectToValue,
     ManifestIniSection,

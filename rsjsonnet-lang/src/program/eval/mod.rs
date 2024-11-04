@@ -41,7 +41,6 @@ pub(super) struct Evaluator<'a, 'p> {
     comp_spec_stack: Vec<CompSpec<'p>>,
     cmp_ord_stack: Vec<std::cmp::Ordering>,
     byte_array_stack: Vec<Vec<u8>>,
-    output: EvalOutput<'p>,
 }
 
 pub(super) enum EvalInput<'p> {
@@ -52,7 +51,6 @@ pub(super) enum EvalInput<'p> {
 
 #[must_use]
 pub(super) enum EvalOutput<'p> {
-    Nothing,
     Value(ValueData<'p>),
     String(String),
 }
@@ -123,17 +121,22 @@ impl<'p, 'a> Evaluator<'a, 'p> {
             comp_spec_stack: Vec::new(),
             cmp_ord_stack: Vec::new(),
             byte_array_stack: Vec::new(),
-            output: EvalOutput::Nothing,
         };
 
+        enum OutputKind {
+            Value,
+            String,
+        }
+
+        let output_kind;
         match input {
             EvalInput::Value(thunk) => {
-                this.state_stack.push(State::OutputValue);
+                output_kind = OutputKind::Value;
                 this.state_stack.push(State::DeepValue);
                 this.state_stack.push(State::DoThunk(thunk));
             }
             EvalInput::Call(func, args) => {
-                this.state_stack.push(State::OutputValue);
+                output_kind = OutputKind::Value;
                 this.state_stack.push(State::DeepValue);
                 this.state_stack.push(State::TopLevelCall {
                     pos_args: args.positional,
@@ -142,7 +145,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                 this.state_stack.push(State::DoThunk(func));
             }
             EvalInput::ManifestJson(thunk, multiline) => {
-                this.state_stack.push(State::OutputString);
+                output_kind = OutputKind::String;
                 this.state_stack.push(State::ManifestJson {
                     format: if multiline {
                         ManifestJsonFormat::default_manifest()
@@ -158,6 +161,11 @@ impl<'p, 'a> Evaluator<'a, 'p> {
 
         this.run()?;
 
+        let output = match output_kind {
+            OutputKind::Value => EvalOutput::Value(this.value_stack.pop().unwrap()),
+            OutputKind::String => EvalOutput::String(this.string_stack.pop().unwrap()),
+        };
+
         assert_eq!(this.stack_trace_len, 0);
         assert!(this.state_stack.is_empty());
         assert!(this.value_stack.is_empty());
@@ -169,7 +177,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
         assert!(this.cmp_ord_stack.is_empty());
         assert!(this.byte_array_stack.is_empty());
 
-        Ok(this.output)
+        Ok(output)
     }
 
     fn run(&mut self) -> EvalResult<()> {
@@ -365,16 +373,6 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                 }
                 State::AppendToString(s) => {
                     self.string_stack.last_mut().unwrap().push_str(&s);
-                }
-                State::OutputValue => {
-                    let value = self.value_stack.pop().unwrap();
-                    assert!(matches!(self.output, EvalOutput::Nothing));
-                    self.output = EvalOutput::Value(value);
-                }
-                State::OutputString => {
-                    let s = self.string_stack.pop().unwrap();
-                    assert!(matches!(self.output, EvalOutput::Nothing));
-                    self.output = EvalOutput::String(s);
                 }
                 State::ArrayToValue => {
                     let array = self.array_stack.pop().unwrap();
