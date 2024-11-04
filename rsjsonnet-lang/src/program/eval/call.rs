@@ -550,31 +550,36 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::EscapeStringJson => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdEscapeStringJson);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_escape_string_json));
                 self.state_stack.push(State::CoerceToString);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::EscapeStringPython => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdEscapeStringPython);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_escape_string_python));
                 self.state_stack.push(State::CoerceToString);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::EscapeStringBash => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdEscapeStringBash);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_escape_string_bash));
                 self.state_stack.push(State::CoerceToString);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::EscapeStringDollars => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdEscapeStringDollars);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_escape_string_dollars));
                 self.state_stack.push(State::CoerceToString);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::EscapeStringXml => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdEscapeStringXml);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_escape_string_xml));
                 self.state_stack.push(State::CoerceToString);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
@@ -598,12 +603,14 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::ParseJson => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdParseJson);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_parse_json));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::ParseYaml => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdParseYaml);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_parse_yaml));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::EncodeUtf8 => {
@@ -690,13 +697,14 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::Map => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdMap);
+                self.state_stack.push(State::FnFallible(Self::do_std_map));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
             BuiltInFunc::MapWithIndex => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdMapWithIndex);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_map_with_index));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
