@@ -1,0 +1,8 @@
+error: second argument of `std.rstripChars` is expected to be string, got null
+note: while evaluating call to `rstripChars`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.rstripChars("", null)
+  | -------------------------
+note: during top-level value evaluation
+

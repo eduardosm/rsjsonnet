@@ -3,7 +3,7 @@ local test(str, chars, l, r) =
   std.assertEqual(std.rstripChars(str, chars), str[:std.length(str) - r]) &&
   std.assertEqual(
     std.stripChars(str, chars),
-    if l + r < std.length(str) then str[l:std.length(str) - r] else ""
+    if l + r < std.length(str) then str[l:std.length(str) - r] else "",
   );
 
 test("", "", 0, 0) &&
@@ -18,5 +18,6 @@ test("  \tX\t ", "X", 0, 0) &&
 test("  \tX\t ", "Y", 0, 0) &&
 test("💯👍💯💯", "👍", 0, 0) &&
 test("💯👍💯💯", "💯", 1, 2) &&
+test("💯👍💯💯", "👍💯", 4, 4) &&
 
 true
