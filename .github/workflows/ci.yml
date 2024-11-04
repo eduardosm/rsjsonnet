@@ -17,9 +17,9 @@ jobs:
       - package-crates
       - build-dist-linux
       - build-dist-windows
-    # 'always()' is needed because GitHub treats a skipped job (due to a failed
-    # dependency) a success.
-    if: always()
+    # '!cancelled()' is needed because GitHub treats a skipped job (due to a
+    # failed dependency) a success.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-22.04
     steps:
       - name: Report status
