@@ -381,6 +381,7 @@ pub(super) enum State<'p> {
         item: GcView<ThunkData<'p>>,
     },
     StdRange,
+    StdRepeat,
     StdSlice,
     StdJoin,
     StdJoinStrItem {

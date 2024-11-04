@@ -1,0 +1,8 @@
+error: invalid count value 1.5
+note: while evaluating call to `repeat`
+ --> non_integer_count.jsonnet:1:1
+  |
+1 | std.repeat("", 1.5)
+  | -------------------
+note: during top-level value evaluation
+

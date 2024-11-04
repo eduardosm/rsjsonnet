@@ -1446,6 +1446,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                 State::StdFoldr { init } => self.do_std_foldr(init)?,
                 State::StdFoldrItem { func, item } => self.do_std_foldr_item(func, item)?,
                 State::StdRange => self.do_std_range()?,
+                State::StdRepeat => self.do_std_repeat()?,
                 State::StdSlice => self.do_std_slice()?,
                 State::StdJoin => self.do_std_join()?,
                 State::StdJoinStrItem { sep } => self.do_std_join_str_item(sep)?,

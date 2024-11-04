@@ -744,6 +744,7 @@ pub(super) enum BuiltInFunc {
     Foldl,
     Foldr,
     Range,
+    Repeat,
     Slice,
     Join,
     Reverse,

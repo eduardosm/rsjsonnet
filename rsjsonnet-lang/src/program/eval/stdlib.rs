@@ -1839,6 +1839,48 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
+    pub(super) fn do_std_repeat(&mut self) -> EvalResult<()> {
+        let count = self.value_stack.pop().unwrap();
+        let value = self.value_stack.pop().unwrap();
+
+        let count = self.expect_std_func_arg_number(count, "repeat", 1)?;
+
+        let Some(count) = float::try_to_i32_exact(count).and_then(|v| usize::try_from(v).ok())
+        else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!("invalid count value {count}"),
+            }));
+        };
+
+        match value {
+            ValueData::String(s) => {
+                self.value_stack
+                    .push(ValueData::String(s.repeat(count).into()));
+                Ok(())
+            }
+            ValueData::Array(array) => {
+                let array = array.view();
+                self.value_stack.push(ValueData::Array(
+                    self.program.gc_alloc(
+                        std::iter::repeat(&array)
+                            .take(count)
+                            .flat_map(|a| a.iter())
+                            .cloned()
+                            .collect(),
+                    ),
+                ));
+                Ok(())
+            }
+            _ => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
+                func_name: "repeat".into(),
+                arg_index: 0,
+                expected_types: vec![EvalErrorValueType::String, EvalErrorValueType::Array],
+                got_type: EvalErrorValueType::from_value(&value),
+            })),
+        }
+    }
+
     pub(super) fn do_std_slice(&mut self) -> EvalResult<()> {
         let step = self.value_stack.pop().unwrap();
         let end = self.value_stack.pop().unwrap();

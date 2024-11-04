@@ -1,0 +1,8 @@
+error: second argument of `std.repeat` is expected to be number, got null
+note: while evaluating call to `repeat`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.repeat("", null)
+  | --------------------
+note: during top-level value evaluation
+
