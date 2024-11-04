@@ -74,4 +74,28 @@ std.assertEqual(f(1, error "err"), [1, 1]) &&
 local f(x, y=error "err") = [x, x];
 std.assertEqual(f(1), [1, 1]) &&
 
+local f(acc, a, b=std.repeat([null], std.length(a))) =
+  assert std.length(a) == std.length(b);
+  if std.length(a) == 0 then
+    acc
+  else
+    f(acc + [a[0], b[0]], a[1:], b[1:]) tailstrict;
+
+std.assertEqual(
+  f([0], std.repeat([1], 500), std.repeat([2], 500)),
+  [0] + std.repeat([1, 2], 500),
+) &&
+std.assertEqual(
+  f(acc=[0], a=std.repeat([1], 500), b=std.repeat([2], 500)),
+  [0] + std.repeat([1, 2], 500),
+) &&
+std.assertEqual(
+  f(acc=[0], b=std.repeat([1], 500), a=std.repeat([2], 500)),
+  [0] + std.repeat([2, 1], 500),
+) &&
+std.assertEqual(
+  f([0], std.repeat([1], 500)),
+  [0] + std.repeat([1, null], 500),
+) &&
+
 true

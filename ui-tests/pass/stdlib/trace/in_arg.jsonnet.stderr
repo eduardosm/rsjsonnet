@@ -1,18 +1,43 @@
 TRACE: some trace
 note: while evaluating call to `trace`
- --> in_arg.jsonnet:3:3
+ --> in_arg.jsonnet:2:16
   |
-3 | f(std.trace("some trace", "some value"))
-  |   -------------------------------------
+2 | local f1() = f(std.trace("some trace", "some value"));
+  |                -------------------------------------
 note: while evaluating variable `x`
  --> in_arg.jsonnet:1:14
   |
 1 | local f(x) = x;
   |              -
 note: while evaluating call to `f`
- --> in_arg.jsonnet:3:1
+ --> in_arg.jsonnet:2:14
   |
-3 | f(std.trace("some trace", "some value"))
-  | ----------------------------------------
+2 | local f1() = f(std.trace("some trace", "some value"));
+  |              ----------------------------------------
+note: while evaluating call to `f1`
+ --> in_arg.jsonnet:5:2
+  |
+5 | [f1(), f2()]
+  |  ----
+note: while evaluating array item 0
+note: during top-level value evaluation
+
+TRACE: some trace
+note: while evaluating call to `trace`
+ --> in_arg.jsonnet:3:16
+  |
+3 | local f2() = f(std.trace("some trace", "some value")) tailstrict;
+  |                -------------------------------------
+note: while evaluating variable `x`
+ --> in_arg.jsonnet:3:14
+  |
+3 | local f2() = f(std.trace("some trace", "some value")) tailstrict;
+  |              ---------------------------------------------------
+note: while evaluating call to `f2`
+ --> in_arg.jsonnet:5:8
+  |
+5 | [f1(), f2()]
+  |        ----
+note: while evaluating array item 1
 note: during top-level value evaluation
 
