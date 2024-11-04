@@ -186,6 +186,7 @@ impl<'p> Program<'p> {
         add_simple("foldl", BuiltInFunc::Foldl, &["func", "arr", "init"]);
         add_simple("foldr", BuiltInFunc::Foldr, &["func", "arr", "init"]);
         add_simple("range", BuiltInFunc::Range, &["from", "to"]);
+        add_simple("repeat", BuiltInFunc::Repeat, &["what", "count"]);
         add_simple(
             "slice",
             BuiltInFunc::Slice,

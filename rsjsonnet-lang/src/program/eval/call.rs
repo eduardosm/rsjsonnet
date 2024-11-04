@@ -690,6 +690,12 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
+            BuiltInFunc::Repeat => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack.push(State::StdRepeat);
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
             BuiltInFunc::Slice => {
                 let [arg0, arg1, arg2, arg3] = check_num_args(args);
                 self.state_stack.push(State::StdSlice);
