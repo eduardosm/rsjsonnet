@@ -116,6 +116,9 @@ impl<'p> Program<'p> {
         add_simple("findSubstr", BuiltInFunc::FindSubstr, &["pat", "str"]);
         add_simple("startsWith", BuiltInFunc::StartsWith, &["a", "b"]);
         add_simple("endsWith", BuiltInFunc::EndsWith, &["a", "b"]);
+        add_simple("stripChars", BuiltInFunc::StripChars, &["str", "chars"]);
+        add_simple("lstripChars", BuiltInFunc::LStripChars, &["str", "chars"]);
+        add_simple("rstripChars", BuiltInFunc::RStripChars, &["str", "chars"]);
         add_simple("split", BuiltInFunc::Split, &["str", "c"]);
         add_simple(
             "splitLimit",

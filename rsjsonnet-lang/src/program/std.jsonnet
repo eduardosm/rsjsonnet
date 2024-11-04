@@ -22,22 +22,6 @@ limitations under the License.
 {
   local std = self,
 
-  lstripChars(str, chars)::
-    if std.length(str) > 0 && std.member(chars, str[0]) then
-      std.lstripChars(str[1:], chars) tailstrict
-    else
-      str,
-
-  rstripChars(str, chars)::
-    local len = std.length(str);
-    if len > 0 && std.member(chars, str[len - 1]) then
-      std.rstripChars(str[:len - 1], chars) tailstrict
-    else
-      str,
-
-  stripChars(str, chars)::
-    std.lstripChars(std.rstripChars(str, chars), chars),
-
   repeat(what, count)::
     local joiner =
       if std.isString(what) then ''

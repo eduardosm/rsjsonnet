@@ -611,6 +611,63 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
+    pub(super) fn do_std_strip_chars(&mut self) -> EvalResult<()> {
+        let chars = self.value_stack.pop().unwrap();
+        let str = self.value_stack.pop().unwrap();
+
+        let str = self.expect_std_func_arg_string(str, "stripChars", 0)?;
+        let chars = self.expect_std_func_arg_string(chars, "stripChars", 1)?;
+        let chars: Vec<_> = chars.chars().collect();
+
+        let mut res = &*str;
+        while let Some(stripped) = res.strip_prefix(chars.as_slice()) {
+            res = stripped;
+        }
+        while let Some(stripped) = res.strip_suffix(chars.as_slice()) {
+            res = stripped;
+        }
+
+        self.value_stack.push(ValueData::String(res.into()));
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_lstrip_chars(&mut self) -> EvalResult<()> {
+        let chars = self.value_stack.pop().unwrap();
+        let str = self.value_stack.pop().unwrap();
+
+        let str = self.expect_std_func_arg_string(str, "lstripChars", 0)?;
+        let chars = self.expect_std_func_arg_string(chars, "lstripChars", 1)?;
+        let chars: Vec<_> = chars.chars().collect();
+
+        let mut res = &*str;
+        while let Some(stripped) = res.strip_prefix(chars.as_slice()) {
+            res = stripped;
+        }
+
+        self.value_stack.push(ValueData::String(res.into()));
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_rstrip_chars(&mut self) -> EvalResult<()> {
+        let chars = self.value_stack.pop().unwrap();
+        let str = self.value_stack.pop().unwrap();
+
+        let str = self.expect_std_func_arg_string(str, "rstripChars", 0)?;
+        let chars = self.expect_std_func_arg_string(chars, "rstripChars", 1)?;
+        let chars: Vec<_> = chars.chars().collect();
+
+        let mut res = &*str;
+        while let Some(stripped) = res.strip_suffix(chars.as_slice()) {
+            res = stripped;
+        }
+
+        self.value_stack.push(ValueData::String(res.into()));
+
+        Ok(())
+    }
+
     pub(super) fn do_std_split(&mut self) -> EvalResult<()> {
         let c_value = self.value_stack.pop().unwrap();
         let str_value = self.value_stack.pop().unwrap();

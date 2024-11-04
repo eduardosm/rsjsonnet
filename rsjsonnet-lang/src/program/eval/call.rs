@@ -452,6 +452,24 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
+            BuiltInFunc::StripChars => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack.push(State::StdStripChars);
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
+            BuiltInFunc::LStripChars => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack.push(State::StdLStripChars);
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
+            BuiltInFunc::RStripChars => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack.push(State::StdRStripChars);
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
             BuiltInFunc::Split => {
                 let [arg0, arg1] = check_num_args(args);
                 self.state_stack.push(State::StdSplit);
