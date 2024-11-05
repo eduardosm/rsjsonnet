@@ -1,0 +1,8 @@
+error: second argument of `std.mapWithKey` is expected to be object, got null
+note: while evaluating call to `mapWithKey`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.mapWithKey(function(k, v) null, null)
+  | -----------------------------------------
+note: during top-level value evaluation
+

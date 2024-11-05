@@ -22,14 +22,6 @@ limitations under the License.
 {
   local std = self,
 
-  mapWithKey(func, obj)::
-    if !std.isFunction(func) then
-      error ('std.mapWithKey first param must be function, got ' + std.type(func))
-    else if !std.isObject(obj) then
-      error ('std.mapWithKey second param must be object, got ' + std.type(obj))
-    else
-      { [k]: func(k, obj[k]) for k in std.objectFields(obj) },
-
   flatMap(func, arr)::
     if !std.isFunction(func) then
       error ('std.flatMap first param must be function, got ' + std.type(func))

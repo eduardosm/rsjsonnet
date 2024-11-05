@@ -10,7 +10,7 @@ use super::{
 };
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
-use crate::{ast, FHashSet};
+use crate::{ast, FHashMap, FHashSet};
 
 impl<'p> Evaluator<'_, 'p> {
     pub(super) fn do_std_ext_var(&mut self) -> EvalResult<()> {
@@ -231,6 +231,49 @@ impl<'p> Evaluator<'_, 'p> {
             }));
 
         self.value_stack.push(ValueData::Array(array));
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_map_with_key(&mut self) -> EvalResult<()> {
+        let object = self.value_stack.pop().unwrap();
+        let func = self.value_stack.pop().unwrap();
+
+        let func = self.expect_std_func_arg_func(func, "mapWithKey", 0)?;
+        let object = self.expect_std_func_arg_object(object, "mapWithKey", 1)?;
+
+        let mut mapped_fields = FHashMap::default();
+        for field_name in object.get_visible_fields_order() {
+            let field_thunk = self
+                .program
+                .find_object_field_thunk(&object, 0, field_name)
+                .unwrap();
+
+            let args_thunks = Box::new([
+                self.program.gc_alloc(ThunkData::new_done(ValueData::String(
+                    field_name.value().into(),
+                ))),
+                Gc::from(&field_thunk),
+            ]);
+
+            let mapped_field = ObjectField {
+                base_env: None,
+                visibility: ast::Visibility::Default,
+                expr: None,
+                thunk: OnceCell::from(
+                    self.program
+                        .gc_alloc(ThunkData::new_pending_call(Gc::from(&func), args_thunks)),
+                ),
+            };
+
+            mapped_fields.insert(field_name, mapped_field);
+        }
+
+        let mapped_object = ObjectData::new_simple(mapped_fields);
+        self.value_stack
+            .push(ValueData::Object(self.program.gc_alloc(mapped_object)));
+
+        self.check_object_asserts(&object);
 
         Ok(())
     }
