@@ -1,9 +1,9 @@
 error: first argument of `std.manifestTomlEx` is expected to be object, got null
 note: while evaluating call to `manifestTomlEx`
-   --> <stdlib>:103:25
-    |
-103 |   manifestToml(value):: std.manifestTomlEx(value, '  '),
-    |                         -------------------------------
+  --> <stdlib>:95:25
+   |
+95 |   manifestToml(value):: std.manifestTomlEx(value, '  '),
+   |                         -------------------------------
 note: while evaluating call to function
  --> invalid_arg.jsonnet:1:1
   |

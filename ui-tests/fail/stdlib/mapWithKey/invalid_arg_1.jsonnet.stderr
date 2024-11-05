@@ -1,0 +1,8 @@
+error: first argument of `std.mapWithKey` is expected to be function, got null
+note: while evaluating call to `mapWithKey`
+ --> invalid_arg_1.jsonnet:1:1
+  |
+1 | std.mapWithKey(null, {})
+  | ------------------------
+note: during top-level value evaluation
+
