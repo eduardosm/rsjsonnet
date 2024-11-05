@@ -1,0 +1,8 @@
+error: function must return a string, got number
+note: while evaluating call to `flatMap`
+ --> result_not_string.jsonnet:1:1
+  |
+1 | std.flatMap(function(x) 0, "1")
+  | -------------------------------
+note: during top-level value evaluation
+

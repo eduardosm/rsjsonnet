@@ -715,6 +715,13 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
+            BuiltInFunc::FlatMap => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_flat_map));
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
             BuiltInFunc::Filter => {
                 let [arg0, arg1] = check_num_args(args);
                 self.state_stack.push(State::StdFilter);

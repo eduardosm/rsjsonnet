@@ -183,6 +183,7 @@ impl<'p> Program<'p> {
         add_simple("find", BuiltInFunc::Find, &["value", "find"]);
         add_simple("map", BuiltInFunc::Map, &["func", "arr"]);
         add_simple("mapWithIndex", BuiltInFunc::MapWithIndex, &["func", "arr"]);
+        add_simple("flatMap", BuiltInFunc::FlatMap, &["func", "arr"]);
         add_simple("filter", BuiltInFunc::Filter, &["func", "arr"]);
         add_simple("foldl", BuiltInFunc::Foldl, &["func", "arr", "init"]);
         add_simple("foldr", BuiltInFunc::Foldr, &["func", "arr", "init"]);

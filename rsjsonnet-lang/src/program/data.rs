@@ -741,6 +741,7 @@ pub(super) enum BuiltInFunc {
     Find,
     Map,
     MapWithIndex,
+    FlatMap,
     Filter,
     Foldl,
     Foldr,

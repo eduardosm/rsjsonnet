@@ -1,0 +1,8 @@
+error: function must return an array, got null
+note: while evaluating call to `flatMap`
+ --> result_not_array.jsonnet:1:1
+  |
+1 | std.flatMap(function(x) null, [1])
+  | ----------------------------------
+note: during top-level value evaluation
+
