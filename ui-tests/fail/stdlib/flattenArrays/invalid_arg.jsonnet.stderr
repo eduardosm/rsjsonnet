@@ -1,0 +1,8 @@
+error: first argument of `std.flattenArrays` is expected to be array, got null
+note: while evaluating call to `flattenArrays`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.flattenArrays(null)
+  | -----------------------
+note: during top-level value evaluation
+

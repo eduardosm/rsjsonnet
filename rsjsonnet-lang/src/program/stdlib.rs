@@ -194,6 +194,7 @@ impl<'p> Program<'p> {
             &["indexable", "index", "end", "step"],
         );
         add_simple("join", BuiltInFunc::Join, &["sep", "arr"]);
+        add_simple("flattenArrays", BuiltInFunc::FlattenArrays, &["arrs"]);
         add_simple("reverse", BuiltInFunc::Reverse, &["arr"]);
         add_simple("all", BuiltInFunc::All, &["arr"]);
         add_simple("any", BuiltInFunc::Any, &["arr"]);

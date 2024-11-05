@@ -760,6 +760,12 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
+            BuiltInFunc::FlattenArrays => {
+                let [arg] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_flatten_arrays));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
             BuiltInFunc::Reverse => {
                 let [arg] = check_num_args(args);
                 self.state_stack

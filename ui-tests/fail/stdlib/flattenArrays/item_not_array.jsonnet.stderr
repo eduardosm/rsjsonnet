@@ -1,0 +1,8 @@
+error: array item must be an array, got null
+note: while evaluating call to `flattenArrays`
+ --> item_not_array.jsonnet:1:1
+  |
+1 | std.flattenArrays([null])
+  | -------------------------
+note: during top-level value evaluation
+

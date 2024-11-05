@@ -2039,6 +2039,41 @@ impl<'p> Evaluator<'_, 'p> {
         ));
     }
 
+    pub(super) fn do_std_flatten_arrays(&mut self) -> EvalResult<()> {
+        let arrs = self.value_stack.pop().unwrap();
+        let arrs = self.expect_std_func_arg_array(arrs, "flattenArrays", 0)?;
+
+        self.array_stack.push(Vec::new());
+        self.state_stack.push(State::ArrayToValue);
+
+        for item in arrs.iter().rev() {
+            self.state_stack
+                .push(State::FnFallible(Self::do_std_flatten_arrays_item));
+            self.state_stack.push(State::DoThunk(item.view()));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_flatten_arrays_item(&mut self) -> EvalResult<()> {
+        let item = self.value_stack.pop().unwrap();
+        let ValueData::Array(item) = item else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!(
+                    "array item must be an array, got {}",
+                    EvalErrorValueType::from_value(&item).to_str(),
+                ),
+            }));
+        };
+        let item = item.view();
+
+        let result_array = self.array_stack.last_mut().unwrap();
+        result_array.extend(item.iter().cloned());
+
+        Ok(())
+    }
+
     pub(super) fn do_std_reverse(&mut self) -> EvalResult<()> {
         let value = self.value_stack.pop().unwrap();
         let reverse = match value {

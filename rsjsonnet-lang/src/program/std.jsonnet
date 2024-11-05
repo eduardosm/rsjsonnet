@@ -89,9 +89,6 @@ limitations under the License.
     else if x > maxVal then maxVal
     else x,
 
-  flattenArrays(arrs)::
-    std.foldl(function(a, b) a + b, arrs, []),
-
   manifestToml(value):: std.manifestTomlEx(value, '  '),
 
   manifestJson(value):: std.manifestJsonEx(value, '    '),
