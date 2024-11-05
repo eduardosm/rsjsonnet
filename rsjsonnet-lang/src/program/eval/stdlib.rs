@@ -1739,6 +1739,94 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
+    pub(super) fn do_std_flat_map(&mut self) -> EvalResult<()> {
+        let arr = self.value_stack.pop().unwrap();
+        let func = self.value_stack.pop().unwrap();
+
+        let func = self.expect_std_func_arg_func(func, "flatMap", 0)?;
+
+        match arr {
+            ValueData::String(s) => {
+                self.string_stack.push(String::new());
+                self.state_stack.push(State::StringToValue);
+
+                for chr in s.chars().rev() {
+                    let args_thunks = Box::new([self
+                        .program
+                        .gc_alloc(ThunkData::new_done(ValueData::from_char(chr)))]);
+
+                    self.state_stack
+                        .push(State::FnFallible(Self::do_std_flat_map_string_part));
+                    self.execute_call(&func, args_thunks);
+                }
+
+                Ok(())
+            }
+            ValueData::Array(array) => {
+                let array = array.view();
+
+                self.array_stack.push(Vec::new());
+                self.state_stack.push(State::ArrayToValue);
+
+                for item in array.iter().rev() {
+                    let args_thunks = Box::new([item.clone()]);
+
+                    self.state_stack
+                        .push(State::FnFallible(Self::do_std_flat_map_array_part));
+                    self.execute_call(&func, args_thunks);
+                }
+
+                Ok(())
+            }
+            _ => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
+                func_name: "flatMap".into(),
+                arg_index: 1,
+                expected_types: vec![EvalErrorValueType::String, EvalErrorValueType::Array],
+                got_type: EvalErrorValueType::from_value(&arr),
+            })),
+        }
+    }
+
+    fn do_std_flat_map_string_part(&mut self) -> EvalResult<()> {
+        let value = self.value_stack.pop().unwrap();
+
+        match value {
+            ValueData::Null => Ok(()),
+            ValueData::String(s) => {
+                self.string_stack.last_mut().unwrap().push_str(&s);
+                Ok(())
+            }
+            _ => Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!(
+                    "function must return a string, got {}",
+                    EvalErrorValueType::from_value(&value).to_str(),
+                ),
+            })),
+        }
+    }
+
+    fn do_std_flat_map_array_part(&mut self) -> EvalResult<()> {
+        let value = self.value_stack.pop().unwrap();
+        let ValueData::Array(sub_array) = value else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!(
+                    "function must return an array, got {}",
+                    EvalErrorValueType::from_value(&value).to_str(),
+                ),
+            }));
+        };
+        let sub_array = sub_array.view();
+
+        self.array_stack
+            .last_mut()
+            .unwrap()
+            .extend(sub_array.iter().cloned());
+
+        Ok(())
+    }
+
     pub(super) fn do_std_filter(&mut self) -> EvalResult<()> {
         let arr_value = self.value_stack.pop().unwrap();
         let func_value = self.value_stack.pop().unwrap();

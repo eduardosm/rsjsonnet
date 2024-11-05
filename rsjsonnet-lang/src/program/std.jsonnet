@@ -22,15 +22,6 @@ limitations under the License.
 {
   local std = self,
 
-  flatMap(func, arr)::
-    if !std.isFunction(func) then
-      error ('std.flatMap first param must be function, got ' + std.type(func))
-    else if std.isArray(arr) then
-      std.flattenArrays(std.makeArray(std.length(arr), function(i) func(arr[i])))
-    else if std.isString(arr) then
-      std.join('', std.makeArray(std.length(arr), function(i) func(arr[i])))
-    else error ('std.flatMap second param must be array / string, got ' + std.type(arr)),
-
   lines(arr)::
     std.join('\n', arr + ['']),
 

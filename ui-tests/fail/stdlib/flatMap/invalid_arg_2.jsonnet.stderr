@@ -1,0 +1,8 @@
+error: second argument of `std.flatMap` is expected to be string or array, got null
+note: while evaluating call to `flatMap`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.flatMap(function(x) null, null)
+  | -----------------------------------
+note: during top-level value evaluation
+
