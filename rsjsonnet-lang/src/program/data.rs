@@ -526,8 +526,10 @@ impl<'p> ObjectData<'p> {
             .filter_map(|&(name, visible)| visible.then_some(name))
     }
 
-    pub(super) fn field_is_visible(&self, name: InternedStr<'p>) -> bool {
+    pub(super) fn has_visible_field(&self, name: InternedStr<'p>) -> bool {
+        let mut found = false;
         if let Some(field) = self.self_layer.fields.get(&name) {
+            found = true;
             match field.visibility {
                 ast::Visibility::Default => {}
                 ast::Visibility::Hidden => return false,
@@ -536,6 +538,7 @@ impl<'p> ObjectData<'p> {
         }
         for layer in self.super_layers.iter() {
             if let Some(field) = layer.fields.get(&name) {
+                found = true;
                 match field.visibility {
                     ast::Visibility::Default => {}
                     ast::Visibility::Hidden => return false,
@@ -543,7 +546,7 @@ impl<'p> ObjectData<'p> {
                 }
             }
         }
-        true
+        found
     }
 }
 
