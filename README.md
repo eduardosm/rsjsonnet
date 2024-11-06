@@ -73,9 +73,6 @@ Licensed under either of
 
 at your option.
 
-The following are taken from the [C++ implementation](https://github.com/google/jsonnet),
-which is licensed under Apache 2.0.
-
-* The part of the standard library that is implemented in Jsonnet
-  ([rsjsonnet-lang/src/program/std.jsonnet](rsjsonnet-lang/src/program/std.jsonnet)).
-* Part of the test suite ([ui-tests/jsonnet-0.20.0](ui-tests/jsonnet-0.20.0)).
+Part of the test suite ([ui-tests/jsonnet-0.20.0](ui-tests/jsonnet-0.20.0)) is
+taken from the [C++ implementation](https://github.com/google/jsonnet), which
+is licensed under Apache 2.0.

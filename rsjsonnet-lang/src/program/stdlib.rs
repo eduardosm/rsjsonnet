@@ -9,14 +9,13 @@ use crate::interner::{InternedStr, StrInterner};
 use crate::span::SpanContextId;
 use crate::{ast, FHashMap};
 
-// From jsonnet 0.20.0
-pub(super) const STDLIB_DATA: &[u8] = include_bytes!("std.jsonnet");
+pub(super) const STDLIB_DATA: &[u8] = include_bytes!("std.libsonnet");
 
 impl<'p> Program<'p> {
     pub(super) fn load_stdlib(&mut self, span_ctx: SpanContextId) {
         let stdlib_data = self.stdlib_data;
         let stdlib_thunk = self
-            .load_source(span_ctx, stdlib_data, false, "std.jsonnet")
+            .load_source(span_ctx, stdlib_data, false, "std.libsonnet")
             .expect("failed to load stdlib");
         let stdlib_value = self
             .eval_value_internal(&stdlib_thunk)
