@@ -491,11 +491,12 @@ impl<'p> Evaluator<'_, 'p> {
         self.value_stack.push(lhs);
         self.value_stack.push(rhs);
 
-        self.state_stack.push(State::StdAssertEqualCheck);
+        self.state_stack
+            .push(State::FnInfallible(Self::do_std_assert_equal_check));
         self.state_stack.push(State::EqualsValue);
     }
 
-    pub(super) fn do_std_assert_equal_check(&mut self) {
+    fn do_std_assert_equal_check(&mut self) {
         let equal = self.bool_stack.pop().unwrap();
         if equal {
             self.value_stack.pop().unwrap();
@@ -506,7 +507,8 @@ impl<'p> Evaluator<'_, 'p> {
             self.value_stack
                 .swap(value_stack_len - 1, value_stack_len - 2);
             self.string_stack.push(String::new());
-            self.state_stack.push(State::StdAssertEqualFail1);
+            self.state_stack
+                .push(State::FnInfallible(Self::do_std_assert_equal_fail_1));
             self.state_stack.push(State::ManifestJson {
                 format: ManifestJsonFormat::default_to_string(),
                 depth: 0,
@@ -514,16 +516,17 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
-    pub(super) fn do_std_assert_equal_fail_1(&mut self) {
+    fn do_std_assert_equal_fail_1(&mut self) {
         self.string_stack.push(String::new());
-        self.state_stack.push(State::StdAssertEqualFail2);
+        self.state_stack
+            .push(State::FnFallible(Self::do_std_assert_equal_fail_2));
         self.state_stack.push(State::ManifestJson {
             format: ManifestJsonFormat::default_to_string(),
             depth: 0,
         });
     }
 
-    pub(super) fn do_std_assert_equal_fail_2(&mut self) -> EvalResult<()> {
+    fn do_std_assert_equal_fail_2(&mut self) -> EvalResult<()> {
         let rhs = self.string_stack.pop().unwrap();
         let lhs = self.string_stack.pop().unwrap();
         Err(self.report_error(EvalErrorKind::AssertEqualFailed { lhs, rhs }))
@@ -1060,16 +1063,18 @@ impl<'p> Evaluator<'_, 'p> {
         let array = self.expect_std_func_arg_array(arg, "decodeUTF8", 0)?;
 
         self.byte_array_stack.push(Vec::with_capacity(array.len()));
-        self.state_stack.push(State::StdDecodeUtf8Finish);
+        self.state_stack
+            .push(State::FnInfallible(Self::do_std_decode_utf8_finish));
         for item in array.iter().rev() {
-            self.state_stack.push(State::StdDecodeUtf8CheckItem);
+            self.state_stack
+                .push(State::FnFallible(Self::do_std_decode_utf8_check_item));
             self.state_stack.push(State::DoThunk(item.view()));
         }
 
         Ok(())
     }
 
-    pub(super) fn do_std_decode_utf8_check_item(&mut self) -> EvalResult<()> {
+    fn do_std_decode_utf8_check_item(&mut self) -> EvalResult<()> {
         let item = self.value_stack.pop().unwrap();
         let ValueData::Number(value) = item else {
             return Err(self.report_error(EvalErrorKind::Other {
@@ -1090,7 +1095,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_decode_utf8_finish(&mut self) {
+    fn do_std_decode_utf8_finish(&mut self) {
         let bytes = self.byte_array_stack.pop().unwrap();
         let s = String::from_utf8_lossy(&bytes);
         self.value_stack.push(ValueData::String(s.into()));
@@ -2143,7 +2148,7 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
-    pub(super) fn do_std_flatten_arrays_item(&mut self) -> EvalResult<()> {
+    fn do_std_flatten_arrays_item(&mut self) -> EvalResult<()> {
         let item = self.value_stack.pop().unwrap();
         let ValueData::Array(item) = item else {
             return Err(self.report_error(EvalErrorKind::Other {
