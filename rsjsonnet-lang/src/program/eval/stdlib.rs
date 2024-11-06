@@ -202,8 +202,11 @@ impl<'p> Evaluator<'_, 'p> {
             .str_interner
             .get_interned(&field_name)
             .is_some_and(|field_name| {
-                object.has_field(0, field_name)
-                    && (inc_hidden || object.field_is_visible(field_name))
+                if inc_hidden {
+                    object.has_field(0, field_name)
+                } else {
+                    object.has_visible_field(field_name)
+                }
             });
 
         self.value_stack.push(ValueData::Bool(has_field));
