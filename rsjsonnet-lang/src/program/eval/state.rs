@@ -220,10 +220,6 @@ pub(super) enum State<'a, 'p> {
     StdPruneObjectField {
         name: InternedStr<'p>,
     },
-    StdAssertEqual,
-    StdAssertEqualCheck,
-    StdAssertEqualFail1,
-    StdAssertEqualFail2,
     StdFormat,
     StdFormatCodesArray1 {
         parts: Rc<Vec<FormatPart>>,
@@ -261,10 +257,6 @@ pub(super) enum State<'a, 'p> {
         fw: u32,
         prec: u32,
     },
-    StdEncodeUtf8,
-    StdDecodeUtf8,
-    StdDecodeUtf8CheckItem,
-    StdDecodeUtf8Finish,
     StdManifestIni,
     StdManifestIniSections,
     StdManifestPython,

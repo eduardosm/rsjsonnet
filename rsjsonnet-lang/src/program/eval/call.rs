@@ -431,7 +431,8 @@ impl<'p> Evaluator<'_, 'p> {
             }
             BuiltInFunc::AssertEqual => {
                 let [arg0, arg1] = check_num_args(args);
-                self.state_stack.push(State::StdAssertEqual);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_assert_equal));
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
@@ -621,12 +622,14 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::EncodeUtf8 => {
-                self.state_stack.push(State::StdEncodeUtf8);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_encode_utf8));
                 self.state_stack.push(State::DoThunk(args[0].view()));
             }
             BuiltInFunc::DecodeUtf8 => {
                 let [arg] = check_num_args(args);
-                self.state_stack.push(State::StdDecodeUtf8);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_decode_utf8));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::ManifestIni => {
