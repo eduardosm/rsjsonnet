@@ -25,14 +25,6 @@ limitations under the License.
   lines(arr)::
     std.join('\n', arr + ['']),
 
-  deepJoin(arr)::
-    if std.isString(arr) then
-      arr
-    else if std.isArray(arr) then
-      std.join('', [std.deepJoin(x) for x in arr])
-    else
-      error 'Expected string or array, got %s' % std.type(arr),
-
   filterMap(filter_func, map_func, arr)::
     if !std.isFunction(filter_func) then
       error ('std.filterMap first param must be function, got ' + std.type(filter_func))

@@ -1,0 +1,8 @@
+error: first argument of `std.deepJoin` is expected to be string or array, got null
+note: while evaluating call to `deepJoin`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.deepJoin(null)
+  | ------------------
+note: during top-level value evaluation
+

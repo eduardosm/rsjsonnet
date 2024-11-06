@@ -2132,6 +2132,62 @@ impl<'p> Evaluator<'_, 'p> {
         ));
     }
 
+    pub(super) fn do_std_deep_join(&mut self) -> EvalResult<()> {
+        match self.value_stack.pop().unwrap() {
+            ValueData::String(s) => {
+                self.value_stack.push(ValueData::String(s));
+                Ok(())
+            }
+            ValueData::Array(array) => {
+                let array = array.view();
+
+                self.string_stack.push(String::new());
+                self.state_stack.push(State::StringToValue);
+
+                for item in array.iter().rev() {
+                    self.state_stack
+                        .push(State::FnFallible(Self::do_std_deep_join_array_item));
+                    self.state_stack.push(State::DoThunk(item.view()));
+                }
+
+                Ok(())
+            }
+            value => Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
+                func_name: "deepJoin".into(),
+                arg_index: 0,
+                expected_types: vec![EvalErrorValueType::String, EvalErrorValueType::Array],
+                got_type: EvalErrorValueType::from_value(&value),
+            })),
+        }
+    }
+
+    fn do_std_deep_join_array_item(&mut self) -> EvalResult<()> {
+        match self.value_stack.pop().unwrap() {
+            ValueData::String(s) => {
+                self.string_stack.last_mut().unwrap().push_str(&s);
+                Ok(())
+            }
+            ValueData::Array(array) => {
+                let array = array.view();
+
+                for item in array.iter().rev() {
+                    self.state_stack
+                        .push(State::FnFallible(Self::do_std_deep_join_array_item));
+                    self.state_stack.push(State::DoThunk(item.view()));
+                }
+
+                Ok(())
+            }
+            value => Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!(
+                    "array item must be a string or array, got {}",
+                    EvalErrorValueType::from_value(&value).to_str(),
+                ),
+            })),
+        }
+    }
+
     pub(super) fn do_std_flatten_arrays(&mut self) -> EvalResult<()> {
         let arrs = self.value_stack.pop().unwrap();
         let arrs = self.expect_std_func_arg_array(arrs, "flattenArrays", 0)?;

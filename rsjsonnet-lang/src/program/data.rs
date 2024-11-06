@@ -749,6 +749,7 @@ pub(super) enum BuiltInFunc {
     Repeat,
     Slice,
     Join,
+    DeepJoin,
     FlattenArrays,
     Reverse,
     Sort,
