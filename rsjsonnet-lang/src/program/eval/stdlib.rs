@@ -1744,6 +1744,59 @@ impl<'p> Evaluator<'_, 'p> {
         }
     }
 
+    pub(super) fn do_std_filter_map(&mut self) -> EvalResult<()> {
+        let array = self.value_stack.pop().unwrap();
+        let map_func = self.value_stack.pop().unwrap();
+        let filter_func = self.value_stack.pop().unwrap();
+
+        let filter_func = self.expect_std_func_arg_func(filter_func, "filterMap", 0)?;
+        let map_func = self.expect_std_func_arg_func(map_func, "filterMap", 1)?;
+        let array = self.expect_std_func_arg_array(array, "filterMap", 2)?;
+
+        self.state_stack.push(State::ArrayToValue);
+        self.array_stack.push(Vec::new());
+
+        for item in array.iter().rev() {
+            self.state_stack.push(State::StdFilterMapCheck {
+                item: item.view(),
+                map_func: map_func.clone(),
+            });
+            self.check_thunk_args_and_execute_call(&filter_func, &[item.view()], &[], None)?;
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_filter_map_check(
+        &mut self,
+        item: GcView<ThunkData<'p>>,
+        map_func: GcView<FuncData<'p>>,
+    ) -> EvalResult<()> {
+        let cond_value = self.value_stack.pop().unwrap();
+        let ValueData::Bool(cond_value) = cond_value else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!(
+                    "filter function must return a boolean, got {}",
+                    EvalErrorValueType::from_value(&cond_value).to_str(),
+                ),
+            }));
+        };
+
+        if cond_value {
+            let array = self.array_stack.last_mut().unwrap();
+
+            let args_thunks = Box::new([Gc::from(&item)]);
+
+            array.push(self.program.gc_alloc(ThunkData::new_pending_call(
+                Gc::from(&map_func),
+                args_thunks,
+            )));
+        }
+
+        Ok(())
+    }
+
     pub(super) fn do_std_flat_map(&mut self) -> EvalResult<()> {
         let arr = self.value_stack.pop().unwrap();
         let func = self.value_stack.pop().unwrap();
