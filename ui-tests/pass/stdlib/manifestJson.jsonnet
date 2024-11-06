@@ -104,4 +104,9 @@ std.assertEqual(std.manifestJsonMinified({ a: 1 }), '{"a":1}') &&
 std.assertEqual(std.manifestJsonMinified({ a: 1, b: 2 }), '{"a":1,"b":2}') &&
 std.assertEqual(std.manifestJsonMinified({ a: {} }), '{"a":{}}') &&
 
+std.assertEqual(
+  std.manifestJsonEx({ a: 1, b: [1, 2] }, "\t", "\r", " :"),
+  '{\r\t"a" :1,\r\t"b" :[\r\t\t1,\r\t\t2\r\t]\r}',
+) &&
+
 true

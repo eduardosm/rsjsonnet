@@ -21,6 +21,10 @@ std.assertEqual(std.max(-1, -2), -1) &&
 std.assertEqual(std.max(-2, -1), -1) &&
 std.assertEqual(std.max(1, 1), 1) &&
 
+std.assertEqual(std.clamp(-3, 1, 5), 1) &&
+std.assertEqual(std.clamp(4, 1, 5), 4) &&
+std.assertEqual(std.clamp(7, 1, 5), 5) &&
+
 std.assertEqual(std.exponent(0), 0) &&
 std.assertEqual(std.exponent(0.09375), -3) &&
 std.assertEqual(std.exponent(-0.09375), -3) &&
