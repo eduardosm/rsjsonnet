@@ -1368,6 +1368,10 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                 } => self.do_std_count_inner(array, index, count),
                 State::StdFind { value } => self.do_std_find(value)?,
                 State::StdFindInner { array, index } => self.do_std_find_inner(array, index),
+                State::StdFilterMap => self.do_std_filter_map()?,
+                State::StdFilterMapCheck { item, map_func } => {
+                    self.do_std_filter_map_check(item, map_func)?
+                }
                 State::StdFilter => self.do_std_filter()?,
                 State::StdFilterCheck { item } => self.do_std_filter_check(item)?,
                 State::StdFoldl { init } => self.do_std_foldl(init)?,

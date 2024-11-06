@@ -296,6 +296,11 @@ pub(super) enum State<'a, 'p> {
         array: GcView<ArrayData<'p>>,
         index: usize,
     },
+    StdFilterMap,
+    StdFilterMapCheck {
+        item: GcView<ThunkData<'p>>,
+        map_func: GcView<FuncData<'p>>,
+    },
     StdFilter,
     StdFilterCheck {
         item: GcView<ThunkData<'p>>,

@@ -25,16 +25,6 @@ limitations under the License.
   lines(arr)::
     std.join('\n', arr + ['']),
 
-  filterMap(filter_func, map_func, arr)::
-    if !std.isFunction(filter_func) then
-      error ('std.filterMap first param must be function, got ' + std.type(filter_func))
-    else if !std.isFunction(map_func) then
-      error ('std.filterMap second param must be function, got ' + std.type(map_func))
-    else if !std.isArray(arr) then
-      error ('std.filterMap third param must be array, got ' + std.type(arr))
-    else
-      std.map(map_func, std.filter(filter_func, arr)),
-
   abs(n)::
     if !std.isNumber(n) then
       error 'std.abs expected number, got ' + std.type(n)

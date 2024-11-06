@@ -1,0 +1,8 @@
+error: second argument of `std.filterMap` is expected to be function, got null
+note: while evaluating call to `filterMap`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.filterMap(function(x) false, null, [])
+  | ------------------------------------------
+note: during top-level value evaluation
+

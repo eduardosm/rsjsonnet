@@ -1,0 +1,8 @@
+error: third argument of `std.filterMap` is expected to be array, got null
+note: while evaluating call to `filterMap`
+ --> invalid_arg_3.jsonnet:1:1
+  |
+1 | std.filterMap(function(x) false, function(x) null, null)
+  | --------------------------------------------------------
+note: during top-level value evaluation
+
