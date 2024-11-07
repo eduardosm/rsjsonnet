@@ -13,6 +13,7 @@ impl<'p> Evaluator<'_, 'p> {
         func: &FuncData<'p>,
     ) -> (Option<InternedStr<'p>>, Option<Gc<ThunkEnv<'p>>>) {
         match func.kind {
+            FuncKind::Identity { name } => (name, None),
             FuncKind::Normal { name, ref env, .. } => (name, Some(env.clone())),
             FuncKind::BuiltIn { name, .. } => (Some(name), None),
             FuncKind::Native { .. } => (None, None),
@@ -196,6 +197,12 @@ impl<'p> Evaluator<'_, 'p> {
 
     pub(super) fn execute_call(&mut self, func: &FuncData<'p>, args: Box<[Gc<ThunkData<'p>>]>) {
         match func.kind {
+            FuncKind::Identity { .. } => {
+                let [arg] = &*args else {
+                    unreachable!();
+                };
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
             FuncKind::Normal { body, ref env, .. } => {
                 self.execute_normal_call(&func.params, body, env.clone(), args);
             }
@@ -236,10 +243,6 @@ impl<'p> Evaluator<'_, 'p> {
             args.try_into().unwrap()
         }
         match kind {
-            BuiltInFunc::Identity => {
-                let [arg] = check_num_args(args);
-                self.state_stack.push(State::DoThunk(arg.view()));
-            }
             BuiltInFunc::ExtVar => {
                 let [arg] = check_num_args(args);
                 self.state_stack

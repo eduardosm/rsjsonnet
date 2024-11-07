@@ -622,6 +622,13 @@ impl<'p> FuncData<'p> {
             kind,
         }
     }
+
+    pub(super) fn new_identity_func(
+        func_name: Option<InternedStr<'p>>,
+        param: &'p [(InternedStr<'p>, Option<&'p ir::Expr<'p>>); 1],
+    ) -> Self {
+        Self::new(param, FuncKind::Identity { name: func_name })
+    }
 }
 
 pub(super) struct FuncParams<'p> {
@@ -630,6 +637,9 @@ pub(super) struct FuncParams<'p> {
 }
 
 pub(super) enum FuncKind<'p> {
+    Identity {
+        name: Option<InternedStr<'p>>,
+    },
     Normal {
         name: Option<InternedStr<'p>>,
         body: &'p ir::Expr<'p>,
@@ -658,7 +668,6 @@ impl GcTrace for FuncKind<'_> {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub(super) enum BuiltInFunc {
-    Identity,
     // External Variables
     ExtVar,
     // Types and Reflection

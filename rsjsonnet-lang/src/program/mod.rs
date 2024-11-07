@@ -242,12 +242,9 @@ impl<'p> Program<'p> {
         let stdlib_extra = Self::build_stdlib_extra(arena, &str_interner, &gc_ctx, &exprs);
 
         let empty_array: GcView<ArrayData<'p>> = gc_ctx.alloc_view(Box::new([]));
-        let identity_func = gc_ctx.alloc_view(FuncData::new(
+        let identity_func = gc_ctx.alloc_view(FuncData::new_identity_func(
+            Some(str_interner.intern(arena, "id")),
             arena.alloc([(str_interner.intern(arena, "x"), None)]),
-            FuncKind::BuiltIn {
-                name: str_interner.intern(arena, "id"),
-                kind: BuiltInFunc::Identity,
-            },
         ));
 
         let mut this = Self {
