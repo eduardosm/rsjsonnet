@@ -22,6 +22,6 @@ rsjsonnet-lang = { workspace = true }
 
 [dev-dependencies]
 libtest-mimic = "0.8.1"
-serde = { version = "1.0.210", features = ["derive"] }
+serde = { version = "1.0.214", features = ["derive"] }
 toml = "0.8.19"
 unified-diff = "0.2.1"
