@@ -20,7 +20,7 @@ jobs:
     # '!cancelled()' is needed because GitHub treats a skipped job (due to a
     # failed dependency) a success.
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Report status
         env:
@@ -29,7 +29,7 @@ jobs:
         run: jq --exit-status 'all(.result == "success")' <<< "$NEEDS_JSON"
 
   lint-aux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install lint utilities
@@ -39,7 +39,7 @@ jobs:
       - run: ./ci/lint-aux.sh
 
   extract-changelog:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
@@ -53,7 +53,7 @@ jobs:
           if-no-files-found: error
 
   rustfmt:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
@@ -61,7 +61,7 @@ jobs:
       - run: cargo fmt --all -- --check
 
   clippy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
@@ -69,7 +69,7 @@ jobs:
       - run: ./ci/clippy.sh
 
   build-and-test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         include:
@@ -82,7 +82,7 @@ jobs:
       - run: ./ci/build-and-test.sh
 
   package-crates:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
@@ -96,7 +96,7 @@ jobs:
           if-no-files-found: error
 
   build-dist-linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       DOCKER_IMAGE: quay.io/pypa/manylinux2014_x86_64
     steps:
@@ -120,7 +120,7 @@ jobs:
           if-no-files-found: error
 
   build-dist-windows:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       DOCKER_IMAGE: debian:12-slim
     steps:

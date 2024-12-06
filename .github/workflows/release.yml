@@ -7,7 +7,7 @@ on:
 
 jobs:
   get-version:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.get-version.outputs.version }}
     steps:
@@ -18,7 +18,7 @@ jobs:
         run: ./ci/get-release-version.sh
 
   get-ci-artifacts:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Download artifacts
         uses: dawidd6/action-download-artifact@09f2f74827fd3a8607589e5ad7f9398816f540fe
@@ -52,7 +52,7 @@ jobs:
       - get-ci-artifacts
     permissions:
       contents: write
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Download version-changelog artifact
@@ -83,7 +83,7 @@ jobs:
 
   publish-crates:
     needs: create-gh-release
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
