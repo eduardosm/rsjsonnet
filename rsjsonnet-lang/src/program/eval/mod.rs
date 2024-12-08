@@ -255,7 +255,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                     }
 
                     let value = self.value_stack.last().unwrap();
-                    if let ValueData::Array(ref array) = value {
+                    if let ValueData::Array(array) = value {
                         let array = array.view();
                         for (i, item) in array.iter().enumerate().rev() {
                             let item = item.view();
@@ -270,7 +270,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                                 self.delay_trace_item();
                             }
                         }
-                    } else if let ValueData::Object(ref object) = value {
+                    } else if let ValueData::Object(object) = value {
                         let object = object.view();
                         for &(field_name, field_visible) in object.get_fields_order().iter().rev() {
                             if field_visible {
