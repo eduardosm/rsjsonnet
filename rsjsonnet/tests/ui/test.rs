@@ -1,4 +1,3 @@
-use std::ffi::OsString;
 use std::fmt::Write as _;
 use std::path::Path;
 
@@ -12,9 +11,9 @@ pub(crate) fn run(
 ) -> Result<(), String> {
     let test_path = root_path.join(test_subpath);
     let test_dir = test_path.parent().unwrap();
-    let test_name = test_path.file_name().unwrap();
+    let test_name = test_path.file_stem().unwrap();
 
-    let mut params_file_name = OsString::from(&test_name);
+    let mut params_file_name = test_name.to_os_string();
     params_file_name.push(".params.toml");
     let params_path = test_dir.join(&params_file_name);
 
