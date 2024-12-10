@@ -1,3 +1,4 @@
+use std::ffi::OsString;
 use std::fmt::Write as _;
 use std::path::Path;
 
@@ -6,15 +7,31 @@ use crate::defs;
 pub(crate) fn run(
     root_path: &Path,
     test_subpath: &Path,
-    test_params: &defs::TestParams,
     cmd_bin_path: &Path,
     bless: bool,
 ) -> Result<(), String> {
-    assert!(!test_params.not_test);
-
     let test_path = root_path.join(test_subpath);
     let test_dir = test_path.parent().unwrap();
     let test_name = test_path.file_name().unwrap();
+
+    let mut params_file_name = OsString::from(&test_name);
+    params_file_name.push(".params.toml");
+    let params_path = test_dir.join(&params_file_name);
+
+    let test_params = match std::fs::read(&params_path) {
+        Ok(params) => {
+            let params = String::from_utf8(params).unwrap_or_else(|_| {
+                panic!("{params_path:?} is not valid UTF-8");
+            });
+            toml::from_str(&params).unwrap_or_else(|e| {
+                panic!("failed to parse {params_path:?}: {e}");
+            })
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => defs::TestParams::default(),
+        Err(e) => {
+            panic!("failed to read {params_path:?}: {e}");
+        }
+    };
 
     let mut stdout_name = test_name.to_os_string();
     stdout_name.push(".stdout");

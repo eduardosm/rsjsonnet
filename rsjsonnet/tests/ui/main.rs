@@ -7,7 +7,7 @@
 )]
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -38,19 +38,12 @@ fn main() -> ExitCode {
         .unwrap();
 
     let mut tests = Vec::new();
-    for (test_subpath, test_params) in tests_paths {
+    for test_subpath in tests_paths {
         let root_path = root_path.clone();
         let test_name = test_subpath.display().to_string();
         let cmd_bin_path = cmd_bin_path.clone();
         tests.push(libtest_mimic::Trial::test(test_name, move || {
-            test::run(
-                &root_path,
-                &test_subpath,
-                &test_params,
-                &cmd_bin_path,
-                bless,
-            )
-            .map_err(Into::into)
+            test::run(&root_path, &test_subpath, &cmd_bin_path, bless).map_err(Into::into)
         }));
     }
 
@@ -62,8 +55,8 @@ fn main() -> ExitCode {
     }
 }
 
-fn gather_tests(root_path: &Path, tests_path: &Path) -> BTreeMap<PathBuf, defs::TestParams> {
-    let mut tests = BTreeMap::new();
+fn gather_tests(root_path: &Path, tests_path: &Path) -> BTreeSet<PathBuf> {
+    let mut tests = BTreeSet::new();
 
     let mut dir_queue = Vec::new();
     dir_queue.push(tests_path.to_path_buf());
@@ -82,31 +75,8 @@ fn gather_tests(root_path: &Path, tests_path: &Path) -> BTreeMap<PathBuf, defs::
 
             let extension = Path::new(&entry_name).extension();
             if extension == Some(OsStr::new("jsonnet")) {
-                let mut params_file_name = entry_name.clone();
-                params_file_name.push(".params.toml");
-                let params_path = current_dir.join(&params_file_name);
-
-                let params = match std::fs::read(&params_path) {
-                    Ok(params) => {
-                        let params = String::from_utf8(params).unwrap_or_else(|_| {
-                            panic!("{params_path:?} is not valid UTF-8");
-                        });
-                        toml::from_str(&params).unwrap_or_else(|e| {
-                            panic!("failed to parse {params_path:?}: {e}");
-                        })
-                    }
-                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                        defs::TestParams::default()
-                    }
-                    Err(e) => {
-                        panic!("failed to read {params_path:?}: {e}");
-                    }
-                };
-
-                if !params.not_test {
-                    let prev = tests.insert(current_sub_path.join(entry_name), params);
-                    assert!(prev.is_none());
-                }
+                let inserted = tests.insert(current_sub_path.join(entry_name));
+                assert!(inserted);
             }
         }
     }
