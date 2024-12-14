@@ -1,0 +1,8 @@
+error: infinite recursion
+note: while evaluating import
+ --> import.jsonnet:1:1
+  |
+1 | import "import.jsonnet"
+  | -----------------------
+note: during top-level value evaluation
+
