@@ -1,4 +1,0 @@
-args = [
-    "--tla-str",
-    "arg1=something",
-]

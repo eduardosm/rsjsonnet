@@ -1,58 +1,58 @@
 error: stack overflow
 note: while evaluating call to `f`
- --> function_call.jsonnet:1:13
+ --> function_call.jsonnet:3:13
   |
-1 | local f() = f();
+3 | local f() = f();
   |             ---
 note: while evaluating call to `f`
- --> function_call.jsonnet:1:13
+ --> function_call.jsonnet:3:13
   |
-1 | local f() = f();
+3 | local f() = f();
   |             ---
 note: while evaluating call to `f`
- --> function_call.jsonnet:1:13
+ --> function_call.jsonnet:3:13
   |
-1 | local f() = f();
+3 | local f() = f();
   |             ---
 note: while evaluating call to `f`
- --> function_call.jsonnet:1:13
+ --> function_call.jsonnet:3:13
   |
-1 | local f() = f();
+3 | local f() = f();
   |             ---
 note: while evaluating call to `f`
- --> function_call.jsonnet:1:13
+ --> function_call.jsonnet:3:13
   |
-1 | local f() = f();
+3 | local f() = f();
   |             ---
 note: while evaluating call to `f`
- --> function_call.jsonnet:1:13
+ --> function_call.jsonnet:3:13
   |
-1 | local f() = f();
+3 | local f() = f();
   |             ---
 note: while evaluating call to `f`
- --> function_call.jsonnet:1:13
+ --> function_call.jsonnet:3:13
   |
-1 | local f() = f();
+3 | local f() = f();
   |             ---
 note: while evaluating call to `f`
- --> function_call.jsonnet:1:13
+ --> function_call.jsonnet:3:13
   |
-1 | local f() = f();
+3 | local f() = f();
   |             ---
 note: while evaluating call to `f`
- --> function_call.jsonnet:1:13
+ --> function_call.jsonnet:3:13
   |
-1 | local f() = f();
+3 | local f() = f();
   |             ---
 note: while evaluating call to `f`
- --> function_call.jsonnet:1:13
+ --> function_call.jsonnet:3:13
   |
-1 | local f() = f();
+3 | local f() = f();
   |             ---
 note: while evaluating call to `f`
- --> function_call.jsonnet:2:1
+ --> function_call.jsonnet:4:1
   |
-2 | f()
+4 | f()
   | ---
 note: during top-level value evaluation
 

@@ -1,13 +1,13 @@
 TRACE: some trace
 note: while evaluating call to `trace`
- --> in_object.jsonnet:2:10
+ --> in_object.jsonnet:4:10
   |
-2 |   field: std.trace("some trace", "some value"),
+4 |   field: std.trace("some trace", "some value"),
   |          -------------------------------------
 note: while evaluating object field "field"
- --> in_object.jsonnet:5:1
+ --> in_object.jsonnet:7:1
   |
-5 | obj.field
+7 | obj.field
   | ---------
 note: during top-level value evaluation
 

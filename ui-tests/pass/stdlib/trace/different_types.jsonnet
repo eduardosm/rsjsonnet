@@ -1,3 +1,5 @@
+//@exit-code: 0
+
 {
   "null": std.trace("trace 1", null),
   "number": std.trace("trace 2", 1.5),

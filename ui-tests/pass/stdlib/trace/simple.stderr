@@ -1,8 +1,8 @@
 TRACE: some trace
 note: while evaluating call to `trace`
- --> simple.jsonnet:1:1
+ --> simple.jsonnet:3:1
   |
-1 | std.trace("some trace", "some value")
+3 | std.trace("some trace", "some value")
   | -------------------------------------
 note: during top-level value evaluation
 
