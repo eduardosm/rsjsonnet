@@ -4,8 +4,8 @@ std.assertEqual(
   { a: "a:1", b: "b:2" },
 ) &&
 std.assertEqual(
-  std.mapWithKey(std.format, { "%i": 9, "%x": 10 }),
-  { "%i": "9", "%x": "a" },
+  std.mapWithKey(std.format, { "%i": 10, "%x": 11 }),
+  { "%i": "10", "%x": "b" },
 ) &&
 std.assertEqual(
   std.objectFieldsAll(std.mapWithKey(function(k, v) k + ":" + v, { a: 1, b: 2, c:: 3 })),
