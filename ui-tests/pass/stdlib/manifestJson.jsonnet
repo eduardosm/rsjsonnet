@@ -48,6 +48,18 @@ std.assertEqual(
 ) &&
 
 std.assertEqual(
+  std.manifestJson([[1, 2]]) + "\n",
+  |||
+    [
+        [
+            1,
+            2
+        ]
+    ]
+  |||,
+) &&
+
+std.assertEqual(
   std.manifestJson({}) + "\n",
   |||
     {
@@ -86,6 +98,18 @@ std.assertEqual(
   |||,
 ) &&
 
+std.assertEqual(
+  std.manifestJson({ a: { b: 2, c: 3 } }) + "\n",
+  |||
+    {
+        "a": {
+            "b": 2,
+            "c": 3
+        }
+    }
+  |||,
+) &&
+
 std.assertEqual(std.manifestJsonMinified(null), "null") &&
 std.assertEqual(std.manifestJsonMinified(true), "true") &&
 std.assertEqual(std.manifestJsonMinified(false), "false") &&
@@ -99,10 +123,12 @@ std.assertEqual(std.manifestJsonMinified([]), "[]") &&
 std.assertEqual(std.manifestJsonMinified([1]), "[1]") &&
 std.assertEqual(std.manifestJsonMinified([1, 2]), "[1,2]") &&
 std.assertEqual(std.manifestJsonMinified([[]]), "[[]]") &&
+std.assertEqual(std.manifestJsonMinified([[1, 2]]), "[[1,2]]") &&
 std.assertEqual(std.manifestJsonMinified({}), "{}") &&
 std.assertEqual(std.manifestJsonMinified({ a: 1 }), '{"a":1}') &&
 std.assertEqual(std.manifestJsonMinified({ a: 1, b: 2 }), '{"a":1,"b":2}') &&
 std.assertEqual(std.manifestJsonMinified({ a: {} }), '{"a":{}}') &&
+std.assertEqual(std.manifestJsonMinified({ a: { b: 2, c: 3 } }), '{"a":{"b":2,"c":3}}') &&
 
 std.assertEqual(
   std.manifestJsonEx({ a: 1, b: [1, 2] }, "\t", "\r", " :"),

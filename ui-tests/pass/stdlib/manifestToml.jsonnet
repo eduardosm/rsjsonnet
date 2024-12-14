@@ -41,7 +41,8 @@ std.assertEqual(
 
 std.assertEqual(
   std.manifestToml({
-    array: [1, 2, 3, [4, 5], { a: 6, b: 7, c: [8, 9], d: {} }],
+    array1: [1, 2, 3, [4, 5], { a: 6, b: 7, c: [8, 9], d: {} }],
+    array2: [{}, { x: "y", y: "x" }],
     object1: {
       field1: "a",
       field2: "b",
@@ -55,13 +56,19 @@ std.assertEqual(
     }
   }) + "\n",
   |||
-    array = [
+    array1 = [
       1,
       2,
       3,
       [ 4, 5 ],
       { a = 6, b = 7, c = [ 8, 9 ], d = {  } }
     ]
+
+    [[array2]]
+
+    [[array2]]
+      x = "y"
+      y = "x"
 
     [object1]
       field1 = "a"
@@ -85,7 +92,8 @@ std.assertEqual(
 
 std.assertEqual(
   std.manifestTomlEx({
-    array: [1, 2, 3, [4, 5], { a: 6, b: 7, c: [8, 9], d: {} }],
+    array1: [1, 2, 3, [4, 5], { a: 6, b: 7, c: [8, 9], d: {} }],
+    array2: [{}, { x: "y", y: "x" }],
     object1: {
       field1: "a",
       field2: "b",
@@ -99,13 +107,19 @@ std.assertEqual(
     }
   }, "    ") + "\n",
   |||
-    array = [
+    array1 = [
         1,
         2,
         3,
         [ 4, 5 ],
         { a = 6, b = 7, c = [ 8, 9 ], d = {  } }
     ]
+
+    [[array2]]
+
+    [[array2]]
+        x = "y"
+        y = "x"
 
     [object1]
         field1 = "a"
