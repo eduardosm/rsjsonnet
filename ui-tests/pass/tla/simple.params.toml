@@ -1,6 +1,0 @@
-args = [
-    "--tla-str",
-    "arg1=string arg",
-    "--tla-code",
-    "arg2={ a: 0.5 } { a+: 0.5, b: 2 }",
-]

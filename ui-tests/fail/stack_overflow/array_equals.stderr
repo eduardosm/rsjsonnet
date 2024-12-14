@@ -10,9 +10,9 @@ note: while comparing array item 2
 note: while comparing array item 2
 note: while comparing array item 2
 note: while evaluating this expression
- --> array_equals.jsonnet:3:1
+ --> array_equals.jsonnet:5:1
   |
-3 | arr == arr
+5 | arr == arr
   | ----------
 note: during top-level value evaluation
 

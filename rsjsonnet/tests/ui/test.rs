@@ -13,24 +13,10 @@ pub(crate) fn run(
     let test_dir = test_path.parent().unwrap();
     let test_name = test_path.file_stem().unwrap();
 
-    let mut params_file_name = test_name.to_os_string();
-    params_file_name.push(".params.toml");
-    let params_path = test_dir.join(&params_file_name);
-
-    let test_params = match std::fs::read(&params_path) {
-        Ok(params) => {
-            let params = String::from_utf8(params).unwrap_or_else(|_| {
-                panic!("{params_path:?} is not valid UTF-8");
-            });
-            toml::from_str(&params).unwrap_or_else(|e| {
-                panic!("failed to parse {params_path:?}: {e}");
-            })
-        }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => defs::TestParams::default(),
-        Err(e) => {
-            panic!("failed to read {params_path:?}: {e}");
-        }
-    };
+    let src =
+        std::fs::read(&test_path).map_err(|e| format!("failed to read {test_path:?}: {e}"))?;
+    let test_params = defs::TestParams::from_source(&src)
+        .map_err(|e| format!("failed to parse params from {test_path:?}: {e}"))?;
 
     let mut stdout_name = test_name.to_os_string();
     stdout_name.push(".stdout");

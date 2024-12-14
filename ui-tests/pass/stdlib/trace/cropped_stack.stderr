@@ -1,29 +1,29 @@
 TRACE: some trace
 note: while evaluating call to `trace`
- --> cropped_stack.jsonnet:3:5
+ --> cropped_stack.jsonnet:6:5
   |
-3 |     std.trace("some trace", true)
+6 |     std.trace("some trace", true)
   |     -----------------------------
 note: while evaluating call to `f`
- --> cropped_stack.jsonnet:4:8
+ --> cropped_stack.jsonnet:7:8
   |
-4 |   else f(x - 1);
+7 |   else f(x - 1);
   |        --------
 note: while evaluating call to `f`
- --> cropped_stack.jsonnet:4:8
+ --> cropped_stack.jsonnet:7:8
   |
-4 |   else f(x - 1);
+7 |   else f(x - 1);
   |        --------
 note: ... 7 items hidden ...
 note: while evaluating call to `f`
- --> cropped_stack.jsonnet:4:8
+ --> cropped_stack.jsonnet:7:8
   |
-4 |   else f(x - 1);
+7 |   else f(x - 1);
   |        --------
 note: while evaluating call to `f`
- --> cropped_stack.jsonnet:6:1
+ --> cropped_stack.jsonnet:9:1
   |
-6 | f(10)
+9 | f(10)
   | -----
 note: during top-level value evaluation
 

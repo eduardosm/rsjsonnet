@@ -1,10 +1,10 @@
 TRACE: some trace
 note: while evaluating call to `trace`
- --> crlf_source.jsonnet:1:1
+ --> crlf_source.jsonnet:3:1
   |
-1 | / std.trace(
+3 | / std.trace(
   : | 
-4 | | )
+6 | | )
   | |_- 
 note: during top-level value evaluation
 
