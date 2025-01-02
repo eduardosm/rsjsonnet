@@ -81,6 +81,19 @@ jobs:
         run: ./ci/install-rust.sh "${{ matrix.rust-version }}" --profile minimal
       - run: ./ci/build-and-test.sh
 
+  external-tests:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - rust-version: msrv
+          - rust-version: stable
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: ./ci/install-rust.sh "${{ matrix.rust-version }}" --profile minimal
+      - run: ./ci/external-tests.sh
+
   package-crates:
     runs-on: ubuntu-24.04
     steps:

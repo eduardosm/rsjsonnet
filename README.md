@@ -72,7 +72,3 @@ Licensed under either of
   <https://opensource.org/licenses/MIT>)
 
 at your option.
-
-Part of the test suite ([ui-tests/jsonnet-0.20.0](ui-tests/jsonnet-0.20.0)) is
-taken from the [C++ implementation](https://github.com/google/jsonnet), which
-is licensed under Apache 2.0.
