@@ -3428,7 +3428,6 @@ where
         encoded.push(char::from(encmap[usize::from(b0 >> 2)]));
 
         let Some(b1) = input.next() else {
-            //encoded.push(char::from(encmap[usize::from(b0 >> 2)]));
             encoded.push(char::from(encmap[usize::from((b0 & 0b11) << 4)]));
             encoded.push('=');
             encoded.push('=');
@@ -3441,16 +3440,12 @@ where
         ));
 
         let Some(b2) = input.next() else {
-            //encoded.push(char::from(encmap[usize::from(b0 >> 2)]));
-            //encoded.push(char::from(encmap[usize::from((b0 & 0b11) << 4 | (b1 >> 4))]));
             encoded.push(char::from(encmap[usize::from((b1 & 0b1111) << 2)]));
             encoded.push('=');
             break;
         };
         let b2 = b2?;
 
-        //encoded.push(char::from(encmap[usize::from(b0 >> 2)]));
-        //encoded.push(char::from(encmap[usize::from((b0 & 0b11) << 4 | (b1 >> 4))]));
         encoded.push(char::from(
             encmap[usize::from(((b1 & 0b1111) << 2) | (b2 >> 6))],
         ));
