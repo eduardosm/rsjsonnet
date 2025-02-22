@@ -3437,7 +3437,7 @@ where
         let b1 = b1?;
 
         encoded.push(char::from(
-            encmap[usize::from((b0 & 0b11) << 4 | (b1 >> 4))],
+            encmap[usize::from(((b0 & 0b11) << 4) | (b1 >> 4))],
         ));
 
         let Some(b2) = input.next() else {
@@ -3452,7 +3452,7 @@ where
         //encoded.push(char::from(encmap[usize::from(b0 >> 2)]));
         //encoded.push(char::from(encmap[usize::from((b0 & 0b11) << 4 | (b1 >> 4))]));
         encoded.push(char::from(
-            encmap[usize::from((b1 & 0b1111) << 2 | (b2 >> 6))],
+            encmap[usize::from(((b1 & 0b1111) << 2) | (b2 >> 6))],
         ));
         encoded.push(char::from(encmap[usize::from(b2 & 0b111111)]));
     }
