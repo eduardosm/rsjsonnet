@@ -212,6 +212,10 @@ impl<'p> Program<'p> {
         );
         add_simple("base64Decode", BuiltInFunc::Base64Decode, &["str"]);
         add_simple("md5", BuiltInFunc::Md5, &["str"]);
+        add_simple("sha1", BuiltInFunc::Sha1, &["str"]);
+        add_simple("sha256", BuiltInFunc::Sha256, &["str"]);
+        add_simple("sha512", BuiltInFunc::Sha512, &["str"]);
+        add_simple("sha3", BuiltInFunc::Sha3, &["str"]);
         add_simple("mergePatch", BuiltInFunc::MergePatch, &["target", "patch"]);
         add_simple("mod", BuiltInFunc::Mod, &["a", "b"]);
         add_simple("native", BuiltInFunc::Native, &["name"]);

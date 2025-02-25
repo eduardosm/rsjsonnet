@@ -3255,11 +3255,59 @@ impl<'p> Evaluator<'_, 'p> {
         use md5::Digest as _;
         let hash = md5::Md5::digest(arg.as_bytes());
 
-        let mut hash_string = String::with_capacity(32);
-        for &byte in hash.iter() {
-            write!(hash_string, "{byte:02x}").unwrap();
-        }
+        let hash_string = hash_to_hex_string(&hash);
+        self.value_stack.push(ValueData::String(hash_string.into()));
 
+        Ok(())
+    }
+
+    pub(super) fn do_std_sha1(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_string(arg, "sha1", 0)?;
+
+        use sha1::Digest as _;
+        let hash = sha1::Sha1::digest(arg.as_bytes());
+
+        let hash_string = hash_to_hex_string(&hash);
+        self.value_stack.push(ValueData::String(hash_string.into()));
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_sha256(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_string(arg, "sha256", 0)?;
+
+        use sha2::Digest as _;
+        let hash = sha2::Sha256::digest(arg.as_bytes());
+
+        let hash_string = hash_to_hex_string(&hash);
+        self.value_stack.push(ValueData::String(hash_string.into()));
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_sha512(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_string(arg, "sha512", 0)?;
+
+        use sha2::Digest as _;
+        let hash = sha2::Sha512::digest(arg.as_bytes());
+
+        let hash_string = hash_to_hex_string(&hash);
+        self.value_stack.push(ValueData::String(hash_string.into()));
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_sha3(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_string(arg, "sha3", 0)?;
+
+        use sha3::Digest as _;
+        let hash = sha3::Sha3_512::digest(arg.as_bytes());
+
+        let hash_string = hash_to_hex_string(&hash);
         self.value_stack.push(ValueData::String(hash_string.into()));
 
         Ok(())
@@ -3409,6 +3457,14 @@ impl<'p> Evaluator<'_, 'p> {
             })),
         }
     }
+}
+
+fn hash_to_hex_string(hash: &[u8]) -> String {
+    let mut hash_string = String::with_capacity(hash.len() * 2);
+    for &byte in hash {
+        write!(hash_string, "{byte:02x}").unwrap();
+    }
+    hash_string
 }
 
 fn encode_base64<I>(input: I) -> EvalResult<String>
