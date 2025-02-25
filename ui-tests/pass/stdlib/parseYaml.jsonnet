@@ -127,6 +127,15 @@ std.assertEqual(std.parseYaml("1e-"), "1e-") &&
 std.assertEqual(std.parseYaml("-1e-"), "-1e-") &&
 std.assertEqual(std.parseYaml("+1e-"), "+1e-") &&
 
+std.assertEqual(std.parseYaml("1.2."), "1.2.") &&
+std.assertEqual(std.parseYaml("1.2.3"), "1.2.3") &&
+
+std.assertEqual(std.parseYaml("-1.2."), "-1.2.") &&
+std.assertEqual(std.parseYaml("-1.2.3"), "-1.2.3") &&
+
+std.assertEqual(std.parseYaml("+1.2."), "+1.2.") &&
+std.assertEqual(std.parseYaml("+1.2.3"), "+1.2.3") &&
+
 std.assertEqual(std.parseYaml("0o"), "0o") &&
 std.assertEqual(std.parseYaml("+0o"), "+0o") &&
 std.assertEqual(std.parseYaml("-0o"), "-0o") &&
@@ -170,6 +179,16 @@ std.assertEqual(std.parseYaml("|-\n x"), "x") &&
 std.assertEqual(std.parseYaml("|-\n x\n"), "x") &&
 std.assertEqual(std.parseYaml("|-\n x\n y"), "x\ny") &&
 std.assertEqual(std.parseYaml("|-\n x\n y\n"), "x\ny") &&
+
+std.assertEqual(
+  std.parseYaml(|||
+    x: |
+      a
+      b
+    y: "a\nb"
+  |||),
+  { x: "a\nb\n", y: "a\nb" },
+) &&
 
 std.assertEqual(
   std.parseYaml(
@@ -216,6 +235,11 @@ std.assertEqual(
   ["---1", "...2"],
 ) &&
 
+std.assertEqual(std.parseYaml("k---: v"), { "k---": "v" }) &&
+std.assertEqual(std.parseYaml("---k: v"), { "---k": "v" }) &&
+std.assertEqual(std.parseYaml("k...: v"), { "k...": "v" }) &&
+std.assertEqual(std.parseYaml("...k: v"), { "...k": "v" }) &&
+
 std.assertEqual(std.parseYaml('[]'), []) &&
 std.assertEqual(std.parseYaml('[1]'), [1]) &&
 std.assertEqual(std.parseYaml('[1, 2]'), [1, 2]) &&
@@ -244,6 +268,17 @@ std.assertEqual(
     |||
   ),
   { a: 1, b: 2, c: 3 },
+) &&
+
+std.assertEqual(
+  std.parseYaml(
+    |||
+      - "1"
+      - "2.2"
+      - "3e3"
+    |||
+  ),
+  ["1", "2.2", "3e3"],
 ) &&
 
 std.assertEqual(
