@@ -40,6 +40,11 @@ impl<'p> Program<'p> {
     ) -> FHashMap<InternedStr<'p>, GcView<ThunkData<'p>>> {
         let mut extra_fields = FHashMap::default();
 
+        extra_fields.insert(
+            str_interner.intern(arena, "pi"),
+            gc_ctx.alloc_view(ThunkData::new_done(ValueData::Number(std::f64::consts::PI))),
+        );
+
         let mut add_builtin_func =
             |name: InternedStr<'p>,
              kind: BuiltInFunc,

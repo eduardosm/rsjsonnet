@@ -1,3 +1,13 @@
+local assertApprox(actual, expected) =
+  if expected == 0 then
+    std.assertEqual(actual, expected)
+  else if (std.abs(actual - expected) / std.abs(expected)) < 1e-15 then
+    true
+  else
+    error "assertApprox failed: " + actual + " != " + expected;
+
+assertApprox(std.pi, 3.141592653589793) &&
+
 std.assertEqual(std.abs(1.5), 1.5) &&
 std.assertEqual(std.abs(-1.5), 1.5) &&
 # Weird, but it is implemented that way
@@ -109,14 +119,6 @@ std.assertEqual(std.modulo(5.5, 2), 1.5) &&
 std.assertEqual(std.modulo(5.5, -2), 1.5) &&
 std.assertEqual(std.modulo(-5.5, 2), -1.5) &&
 std.assertEqual(std.modulo(-5.5, -2), -1.5) &&
-
-local assertApprox(actual, expected) =
-  if expected == 0 then
-    std.assertEqual(actual, expected)
-  else if (std.abs(actual - expected) / std.abs(expected)) < 1e-15 then
-    true
-  else
-    error "assertApprox failed: " + actual + " != " + expected;
 
 std.assertEqual(std.pow(10, 3), 1000) &&
 assertApprox(std.pow(7.7, 3.3), 842.20805947902409) &&
