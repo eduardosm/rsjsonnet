@@ -780,6 +780,10 @@ pub(super) enum BuiltInFunc {
     Base64DecodeBytes,
     Base64Decode,
     Md5,
+    Sha1,
+    Sha256,
+    Sha512,
+    Sha3,
     // JSON Merge Patch
     MergePatch,
     // Other

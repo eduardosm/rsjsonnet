@@ -1,0 +1,8 @@
+error: first argument of `std.sha512` is expected to be string, got null
+note: while evaluating call to `sha512`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.sha512(null)
+  | ----------------
+note: during top-level value evaluation
+
