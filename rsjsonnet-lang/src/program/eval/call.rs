@@ -874,6 +874,28 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::FnFallible(Self::do_std_md5));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
+            BuiltInFunc::Sha1 => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::FnFallible(Self::do_std_sha1));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
+            BuiltInFunc::Sha256 => {
+                let [arg] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_sha256));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
+            BuiltInFunc::Sha512 => {
+                let [arg] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_sha512));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
+            BuiltInFunc::Sha3 => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::FnFallible(Self::do_std_sha3));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
             BuiltInFunc::MergePatch => {
                 let [arg0, arg1] = check_num_args(args);
                 self.state_stack.push(State::StdMergePatchValue);
