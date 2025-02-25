@@ -1,4 +1,4 @@
-error: slice start 1.25 is not a non-negative integer
+error: slice start 1.25 is not an integer
 note: while evaluating call to `slice`
  --> invalid_start.jsonnet:1:1
   |

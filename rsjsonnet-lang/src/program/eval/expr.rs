@@ -1,7 +1,8 @@
 use std::cell::{Cell, OnceCell};
 
 use super::super::{
-    ir, FuncData, FuncKind, ImportError, ObjectData, ObjectLayer, ThunkEnv, ThunkEnvData, ValueData,
+    ir, ArrayData, FuncData, FuncKind, ImportError, ObjectData, ObjectLayer, ThunkEnv,
+    ThunkEnvData, ValueData,
 };
 use super::{EvalErrorKind, EvalErrorValueType, EvalResult, Evaluator, State, TraceItem};
 use crate::gc::{Gc, GcView};
@@ -577,57 +578,9 @@ impl<'p> Evaluator<'_, 'p> {
         is_func: bool,
         span: Option<SpanId>,
     ) -> EvalResult<()> {
-        let start = if let Some(start) = start {
-            if !start.is_finite() || start.trunc() != start || start < 0.0 {
-                return Err(self.report_error(EvalErrorKind::Other {
-                    span,
-                    message: format!("slice start {start} is not a non-negative integer"),
-                }));
-            }
-            start as usize
-        } else {
-            0
-        };
-        let end = if let Some(end) = end {
-            if !end.is_finite() || end.trunc() != end || end < 0.0 {
-                return Err(self.report_error(EvalErrorKind::Other {
-                    span,
-                    message: format!("slice end {end} is not a non-negative integer"),
-                }));
-            }
-            (end as usize).max(start)
-        } else {
-            usize::MAX
-        };
-        let step = if let Some(step) = step {
-            if !step.is_finite() || step.trunc() != step || step < 1.0 {
-                return Err(self.report_error(EvalErrorKind::Other {
-                    span,
-                    message: format!("slice step {step} is not a positive integer"),
-                }));
-            }
-            step as usize
-        } else {
-            1
-        };
-
         match indexable {
-            ValueData::String(s) => {
-                let r: String = s
-                    .chars()
-                    .skip(start)
-                    .take(end - start)
-                    .step_by(step)
-                    .collect();
-                self.value_stack.push(ValueData::String(r.into()));
-                Ok(())
-            }
-            ValueData::Array(array) => {
-                let array = array.view();
-                let result = self.program.slice_array(&array, start, end, step);
-                self.value_stack.push(ValueData::Array(result));
-                Ok(())
-            }
+            ValueData::String(s) => self.do_slice_string(&s, start, end, step, span),
+            ValueData::Array(array) => self.do_array_string(&array.view(), start, end, step, span),
             _ => {
                 if is_func {
                     Err(self.report_error(EvalErrorKind::InvalidStdFuncArgType {
@@ -644,6 +597,96 @@ impl<'p> Evaluator<'_, 'p> {
                 }
             }
         }
+    }
+
+    pub(super) fn do_slice_string(
+        &mut self,
+        string: &str,
+        start: Option<f64>,
+        end: Option<f64>,
+        step: Option<f64>,
+        span: Option<SpanId>,
+    ) -> EvalResult<()> {
+        let (start, end, step) =
+            self.get_slice_range(string.chars().count(), start, end, step, span)?;
+
+        let r: String = string
+            .chars()
+            .skip(start)
+            .take(end - start)
+            .step_by(step)
+            .collect();
+        self.value_stack.push(ValueData::String(r.into()));
+        Ok(())
+    }
+
+    pub(super) fn do_array_string(
+        &mut self,
+        array: &GcView<ArrayData<'p>>,
+        start: Option<f64>,
+        end: Option<f64>,
+        step: Option<f64>,
+        span: Option<SpanId>,
+    ) -> EvalResult<()> {
+        let (start, end, step) = self.get_slice_range(array.len(), start, end, step, span)?;
+
+        let result = self.program.slice_array(array, start, end, step);
+        self.value_stack.push(ValueData::Array(result));
+        Ok(())
+    }
+
+    pub(super) fn get_slice_range(
+        &mut self,
+        indexable_len: usize,
+        start: Option<f64>,
+        end: Option<f64>,
+        step: Option<f64>,
+        span: Option<SpanId>,
+    ) -> EvalResult<(usize, usize, usize)> {
+        let start = if let Some(start) = start {
+            if !start.is_finite() || start.trunc() != start {
+                return Err(self.report_error(EvalErrorKind::Other {
+                    span,
+                    message: format!("slice start {start} is not an integer"),
+                }));
+            }
+            if start < 0.0 {
+                indexable_len.saturating_sub(-start as usize)
+            } else {
+                start as usize
+            }
+        } else {
+            0
+        };
+        let end = if let Some(end) = end {
+            if !end.is_finite() || end.trunc() != end {
+                return Err(self.report_error(EvalErrorKind::Other {
+                    span,
+                    message: format!("slice end {end} is not an integer"),
+                }));
+            }
+            let end = if end < 0.0 {
+                indexable_len.saturating_sub(-end as usize)
+            } else {
+                end as usize
+            };
+            end.max(start)
+        } else {
+            usize::MAX
+        };
+        let step = if let Some(step) = step {
+            if !step.is_finite() || step.trunc() != step || step < 1.0 {
+                return Err(self.report_error(EvalErrorKind::Other {
+                    span,
+                    message: format!("slice step {step} is not a positive integer"),
+                }));
+            }
+            step as usize
+        } else {
+            1
+        };
+
+        Ok((start, end, step))
     }
 
     pub(super) fn do_binary_op(
