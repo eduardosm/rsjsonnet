@@ -1,4 +1,4 @@
-error: slice end 1.25 is not a non-negative integer
+error: slice end 1.25 is not an integer
 note: while evaluating call to `slice`
  --> invalid_end.jsonnet:1:1
   |

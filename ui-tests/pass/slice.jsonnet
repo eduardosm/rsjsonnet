@@ -9,10 +9,12 @@ test("string", null, null, null, "string") &&
 test("string", 0, null, null, "string") &&
 test("string", 1, null, null, "tring") &&
 test("string", 2, null, null, "ring") &&
+test("string", 20, null, null, "") &&
 
 test("string", null, 4, null, "stri") &&
 test("string", null, 5, null, "strin") &&
 test("string", null, 6, null, "string") &&
+test("string", null, 20, null, "string") &&
 
 test("string", null, null, 1, "string") &&
 test("string", null, null, 2, "srn") &&
@@ -34,6 +36,14 @@ test("string", 0, 6, 1, "string") &&
 test("string", 1, 6, 2, "tig") &&
 test("string", 1, 5, 2, "ti") &&
 
+test("string", -3, null, 1, "ing") &&
+test("string", -4, null, 1, "ring") &&
+test("string", -20, null, 1, "string") &&
+
+test("string", null, -3, 1, "str") &&
+test("string", null, -4, 1, "st") &&
+test("string", null, -20, 1, "") &&
+
 std.assertEqual("string"[::], "string") &&
 std.assertEqual("string"[1::], "tring") &&
 std.assertEqual("string"[:5:], "strin") &&
@@ -51,10 +61,12 @@ test(arr, null, null, null, arr) &&
 test(arr, 0, null, null, arr) &&
 test(arr, 1, null, null, ['r', 'r', 'a', 'y', '.']) &&
 test(arr, 2, null, null, ['r', 'a', 'y', '.']) &&
+test(arr, 20, null, null, []) &&
 
 test(arr, null, 4, null, ['a', 'r', 'r', 'a']) &&
 test(arr, null, 5, null, ['a', 'r', 'r', 'a', 'y']) &&
 test(arr, null, 6, null, arr) &&
+test(arr, null, 20, null, arr) &&
 
 test(arr, null, null, 1, arr) &&
 test(arr, null, null, 2, ['a', 'r', 'y']) &&
@@ -75,6 +87,14 @@ test(arr, null, 4, 2, ['a', 'r']) &&
 test(arr, 0, 6, 1, arr) &&
 test(arr, 1, 6, 2, ['r', 'a', '.']) &&
 test(arr, 1, 5, 2, ['r', 'a']) &&
+
+test(arr, -3, null, 1, ['a', 'y', '.']) &&
+test(arr, -4, null, 1, ['r', 'a', 'y', '.']) &&
+test(arr, -20, null, 1, arr) &&
+
+test(arr, null, -3, 1, ['a', 'r', 'r']) &&
+test(arr, null, -4, 1, ['a', 'r']) &&
+test(arr, null, -20, 1, []) &&
 
 std.assertEqual(arr[::], ['a', 'r', 'r', 'a', 'y', '.']) &&
 std.assertEqual(arr[1::], ['r', 'r', 'a', 'y', '.']) &&
