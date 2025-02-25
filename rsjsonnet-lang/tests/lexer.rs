@@ -900,6 +900,22 @@ fn test_text_block() {
     test(b"|||\n a\n\t|||", "a\n");
     test(b"|||\n \xFF\n\t|||", "\u{FFFD}\n");
 
+    test(b"|||-\n \n|||", "");
+    test(b"|||-\n a\n|||", "a");
+    test(b"|||-\n \n a\n|||", "\na");
+    test(b"|||- \n a\n|||", "a");
+    test(b"|||-\t\n a\n|||", "a");
+    test(b"|||-\n\n a\n|||", "\na");
+    test(b"|||-\n\n\n a\n|||", "\n\na");
+    test(b"|||-\n a\n b\n|||", "a\nb");
+    test(b"|||-\n  a\n  b\n|||", "a\nb");
+    test(b"|||-\n a\n\n b\n|||", "a\n\nb");
+    test(b"|||-\n a\n \n b\n|||", "a\n\nb");
+    test(b"|||-\n a\n\n\n b\n|||", "a\n\n\nb");
+    test(b"|||-\n a\n b\n\n|||", "a\nb\n");
+    test(b"|||-\n a\n\t|||", "a");
+    test(b"|||-\n \xFF\n\t|||", "\u{FFFD}");
+
     // error: unfinished
     LexerTest {
         input: b"|||\n a",
@@ -908,6 +924,20 @@ fn test_text_block() {
                 error,
                 Some(LexError::UnfinishedString {
                     span: session.intern_span(0, 6),
+                }),
+            );
+            assert_eq!(tokens, []);
+        },
+    }
+    .run();
+
+    LexerTest {
+        input: b"|||-\n a",
+        check: |session, error, tokens| {
+            assert_eq!(
+                error,
+                Some(LexError::UnfinishedString {
+                    span: session.intern_span(0, 7),
                 }),
             );
             assert_eq!(tokens, []);
@@ -931,12 +961,40 @@ fn test_text_block() {
     .run();
 
     LexerTest {
+        input: b"|||- x\n y\n|||",
+        check: |session, error, tokens| {
+            assert_eq!(
+                error,
+                Some(LexError::MissingLineBreakAfterTextBlockStart {
+                    span: session.intern_span(0, 5),
+                }),
+            );
+            assert_eq!(tokens, []);
+        },
+    }
+    .run();
+
+    LexerTest {
         input: b"|||\nx\ny\n|||",
         check: |session, error, tokens| {
             assert_eq!(
                 error,
                 Some(LexError::MissingWhitespaceTextBlockStart {
                     span: session.intern_span(4, 4),
+                }),
+            );
+            assert_eq!(tokens, []);
+        },
+    }
+    .run();
+
+    LexerTest {
+        input: b"|||-\nx\ny\n|||",
+        check: |session, error, tokens| {
+            assert_eq!(
+                error,
+                Some(LexError::MissingWhitespaceTextBlockStart {
+                    span: session.intern_span(5, 5),
                 }),
             );
             assert_eq!(tokens, []);
