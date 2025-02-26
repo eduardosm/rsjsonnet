@@ -397,6 +397,16 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::FnFallible(Self::do_std_log));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
+            BuiltInFunc::Log2 => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::FnFallible(Self::do_std_log2));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
+            BuiltInFunc::Log10 => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::FnFallible(Self::do_std_log10));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
             BuiltInFunc::Sqrt => {
                 let [arg] = check_num_args(args);
                 self.state_stack.push(State::FnFallible(Self::do_std_sqrt));
@@ -430,6 +440,54 @@ impl<'p> Evaluator<'_, 'p> {
             BuiltInFunc::Atan => {
                 let [arg] = check_num_args(args);
                 self.state_stack.push(State::FnFallible(Self::do_std_atan));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
+            BuiltInFunc::Atan2 => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack.push(State::FnFallible(Self::do_std_atan2));
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
+            BuiltInFunc::Deg2Rad => {
+                let [arg] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_deg2rad));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
+            BuiltInFunc::Rad2Deg => {
+                let [arg] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_rad2deg));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
+            BuiltInFunc::Hypot => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack.push(State::FnFallible(Self::do_std_hypot));
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
+            BuiltInFunc::IsEven => {
+                let [arg] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_is_even));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
+            BuiltInFunc::IsOdd => {
+                let [arg] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_is_odd));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
+            BuiltInFunc::IsInteger => {
+                let [arg] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_is_integer));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
+            BuiltInFunc::IsDecimal => {
+                let [arg] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_is_decimal));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
             BuiltInFunc::AssertEqual => {
