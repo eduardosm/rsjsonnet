@@ -730,6 +730,7 @@ pub(super) enum BuiltInFunc {
     SplitLimit,
     SplitLimitR,
     StrReplace,
+    Trim,
     AsciiUpper,
     AsciiLower,
     StringChars,

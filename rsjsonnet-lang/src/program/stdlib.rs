@@ -150,6 +150,7 @@ impl<'p> Program<'p> {
             BuiltInFunc::StrReplace,
             &["str", "from", "to"],
         );
+        add_simple("trim", BuiltInFunc::Trim, &["str"]);
         add_simple("asciiUpper", BuiltInFunc::AsciiUpper, &["str"]);
         add_simple("asciiLower", BuiltInFunc::AsciiLower, &["str"]);
         add_simple("stringChars", BuiltInFunc::StringChars, &["str"]);

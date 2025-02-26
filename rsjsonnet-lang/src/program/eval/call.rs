@@ -593,6 +593,11 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
+            BuiltInFunc::Trim => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::FnFallible(Self::do_std_trim));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
             BuiltInFunc::AsciiUpper => {
                 let [arg] = check_num_args(args);
                 self.state_stack

@@ -955,6 +955,16 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
+    pub(super) fn do_std_trim(&mut self) -> EvalResult<()> {
+        let s = self.value_stack.pop().unwrap();
+        let s = self.expect_std_func_arg_string(s, "trim", 0)?;
+        let result = s.trim_matches(|c| {
+            matches!(c, '\t' | '\n' | '\u{0C}' | '\r' | ' ' | '\u{85}' | '\u{A0}')
+        });
+        self.value_stack.push(ValueData::String(result.into()));
+        Ok(())
+    }
+
     pub(super) fn do_std_ascii_upper(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_string(arg, "asciiUpper", 0)?;
