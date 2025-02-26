@@ -1,0 +1,1 @@
+std.trim(null)
