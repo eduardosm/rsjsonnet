@@ -1,0 +1,8 @@
+error: second argument of `std.equalsIgnoreCase` is expected to be string, got null
+note: while evaluating call to `equalsIgnoreCase`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.equalsIgnoreCase("", null)
+  | ------------------------------
+note: during top-level value evaluation
+
