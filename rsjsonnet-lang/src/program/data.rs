@@ -696,6 +696,8 @@ pub(super) enum BuiltInFunc {
     Pow,
     Exp,
     Log,
+    Log2,
+    Log10,
     Sqrt,
     Sin,
     Cos,
@@ -703,6 +705,14 @@ pub(super) enum BuiltInFunc {
     Asin,
     Acos,
     Atan,
+    Atan2,
+    Deg2Rad,
+    Rad2Deg,
+    Hypot,
+    IsEven,
+    IsOdd,
+    IsInteger,
+    IsDecimal,
     // Assertions
     AssertEqual,
     // String Manipulation

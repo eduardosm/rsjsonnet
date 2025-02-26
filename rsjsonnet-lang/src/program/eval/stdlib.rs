@@ -425,6 +425,24 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
+    pub(super) fn do_std_log2(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "log2", 0)?;
+        let r = arg.log2();
+        self.check_number_value(r, None)?;
+        self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_log10(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "log10", 0)?;
+        let r = arg.log10();
+        self.check_number_value(r, None)?;
+        self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
     pub(super) fn do_std_sqrt(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "sqrt", 0)?;
@@ -485,6 +503,78 @@ impl<'p> Evaluator<'_, 'p> {
         let r = arg.atan();
         self.check_number_value(r, None)?;
         self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_atan2(&mut self) -> EvalResult<()> {
+        let arg1 = self.value_stack.pop().unwrap();
+        let arg0 = self.value_stack.pop().unwrap();
+        let arg0 = self.expect_std_func_arg_number(arg0, "atan2", 0)?;
+        let arg1 = self.expect_std_func_arg_number(arg1, "atan2", 1)?;
+        let r = f64::atan2(arg0, arg1);
+        self.check_number_value(r, None)?;
+        self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_deg2rad(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "deg2rad", 0)?;
+        let r = arg.to_radians();
+        self.check_number_value(r, None)?;
+        self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_rad2deg(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "rad2deg", 0)?;
+        let r = arg.to_degrees();
+        self.check_number_value(r, None)?;
+        self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_hypot(&mut self) -> EvalResult<()> {
+        let arg1 = self.value_stack.pop().unwrap();
+        let arg0 = self.value_stack.pop().unwrap();
+        let arg0 = self.expect_std_func_arg_number(arg0, "hypot", 0)?;
+        let arg1 = self.expect_std_func_arg_number(arg1, "hypot", 1)?;
+        let r = f64::hypot(arg0, arg1);
+        self.check_number_value(r, None)?;
+        self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_is_even(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "isEven", 0)?;
+        let r = arg % 2.0 == 0.0;
+        self.value_stack.push(ValueData::Bool(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_is_odd(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "isOdd", 0)?;
+        let r = arg % 2.0 != 0.0;
+        self.value_stack.push(ValueData::Bool(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_is_integer(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "isInteger", 0)?;
+        let r = arg.trunc() == arg;
+        self.value_stack.push(ValueData::Bool(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_is_decimal(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "isDecimal", 0)?;
+        let r = arg.trunc() != arg;
+        self.value_stack.push(ValueData::Bool(r));
         Ok(())
     }
 

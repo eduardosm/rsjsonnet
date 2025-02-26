@@ -106,6 +106,8 @@ impl<'p> Program<'p> {
         add_simple("pow", BuiltInFunc::Pow, &["x", "n"]);
         add_simple("exp", BuiltInFunc::Exp, &["n"]);
         add_simple("log", BuiltInFunc::Log, &["n"]);
+        add_simple("log2", BuiltInFunc::Log2, &["x"]);
+        add_simple("log10", BuiltInFunc::Log10, &["x"]);
         add_simple("sqrt", BuiltInFunc::Sqrt, &["x"]);
         add_simple("sin", BuiltInFunc::Sin, &["x"]);
         add_simple("cos", BuiltInFunc::Cos, &["x"]);
@@ -113,6 +115,14 @@ impl<'p> Program<'p> {
         add_simple("asin", BuiltInFunc::Asin, &["x"]);
         add_simple("acos", BuiltInFunc::Acos, &["x"]);
         add_simple("atan", BuiltInFunc::Atan, &["x"]);
+        add_simple("atan2", BuiltInFunc::Atan2, &["y", "x"]);
+        add_simple("deg2rad", BuiltInFunc::Deg2Rad, &["x"]);
+        add_simple("rad2deg", BuiltInFunc::Rad2Deg, &["x"]);
+        add_simple("hypot", BuiltInFunc::Hypot, &["a", "b"]);
+        add_simple("isEven", BuiltInFunc::IsEven, &["x"]);
+        add_simple("isOdd", BuiltInFunc::IsOdd, &["x"]);
+        add_simple("isInteger", BuiltInFunc::IsInteger, &["x"]);
+        add_simple("isDecimal", BuiltInFunc::IsDecimal, &["x"]);
         add_simple("assertEqual", BuiltInFunc::AssertEqual, &["a", "b"]);
         add_simple("toString", BuiltInFunc::ToString, &["a"]);
         add_simple("codepoint", BuiltInFunc::Codepoint, &["str"]);
