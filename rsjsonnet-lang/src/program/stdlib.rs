@@ -219,6 +219,8 @@ impl<'p> Program<'p> {
         add_simple("reverse", BuiltInFunc::Reverse, &["arr"]);
         add_simple("all", BuiltInFunc::All, &["arr"]);
         add_simple("any", BuiltInFunc::Any, &["arr"]);
+        add_simple("sum", BuiltInFunc::Sum, &["sum"]);
+        add_simple("avg", BuiltInFunc::Avg, &["avg"]);
         add_simple("base64", BuiltInFunc::Base64, &["input"]);
         add_simple(
             "base64DecodeBytes",

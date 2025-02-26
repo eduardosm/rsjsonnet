@@ -2807,6 +2807,110 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
+    pub(super) fn do_std_sum(&mut self) -> EvalResult<()> {
+        let arr = self.value_stack.pop().unwrap();
+
+        let array = self.expect_std_func_arg_array(arr, "sum", 0)?;
+        if array.is_empty() {
+            self.value_stack.push(ValueData::Number(0.0));
+        } else {
+            let item_thunk = array[0].view();
+            self.state_stack.push(State::StdSumItem {
+                array,
+                index: 0,
+                sum: 0.0,
+            });
+            self.state_stack.push(State::DoThunk(item_thunk));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_sum_item(
+        &mut self,
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+        sum: f64,
+    ) -> EvalResult<()> {
+        let item_value = self.value_stack.pop().unwrap();
+        let ValueData::Number(item_value) = item_value else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!(
+                    "array item {index} must be a number, got {}",
+                    EvalErrorValueType::from_value(&item_value).to_str(),
+                ),
+            }));
+        };
+
+        let sum = sum + item_value;
+        let index = index + 1;
+        if index == array.len() {
+            self.value_stack.push(ValueData::Number(sum));
+        } else {
+            let item_thunk = array[index].view();
+            self.state_stack
+                .push(State::StdSumItem { array, index, sum });
+            self.state_stack.push(State::DoThunk(item_thunk));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_avg(&mut self) -> EvalResult<()> {
+        let arr = self.value_stack.pop().unwrap();
+
+        let array = self.expect_std_func_arg_array(arr, "avg", 0)?;
+        if array.is_empty() {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: "cannot calculate average of empty array".into(),
+            }));
+        } else {
+            let item_thunk = array[0].view();
+            self.state_stack.push(State::StdAvgItem {
+                array,
+                index: 0,
+                sum: 0.0,
+            });
+            self.state_stack.push(State::DoThunk(item_thunk));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_avg_item(
+        &mut self,
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+        sum: f64,
+    ) -> EvalResult<()> {
+        let item_value = self.value_stack.pop().unwrap();
+        let ValueData::Number(item_value) = item_value else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!(
+                    "array item {index} must be a number, got {}",
+                    EvalErrorValueType::from_value(&item_value).to_str(),
+                ),
+            }));
+        };
+
+        let sum = sum + item_value;
+        let index = index + 1;
+        if index == array.len() {
+            self.value_stack
+                .push(ValueData::Number(sum / (array.len() as f64)));
+        } else {
+            let item_thunk = array[index].view();
+            self.state_stack
+                .push(State::StdAvgItem { array, index, sum });
+            self.state_stack.push(State::DoThunk(item_thunk));
+        }
+
+        Ok(())
+    }
+
     pub(super) fn do_std_set(&mut self) -> EvalResult<()> {
         let keyf = self.value_stack.pop().unwrap();
         let arr = self.value_stack.pop().unwrap();

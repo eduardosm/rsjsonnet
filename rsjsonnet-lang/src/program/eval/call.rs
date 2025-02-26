@@ -878,6 +878,16 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::StdAny);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
+            BuiltInFunc::Sum => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::StdSum);
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
+            BuiltInFunc::Avg => {
+                let [arg] = check_num_args(args);
+                self.state_stack.push(State::StdAvg);
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
             BuiltInFunc::Set => {
                 let [arg0, arg1] = check_num_args(args);
                 self.state_stack.push(State::StdSet);

@@ -46,8 +46,6 @@
 
   lines(arr):: self.join("\n", arr + [""]),
 
-  sum(arr):: self.foldl(function(a, b) a + b, arr, 0),
-
   get(o, f, default=null, inc_hidden=true):: if self.objectHasEx(o, f, inc_hidden) then o[f] else default,
 
   objectHas(o, f):: self.objectHasEx(o, f, false),

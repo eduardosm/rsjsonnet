@@ -1,0 +1,8 @@
+error: cannot calculate average of empty array
+note: while evaluating call to `avg`
+ --> empty.jsonnet:1:1
+  |
+1 | std.avg([])
+  | -----------
+note: during top-level value evaluation
+

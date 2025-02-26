@@ -395,6 +395,18 @@ pub(super) enum State<'a, 'p> {
         array: GcView<ArrayData<'p>>,
         index: usize,
     },
+    StdSum,
+    StdSumItem {
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+        sum: f64,
+    },
+    StdAvg,
+    StdAvgItem {
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+        sum: f64,
+    },
     StdSet,
     StdSetUniq {
         orig_array: GcView<ArrayData<'p>>,
