@@ -1,0 +1,8 @@
+error: second argument of `std.maxArray` is expected to be function, got null
+note: while evaluating call to `maxArray`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.maxArray([], keyF=null)
+  | ---------------------------
+note: during top-level value evaluation
+

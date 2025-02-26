@@ -461,6 +461,12 @@ impl<'p> Evaluator<'_, 'p> {
                     }
                 }
             }
+            ir::Expr::OtherError { msg } => {
+                return Err(self.report_error(EvalErrorKind::Other {
+                    span: None,
+                    message: msg.into(),
+                }));
+            }
         }
 
         Ok(())

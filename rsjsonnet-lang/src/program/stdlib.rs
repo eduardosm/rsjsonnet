@@ -297,6 +297,29 @@ impl<'p> Program<'p> {
             BuiltInFunc::Uniq,
             &[("arr", None), ("keyF", Some(identity_func))],
         );
+
+        let min_max_default_on_empty = arena.alloc(ir::Expr::OtherError {
+            msg: arena.alloc_str("expected an array with at least one element"),
+        });
+        add_with_defaults(
+            "minArray",
+            BuiltInFunc::MinArray,
+            &[
+                ("arr", None),
+                ("keyF", Some(identity_func)),
+                ("onEmpty", Some(min_max_default_on_empty)),
+            ],
+        );
+        add_with_defaults(
+            "maxArray",
+            BuiltInFunc::MaxArray,
+            &[
+                ("arr", None),
+                ("keyF", Some(identity_func)),
+                ("onEmpty", Some(min_max_default_on_empty)),
+            ],
+        );
+
         add_with_defaults(
             "set",
             BuiltInFunc::Set,

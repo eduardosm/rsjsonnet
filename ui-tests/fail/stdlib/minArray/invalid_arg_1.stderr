@@ -1,0 +1,8 @@
+error: first argument of `std.minArray` is expected to be array, got null
+note: while evaluating call to `minArray`
+ --> invalid_arg_1.jsonnet:1:1
+  |
+1 | std.minArray(null)
+  | ------------------
+note: during top-level value evaluation
+
