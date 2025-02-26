@@ -779,6 +779,8 @@ pub(super) enum BuiltInFunc {
     Uniq,
     All,
     Any,
+    Sum,
+    Avg,
     // Sets
     Set,
     SetInter,

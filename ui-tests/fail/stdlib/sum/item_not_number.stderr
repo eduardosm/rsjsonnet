@@ -1,0 +1,8 @@
+error: array item 0 must be a number, got null
+note: while evaluating call to `sum`
+ --> item_not_number.jsonnet:1:1
+  |
+1 | std.sum([null])
+  | ---------------
+note: during top-level value evaluation
+

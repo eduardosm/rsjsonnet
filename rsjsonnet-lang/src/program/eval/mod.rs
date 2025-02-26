@@ -1436,6 +1436,14 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                 State::StdAllItem { array, index } => self.do_std_all_item(array, index)?,
                 State::StdAny => self.do_std_any()?,
                 State::StdAnyItem { array, index } => self.do_std_any_item(array, index)?,
+                State::StdSum => self.do_std_sum()?,
+                State::StdSumItem { array, index, sum } => {
+                    self.do_std_sum_item(array, index, sum)?
+                }
+                State::StdAvg => self.do_std_avg()?,
+                State::StdAvgItem { array, index, sum } => {
+                    self.do_std_avg_item(array, index, sum)?
+                }
                 State::StdSet => self.do_std_set()?,
                 State::StdSetUniq {
                     orig_array,

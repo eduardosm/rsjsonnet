@@ -1,0 +1,1 @@
+std.sum(null)
