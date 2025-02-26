@@ -900,6 +900,22 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::StdAvg);
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
+            BuiltInFunc::MinArray => {
+                let [arg0, arg1, arg2] = check_num_args(args);
+                self.state_stack.push(State::StdMinArray {
+                    on_empty: arg2.view(),
+                });
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
+            BuiltInFunc::MaxArray => {
+                let [arg0, arg1, arg2] = check_num_args(args);
+                self.state_stack.push(State::StdMaxArray {
+                    on_empty: arg2.view(),
+                });
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
             BuiltInFunc::Set => {
                 let [arg0, arg1] = check_num_args(args);
                 self.state_stack.push(State::StdSet);

@@ -1444,6 +1444,32 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                 State::StdAvgItem { array, index, sum } => {
                     self.do_std_avg_item(array, index, sum)?
                 }
+                State::StdMinArray { on_empty } => self.do_std_min_array(on_empty)?,
+                State::StdMinArrayCompareItem {
+                    keyf,
+                    array,
+                    cur_index,
+                    max_index,
+                } => self.do_std_min_array_compare_item(keyf, array, cur_index, max_index)?,
+                State::StdMinArrayCheckItem {
+                    keyf,
+                    array,
+                    cur_index,
+                    max_index,
+                } => self.do_std_min_array_check_item(keyf, array, cur_index, max_index)?,
+                State::StdMaxArray { on_empty } => self.do_std_max_array(on_empty)?,
+                State::StdMaxArrayCompareItem {
+                    keyf,
+                    array,
+                    cur_index,
+                    max_index,
+                } => self.do_std_max_array_compare_item(keyf, array, cur_index, max_index)?,
+                State::StdMaxArrayCheckItem {
+                    keyf,
+                    array,
+                    cur_index,
+                    max_index,
+                } => self.do_std_max_array_check_item(keyf, array, cur_index, max_index)?,
                 State::StdSet => self.do_std_set()?,
                 State::StdSetUniq {
                     orig_array,

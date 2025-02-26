@@ -1,0 +1,8 @@
+error: expected an array with at least one element
+note: while evaluating call to `minArray`
+ --> empty_default.jsonnet:1:1
+  |
+1 | std.minArray([])
+  | ----------------
+note: during top-level value evaluation
+
