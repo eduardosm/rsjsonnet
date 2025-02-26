@@ -151,6 +151,11 @@ impl<'p> Program<'p> {
             &["str", "from", "to"],
         );
         add_simple("trim", BuiltInFunc::Trim, &["str"]);
+        add_simple(
+            "equalsIgnoreCase",
+            BuiltInFunc::EqualsIgnoreCase,
+            &["str1", "str2"],
+        );
         add_simple("asciiUpper", BuiltInFunc::AsciiUpper, &["str"]);
         add_simple("asciiLower", BuiltInFunc::AsciiLower, &["str"]);
         add_simple("stringChars", BuiltInFunc::StringChars, &["str"]);

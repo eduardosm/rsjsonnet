@@ -965,6 +965,18 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
+    pub(super) fn do_std_equals_ignore_case(&mut self) -> EvalResult<()> {
+        let s2 = self.value_stack.pop().unwrap();
+        let s1 = self.value_stack.pop().unwrap();
+
+        let s1 = self.expect_std_func_arg_string(s1, "equalsIgnoreCase", 0)?;
+        let s2 = self.expect_std_func_arg_string(s2, "equalsIgnoreCase", 1)?;
+
+        self.value_stack.push(ValueData::Bool(s1.eq_ignore_ascii_case(&s2)));
+
+        Ok(())
+    }
+
     pub(super) fn do_std_ascii_upper(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_string(arg, "asciiUpper", 0)?;
