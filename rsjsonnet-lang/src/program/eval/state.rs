@@ -407,6 +407,36 @@ pub(super) enum State<'a, 'p> {
         index: usize,
         sum: f64,
     },
+    StdMinArray {
+        on_empty: GcView<ThunkData<'p>>,
+    },
+    StdMinArrayCompareItem {
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        max_index: usize,
+    },
+    StdMinArrayCheckItem {
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        max_index: usize,
+    },
+    StdMaxArray {
+        on_empty: GcView<ThunkData<'p>>,
+    },
+    StdMaxArrayCompareItem {
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        max_index: usize,
+    },
+    StdMaxArrayCheckItem {
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        max_index: usize,
+    },
     StdSet,
     StdSetUniq {
         orig_array: GcView<ArrayData<'p>>,

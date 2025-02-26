@@ -1,0 +1,12 @@
+error: explicit error: was empty
+ --> empty_custom.jsonnet:1:26
+  |
+1 | std.minArray([], onEmpty=error "was empty")
+  |                          ^^^^^^^^^^^^^^^^^
+note: while evaluating call to `minArray`
+ --> empty_custom.jsonnet:1:1
+  |
+1 | std.minArray([], onEmpty=error "was empty")
+  | -------------------------------------------
+note: during top-level value evaluation
+

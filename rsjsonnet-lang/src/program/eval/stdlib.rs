@@ -972,7 +972,8 @@ impl<'p> Evaluator<'_, 'p> {
         let s1 = self.expect_std_func_arg_string(s1, "equalsIgnoreCase", 0)?;
         let s2 = self.expect_std_func_arg_string(s2, "equalsIgnoreCase", 1)?;
 
-        self.value_stack.push(ValueData::Bool(s1.eq_ignore_ascii_case(&s2)));
+        self.value_stack
+            .push(ValueData::Bool(s1.eq_ignore_ascii_case(&s2)));
 
         Ok(())
     }
@@ -2928,6 +2929,170 @@ impl<'p> Evaluator<'_, 'p> {
             self.state_stack
                 .push(State::StdAvgItem { array, index, sum });
             self.state_stack.push(State::DoThunk(item_thunk));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_min_array(&mut self, on_empty: GcView<ThunkData<'p>>) -> EvalResult<()> {
+        let keyf = self.value_stack.pop().unwrap();
+        let arr = self.value_stack.pop().unwrap();
+
+        let array = self.expect_std_func_arg_array(arr, "minArray", 0)?;
+        let keyf = self.expect_std_func_arg_func(keyf, "minArray", 1)?;
+
+        if array.is_empty() {
+            self.state_stack.push(State::DoThunk(on_empty));
+        } else if array.len() == 1 {
+            self.state_stack.push(State::DoThunk(array[0].view()));
+        } else {
+            let item0 = array[0].view();
+            let item1 = array[1].view();
+            self.state_stack.push(State::StdMinArrayCompareItem {
+                keyf: keyf.clone(),
+                array,
+                cur_index: 1,
+                max_index: 0,
+            });
+            self.check_thunk_args_and_execute_call(&keyf, &[item1], &[], None)?;
+            self.check_thunk_args_and_execute_call(&keyf, &[item0], &[], None)?;
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_min_array_compare_item(
+        &mut self,
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        max_index: usize,
+    ) -> EvalResult<()> {
+        self.value_stack
+            .extend_from_within((self.value_stack.len() - 2)..);
+
+        self.state_stack.push(State::StdMinArrayCheckItem {
+            keyf: keyf.clone(),
+            array,
+            cur_index,
+            max_index,
+        });
+        self.state_stack.push(State::CompareValue);
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_min_array_check_item(
+        &mut self,
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        mut max_index: usize,
+    ) -> EvalResult<()> {
+        let cmp_ord = self.cmp_ord_stack.pop().unwrap();
+        if cmp_ord.is_gt() {
+            max_index = cur_index;
+            self.value_stack.remove(self.value_stack.len() - 2);
+        } else {
+            self.value_stack.remove(self.value_stack.len() - 1);
+        }
+
+        let cur_index = cur_index + 1;
+        if cur_index == array.len() {
+            self.value_stack.pop().unwrap();
+            self.state_stack
+                .push(State::DoThunk(array[max_index].view()));
+        } else {
+            let item = array[cur_index].view();
+            self.state_stack.push(State::StdMinArrayCompareItem {
+                keyf: keyf.clone(),
+                array,
+                cur_index,
+                max_index,
+            });
+            self.check_thunk_args_and_execute_call(&keyf, &[item], &[], None)?;
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_max_array(&mut self, on_empty: GcView<ThunkData<'p>>) -> EvalResult<()> {
+        let keyf = self.value_stack.pop().unwrap();
+        let arr = self.value_stack.pop().unwrap();
+
+        let array = self.expect_std_func_arg_array(arr, "maxArray", 0)?;
+        let keyf = self.expect_std_func_arg_func(keyf, "maxArray", 1)?;
+
+        if array.is_empty() {
+            self.state_stack.push(State::DoThunk(on_empty));
+        } else if array.len() == 1 {
+            self.state_stack.push(State::DoThunk(array[0].view()));
+        } else {
+            let item0 = array[0].view();
+            let item1 = array[1].view();
+            self.state_stack.push(State::StdMaxArrayCompareItem {
+                keyf: keyf.clone(),
+                array,
+                cur_index: 1,
+                max_index: 0,
+            });
+            self.check_thunk_args_and_execute_call(&keyf, &[item1], &[], None)?;
+            self.check_thunk_args_and_execute_call(&keyf, &[item0], &[], None)?;
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_max_array_compare_item(
+        &mut self,
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        max_index: usize,
+    ) -> EvalResult<()> {
+        self.value_stack
+            .extend_from_within((self.value_stack.len() - 2)..);
+
+        self.state_stack.push(State::StdMaxArrayCheckItem {
+            keyf: keyf.clone(),
+            array,
+            cur_index,
+            max_index,
+        });
+        self.state_stack.push(State::CompareValue);
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_max_array_check_item(
+        &mut self,
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        mut max_index: usize,
+    ) -> EvalResult<()> {
+        let cmp_ord = self.cmp_ord_stack.pop().unwrap();
+        if cmp_ord.is_lt() {
+            max_index = cur_index;
+            self.value_stack.remove(self.value_stack.len() - 2);
+        } else {
+            self.value_stack.remove(self.value_stack.len() - 1);
+        }
+
+        let cur_index = cur_index + 1;
+        if cur_index == array.len() {
+            self.value_stack.pop().unwrap();
+            self.state_stack
+                .push(State::DoThunk(array[max_index].view()));
+        } else {
+            let item = array[cur_index].view();
+            self.state_stack.push(State::StdMaxArrayCompareItem {
+                keyf: keyf.clone(),
+                array,
+                cur_index,
+                max_index,
+            });
+            self.check_thunk_args_and_execute_call(&keyf, &[item], &[], None)?;
         }
 
         Ok(())
