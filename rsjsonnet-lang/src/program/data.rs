@@ -43,6 +43,19 @@ impl<'p> Program<'p> {
     }
 
     #[inline]
+    pub(super) fn make_thunk_array(
+        &mut self,
+        items: impl IntoIterator<Item = Gc<ThunkData<'p>>>,
+    ) -> Gc<ArrayData<'p>> {
+        let items: Box<[_]> = items.into_iter().collect();
+        if items.is_empty() {
+            Gc::from(&self.empty_array)
+        } else {
+            self.gc_alloc(items)
+        }
+    }
+
+    #[inline]
     pub(super) fn make_value_array(
         &mut self,
         items: impl IntoIterator<Item = ValueData<'p>>,
@@ -786,6 +799,8 @@ pub(super) enum BuiltInFunc {
     MinArray,
     MaxArray,
     Contains,
+    Remove,
+    RemoveAt,
     // Sets
     Set,
     SetInter,

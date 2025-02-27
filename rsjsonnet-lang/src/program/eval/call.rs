@@ -922,6 +922,19 @@ impl<'p> Evaluator<'_, 'p> {
                     .push(State::StdContains { value: arg1.view() });
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
+            BuiltInFunc::Remove => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack
+                    .push(State::StdRemove { value: arg1.view() });
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
+            BuiltInFunc::RemoveAt => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_remove_at));
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
             BuiltInFunc::Set => {
                 let [arg0, arg1] = check_num_args(args);
                 self.state_stack.push(State::StdSet);
