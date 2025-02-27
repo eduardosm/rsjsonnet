@@ -1,0 +1,8 @@
+error: first argument of `std.objectRemoveKey` is expected to be object, got null
+note: while evaluating call to `objectRemoveKey`
+ --> invalid_arg_1.jsonnet:1:1
+  |
+1 | std.objectRemoveKey(null, "foo")
+  | --------------------------------
+note: during top-level value evaluation
+
