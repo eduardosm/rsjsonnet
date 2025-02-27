@@ -1,0 +1,8 @@
+error: first argument of `std.contains` is expected to be array, got null
+note: while evaluating call to `remove`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.remove(null, 0)
+  | -------------------
+note: during top-level value evaluation
+

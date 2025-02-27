@@ -1,0 +1,8 @@
+error: second argument of `std.containsAt` is expected to be number, got null
+note: while evaluating call to `removeAt`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.removeAt([], null)
+  | ----------------------
+note: during top-level value evaluation
+

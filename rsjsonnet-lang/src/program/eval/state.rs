@@ -444,6 +444,13 @@ pub(super) enum State<'a, 'p> {
         array: GcView<ArrayData<'p>>,
         index: usize,
     },
+    StdRemove {
+        value: GcView<ThunkData<'p>>,
+    },
+    StdRemoveCheckItem {
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+    },
     StdSet,
     StdSetUniq {
         orig_array: GcView<ArrayData<'p>>,
