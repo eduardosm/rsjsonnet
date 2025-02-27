@@ -1,0 +1,18 @@
+error: first argument of `std.objectFieldsEx` is expected to be object, got null
+note: while evaluating call to `objectFieldsEx`
+  --> <stdlib>:54:21
+   |
+54 |   objectFields(o):: self.objectFieldsEx(o, false),
+   |                     -----------------------------
+note: while evaluating call to function
+  --> <stdlib>:63:54
+   |
+63 |   objectRemoveKey(obj, key):: { [k]: obj[k] for k in self.objectFields(obj) if k != key },
+   |                                                      ----------------------
+note: while evaluating call to function
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.objectRemoveKey(null, "foo")
+  | --------------------------------
+note: during top-level value evaluation
+

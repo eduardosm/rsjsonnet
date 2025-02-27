@@ -60,6 +60,8 @@
   objectKeysValues(o):: [{ key: key, value: o[key] } for key in self.objectFields(o)],
   objectKeysValuesAll(o):: [{ key: key, value: o[key] } for key in self.objectFieldsAll(o)],
 
+  objectRemoveKey(obj, key):: { [k]: obj[k] for k in self.objectFields(obj) if k != key },
+
   xor(x, y):: x != y,
   xnor(x, y):: x == y,
 
