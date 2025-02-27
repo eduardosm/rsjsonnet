@@ -328,6 +328,11 @@ pub(super) enum State<'a, 'p> {
         sep: GcView<ArrayData<'p>>,
     },
     StdJoinArrayFinish,
+    StdFlattenDeepArray,
+    StdFlattenDeepArrayItem {
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+    },
     StdSort,
     StdSortSetKey {
         keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
