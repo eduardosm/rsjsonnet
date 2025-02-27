@@ -2392,6 +2392,64 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
+    pub(super) fn do_std_flatten_deep_array(&mut self) {
+        let value = self.value_stack.pop().unwrap();
+
+        if let ValueData::Array(array) = value {
+            let array = array.view();
+            if let Some(item0) = array.first() {
+                let item0 = item0.view();
+                self.array_stack.push(Vec::new());
+                self.state_stack.push(State::ArrayToValue);
+                self.state_stack
+                    .push(State::StdFlattenDeepArrayItem { array, index: 0 });
+                self.state_stack.push(State::DoThunk(item0));
+            } else {
+                self.value_stack
+                    .push(ValueData::Array(Gc::from(&self.program.empty_array)));
+            }
+        } else {
+            self.value_stack.push(ValueData::Array(
+                self.program.make_value_array(std::iter::once(value)),
+            ));
+        }
+    }
+
+    pub(super) fn do_std_flatten_deep_array_item(
+        &mut self,
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+    ) {
+        let item_value = self.value_stack.pop().unwrap();
+
+        let next_index = index + 1;
+        if let Some(next_item) = array.get(next_index) {
+            let next_item = next_item.view();
+            self.state_stack.push(State::StdFlattenDeepArrayItem {
+                array: array.clone(),
+                index: next_index,
+            });
+            self.state_stack.push(State::DoThunk(next_item));
+        }
+
+        if let ValueData::Array(sub_array) = item_value {
+            let sub_array = sub_array.view();
+            if let Some(sub_item0) = sub_array.first() {
+                let sub_item0 = sub_item0.view();
+                self.state_stack.push(State::StdFlattenDeepArrayItem {
+                    array: sub_array,
+                    index: 0,
+                });
+                self.state_stack.push(State::DoThunk(sub_item0));
+            }
+        } else {
+            self.array_stack
+                .last_mut()
+                .unwrap()
+                .push(array[index].clone());
+        }
+    }
+
     pub(super) fn do_std_reverse(&mut self) -> EvalResult<()> {
         let value = self.value_stack.pop().unwrap();
         let reverse = match value {

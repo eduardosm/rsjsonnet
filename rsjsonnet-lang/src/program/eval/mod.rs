@@ -1383,6 +1383,10 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                 State::StdJoinStrFinish => self.do_std_join_str_finish(),
                 State::StdJoinArrayItem { sep } => self.do_std_join_array_item(sep)?,
                 State::StdJoinArrayFinish => self.do_std_join_array_finish(),
+                State::StdFlattenDeepArray => self.do_std_flatten_deep_array(),
+                State::StdFlattenDeepArrayItem { array, index } => {
+                    self.do_std_flatten_deep_array_item(array, index)
+                }
                 State::StdSort => self.do_std_sort()?,
                 State::StdSortSetKey { keys, index } => self.do_std_sort_set_key(keys, index),
                 State::StdSortCompare { keys, lhs, rhs } => {

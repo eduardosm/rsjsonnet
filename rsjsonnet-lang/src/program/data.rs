@@ -789,6 +789,7 @@ pub(super) enum BuiltInFunc {
     Join,
     DeepJoin,
     FlattenArrays,
+    FlattenDeepArray,
     Reverse,
     Sort,
     Uniq,

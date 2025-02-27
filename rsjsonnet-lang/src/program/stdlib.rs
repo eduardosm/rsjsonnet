@@ -222,6 +222,11 @@ impl<'p> Program<'p> {
         add_simple("join", BuiltInFunc::Join, &["sep", "arr"]);
         add_simple("deepJoin", BuiltInFunc::DeepJoin, &["arr"]);
         add_simple("flattenArrays", BuiltInFunc::FlattenArrays, &["arrs"]);
+        add_simple(
+            "flattenDeepArray",
+            BuiltInFunc::FlattenDeepArray,
+            &["value"],
+        );
         add_simple("reverse", BuiltInFunc::Reverse, &["arr"]);
         add_simple("all", BuiltInFunc::All, &["arr"]);
         add_simple("any", BuiltInFunc::Any, &["arr"]);
