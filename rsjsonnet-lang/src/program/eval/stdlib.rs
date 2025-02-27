@@ -238,6 +238,42 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
+    pub(super) fn do_std_object_remove_key(&mut self) -> EvalResult<()> {
+        let key = self.value_stack.pop().unwrap();
+        let object = self.value_stack.pop().unwrap();
+
+        let object = self.expect_std_func_arg_object(object, "objectRemoveKey", 0)?;
+        let key = self.expect_std_func_arg_string(key, "objectRemoveKey", 1)?;
+
+        let key = self.program.str_interner.get_interned(&key);
+
+        let mut fields = FHashMap::default();
+        for field_name in object.get_visible_fields_order() {
+            if Some(field_name) != key {
+                let field_thunk = self
+                    .program
+                    .find_object_field_thunk(&object, 0, field_name)
+                    .unwrap();
+                fields.insert(
+                    field_name,
+                    ObjectField {
+                        base_env: None,
+                        visibility: ast::Visibility::Default,
+                        expr: None,
+                        thunk: OnceCell::from(Gc::from(&field_thunk)),
+                    },
+                );
+            }
+        }
+
+        self.value_stack.push(ValueData::Object(
+            self.program.gc_alloc(ObjectData::new_simple(fields)),
+        ));
+        self.check_object_asserts(&object);
+
+        Ok(())
+    }
+
     pub(super) fn do_std_map_with_key(&mut self) -> EvalResult<()> {
         let object = self.value_stack.pop().unwrap();
         let func = self.value_stack.pop().unwrap();

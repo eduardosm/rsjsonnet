@@ -317,6 +317,13 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::DoThunk(arg1.view()));
                 self.state_stack.push(State::DoThunk(arg0.view()));
             }
+            BuiltInFunc::ObjectRemoveKey => {
+                let [arg0, arg1] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnFallible(Self::do_std_object_remove_key));
+                self.state_stack.push(State::DoThunk(arg1.view()));
+                self.state_stack.push(State::DoThunk(arg0.view()));
+            }
             BuiltInFunc::MapWithKey => {
                 let [arg0, arg1] = check_num_args(args);
                 self.state_stack

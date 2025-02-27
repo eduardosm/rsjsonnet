@@ -695,6 +695,7 @@ pub(super) enum BuiltInFunc {
     Prune,
     ObjectHasEx,
     ObjectFieldsEx,
+    ObjectRemoveKey,
     MapWithKey,
     PrimitiveEquals,
     Equals,

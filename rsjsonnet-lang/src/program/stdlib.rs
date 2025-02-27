@@ -89,6 +89,11 @@ impl<'p> Program<'p> {
             BuiltInFunc::ObjectFieldsEx,
             &["obj", "inc_hidden"],
         );
+        add_simple(
+            "objectRemoveKey",
+            BuiltInFunc::ObjectRemoveKey,
+            &["obj", "key"],
+        );
         add_simple("mapWithKey", BuiltInFunc::MapWithKey, &["func", "obj"]);
         add_simple("primitiveEquals", BuiltInFunc::PrimitiveEquals, &["a", "b"]);
         add_simple("equals", BuiltInFunc::Equals, &["a", "b"]);
