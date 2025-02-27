@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.4.0 (unreleased)
+
+### Added
+
+- New language features from Jsonnet 0.21:
+  - Slices now accept negative indexes.
+  - Chomped multi-line text blocks (which start with `|||-`).
+- New standard library elements from Jsonnet 0.21:
+  - `std.pi` (constant)
+  - `std.log2(x)`
+  - `std.log10(x)`
+  - `std.atan2(y, x)`
+  - `std.deg2rad(x)`
+  - `std.rad2deg(x)`
+  - `std.hypot(a, b)`
+  - `std.isEven(x)`
+  - `std.isOdd(x)`
+  - `std.isInteger(x)`
+  - `std.isDecimal(x)`
+  - `std.trim(str)`
+  - `std.equalsIgnoreCase(str1, str2)`
+  - `std.flattenDeepArray(value)`
+  - `std.minArray(arr, keyF, onEmpty)`
+  - `std.maxArray(arr, keyF, onEmpty)`
+  - `std.contains(arr, elem)`
+  - `std.avg(arr)`
+  - `std.remove(arr, elem)`
+  - `std.removeAt(arr, idx)`
+  - `std.objectRemoveKey(obj, key)`
+  - `std.sha1(s)`
+  - `std.sha256(s)`
+  - `std.sha512(s)`
+  - `std.sha3(s)`
+
 ## 0.3.0 (2024-11-07)
 
 ### Breaking
