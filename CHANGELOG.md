@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 (unreleased)
+
+### Changed
+
+- Jsonnet 0.21 is now targetted.
+
 ## 0.3.0 (2024-11-07)
 
 ### Breaking
