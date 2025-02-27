@@ -437,6 +437,13 @@ pub(super) enum State<'a, 'p> {
         cur_index: usize,
         max_index: usize,
     },
+    StdContains {
+        value: GcView<ThunkData<'p>>,
+    },
+    StdContainsItem {
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+    },
     StdSet,
     StdSetUniq {
         orig_array: GcView<ArrayData<'p>>,

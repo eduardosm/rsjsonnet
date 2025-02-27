@@ -3098,6 +3098,48 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
+    pub(super) fn do_std_contains(&mut self, value: GcView<ThunkData<'p>>) -> EvalResult<()> {
+        let array = self.value_stack.pop().unwrap();
+        let array = self.expect_std_func_arg_array(array, "contains", 0)?;
+
+        if let Some(item0) = array.first() {
+            let item0 = item0.view();
+
+            self.state_stack
+                .push(State::StdContainsItem { array, index: 0 });
+            self.state_stack.push(State::EqualsValue);
+            self.state_stack.push(State::DoThunk(item0));
+            self.state_stack.push(State::DoThunk(value.clone()));
+            self.state_stack.push(State::DoThunk(value));
+        } else {
+            self.value_stack.push(ValueData::Bool(false));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_contains_item(&mut self, array: GcView<ArrayData<'p>>, index: usize) {
+        let equal = self.bool_stack.pop().unwrap();
+        if equal {
+            *self.value_stack.last_mut().unwrap() = ValueData::Bool(true);
+        } else {
+            let next_index = index + 1;
+            if let Some(next_item) = array.get(next_index) {
+                let next_item = next_item.view();
+                self.value_stack
+                    .push(self.value_stack.last().unwrap().clone());
+                self.state_stack.push(State::StdContainsItem {
+                    array,
+                    index: next_index,
+                });
+                self.state_stack.push(State::EqualsValue);
+                self.state_stack.push(State::DoThunk(next_item));
+            } else {
+                *self.value_stack.last_mut().unwrap() = ValueData::Bool(false);
+            }
+        }
+    }
+
     pub(super) fn do_std_set(&mut self) -> EvalResult<()> {
         let keyf = self.value_stack.pop().unwrap();
         let arr = self.value_stack.pop().unwrap();
