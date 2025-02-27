@@ -227,6 +227,7 @@ impl<'p> Program<'p> {
         add_simple("any", BuiltInFunc::Any, &["arr"]);
         add_simple("sum", BuiltInFunc::Sum, &["sum"]);
         add_simple("avg", BuiltInFunc::Avg, &["avg"]);
+        add_simple("contains", BuiltInFunc::Contains, &["arr", "elem"]);
         add_simple("base64", BuiltInFunc::Base64, &["input"]);
         add_simple(
             "base64DecodeBytes",

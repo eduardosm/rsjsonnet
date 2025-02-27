@@ -1470,6 +1470,8 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                     cur_index,
                     max_index,
                 } => self.do_std_max_array_check_item(keyf, array, cur_index, max_index)?,
+                State::StdContains { value } => self.do_std_contains(value)?,
+                State::StdContainsItem { array, index } => self.do_std_contains_item(array, index),
                 State::StdSet => self.do_std_set()?,
                 State::StdSetUniq {
                     orig_array,

@@ -785,6 +785,7 @@ pub(super) enum BuiltInFunc {
     Avg,
     MinArray,
     MaxArray,
+    Contains,
     // Sets
     Set,
     SetInter,
