@@ -8,7 +8,7 @@
   `EvalErrorKind::InvalidStdFuncArgType`.
 - New variants have been added to `EvalErrorKind`.
 - New variants have been added to `EvalStackTraceItem`.
-- `ExpectedThing` as been renamed to `ExpectedToken`.
+- `ExpectedThing` has been renamed to `ExpectedToken`.
 - `ParseError::Expected` now uses `ActualToken` instead of `TokenKind`.
 - Arena allocation is now used for interned strings, AST and some internal data
   of `Program`.
