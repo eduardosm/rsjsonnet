@@ -472,6 +472,8 @@ impl<'a, 'p, 'ast> Lexer<'a, 'p, 'ast> {
 
     #[inline]
     fn lex_text_block(&mut self) -> Result<Token<'p, 'ast>, LexError> {
+        let strip_last_lf = self.eat_byte(b'-');
+
         let mut string = String::new();
         let mut prefix;
         while self.eat_byte_if(|b| matches!(b, b' ' | b'\t' | b'\r')) {}
@@ -539,7 +541,15 @@ impl<'a, 'p, 'ast> Lexer<'a, 'p, 'ast> {
             }
         }
 
-        Ok(self.commit_token(TokenKind::TextBlock(self.ast_arena.alloc_str(&string))))
+        let actual_string = if strip_last_lf {
+            string.strip_suffix('\n').unwrap()
+        } else {
+            string.as_str()
+        };
+
+        Ok(self.commit_token(TokenKind::TextBlock(
+            self.ast_arena.alloc_str(actual_string),
+        )))
     }
 
     #[must_use]

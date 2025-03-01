@@ -114,6 +114,9 @@ pub(super) enum Expr<'p> {
         path: &'p str,
         span: SpanId,
     },
+    OtherError {
+        msg: &'p str,
+    },
 }
 
 #[derive(Copy, Clone, Debug)]

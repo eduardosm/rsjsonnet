@@ -40,6 +40,11 @@ impl<'p> Program<'p> {
     ) -> FHashMap<InternedStr<'p>, GcView<ThunkData<'p>>> {
         let mut extra_fields = FHashMap::default();
 
+        extra_fields.insert(
+            str_interner.intern(arena, "pi"),
+            gc_ctx.alloc_view(ThunkData::new_done(ValueData::Number(std::f64::consts::PI))),
+        );
+
         let mut add_builtin_func =
             |name: InternedStr<'p>,
              kind: BuiltInFunc,
@@ -84,6 +89,11 @@ impl<'p> Program<'p> {
             BuiltInFunc::ObjectFieldsEx,
             &["obj", "inc_hidden"],
         );
+        add_simple(
+            "objectRemoveKey",
+            BuiltInFunc::ObjectRemoveKey,
+            &["obj", "key"],
+        );
         add_simple("mapWithKey", BuiltInFunc::MapWithKey, &["func", "obj"]);
         add_simple("primitiveEquals", BuiltInFunc::PrimitiveEquals, &["a", "b"]);
         add_simple("equals", BuiltInFunc::Equals, &["a", "b"]);
@@ -101,6 +111,8 @@ impl<'p> Program<'p> {
         add_simple("pow", BuiltInFunc::Pow, &["x", "n"]);
         add_simple("exp", BuiltInFunc::Exp, &["n"]);
         add_simple("log", BuiltInFunc::Log, &["n"]);
+        add_simple("log2", BuiltInFunc::Log2, &["x"]);
+        add_simple("log10", BuiltInFunc::Log10, &["x"]);
         add_simple("sqrt", BuiltInFunc::Sqrt, &["x"]);
         add_simple("sin", BuiltInFunc::Sin, &["x"]);
         add_simple("cos", BuiltInFunc::Cos, &["x"]);
@@ -108,6 +120,14 @@ impl<'p> Program<'p> {
         add_simple("asin", BuiltInFunc::Asin, &["x"]);
         add_simple("acos", BuiltInFunc::Acos, &["x"]);
         add_simple("atan", BuiltInFunc::Atan, &["x"]);
+        add_simple("atan2", BuiltInFunc::Atan2, &["y", "x"]);
+        add_simple("deg2rad", BuiltInFunc::Deg2Rad, &["x"]);
+        add_simple("rad2deg", BuiltInFunc::Rad2Deg, &["x"]);
+        add_simple("hypot", BuiltInFunc::Hypot, &["a", "b"]);
+        add_simple("isEven", BuiltInFunc::IsEven, &["x"]);
+        add_simple("isOdd", BuiltInFunc::IsOdd, &["x"]);
+        add_simple("isInteger", BuiltInFunc::IsInteger, &["x"]);
+        add_simple("isDecimal", BuiltInFunc::IsDecimal, &["x"]);
         add_simple("assertEqual", BuiltInFunc::AssertEqual, &["a", "b"]);
         add_simple("toString", BuiltInFunc::ToString, &["a"]);
         add_simple("codepoint", BuiltInFunc::Codepoint, &["str"]);
@@ -134,6 +154,12 @@ impl<'p> Program<'p> {
             "strReplace",
             BuiltInFunc::StrReplace,
             &["str", "from", "to"],
+        );
+        add_simple("trim", BuiltInFunc::Trim, &["str"]);
+        add_simple(
+            "equalsIgnoreCase",
+            BuiltInFunc::EqualsIgnoreCase,
+            &["str1", "str2"],
         );
         add_simple("asciiUpper", BuiltInFunc::AsciiUpper, &["str"]);
         add_simple("asciiLower", BuiltInFunc::AsciiLower, &["str"]);
@@ -201,9 +227,19 @@ impl<'p> Program<'p> {
         add_simple("join", BuiltInFunc::Join, &["sep", "arr"]);
         add_simple("deepJoin", BuiltInFunc::DeepJoin, &["arr"]);
         add_simple("flattenArrays", BuiltInFunc::FlattenArrays, &["arrs"]);
+        add_simple(
+            "flattenDeepArray",
+            BuiltInFunc::FlattenDeepArray,
+            &["value"],
+        );
         add_simple("reverse", BuiltInFunc::Reverse, &["arr"]);
         add_simple("all", BuiltInFunc::All, &["arr"]);
         add_simple("any", BuiltInFunc::Any, &["arr"]);
+        add_simple("sum", BuiltInFunc::Sum, &["sum"]);
+        add_simple("avg", BuiltInFunc::Avg, &["avg"]);
+        add_simple("contains", BuiltInFunc::Contains, &["arr", "elem"]);
+        add_simple("remove", BuiltInFunc::Remove, &["arr", "elem"]);
+        add_simple("removeAt", BuiltInFunc::RemoveAt, &["arr", "idx"]);
         add_simple("base64", BuiltInFunc::Base64, &["input"]);
         add_simple(
             "base64DecodeBytes",
@@ -212,6 +248,10 @@ impl<'p> Program<'p> {
         );
         add_simple("base64Decode", BuiltInFunc::Base64Decode, &["str"]);
         add_simple("md5", BuiltInFunc::Md5, &["str"]);
+        add_simple("sha1", BuiltInFunc::Sha1, &["str"]);
+        add_simple("sha256", BuiltInFunc::Sha256, &["str"]);
+        add_simple("sha512", BuiltInFunc::Sha512, &["str"]);
+        add_simple("sha3", BuiltInFunc::Sha3, &["str"]);
         add_simple("mergePatch", BuiltInFunc::MergePatch, &["target", "patch"]);
         add_simple("mod", BuiltInFunc::Mod, &["a", "b"]);
         add_simple("native", BuiltInFunc::Native, &["name"]);
@@ -270,6 +310,29 @@ impl<'p> Program<'p> {
             BuiltInFunc::Uniq,
             &[("arr", None), ("keyF", Some(identity_func))],
         );
+
+        let min_max_default_on_empty = arena.alloc(ir::Expr::OtherError {
+            msg: arena.alloc_str("expected an array with at least one element"),
+        });
+        add_with_defaults(
+            "minArray",
+            BuiltInFunc::MinArray,
+            &[
+                ("arr", None),
+                ("keyF", Some(identity_func)),
+                ("onEmpty", Some(min_max_default_on_empty)),
+            ],
+        );
+        add_with_defaults(
+            "maxArray",
+            BuiltInFunc::MaxArray,
+            &[
+                ("arr", None),
+                ("keyF", Some(identity_func)),
+                ("onEmpty", Some(min_max_default_on_empty)),
+            ],
+        );
+
         add_with_defaults(
             "set",
             BuiltInFunc::Set,

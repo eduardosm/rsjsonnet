@@ -238,6 +238,42 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
+    pub(super) fn do_std_object_remove_key(&mut self) -> EvalResult<()> {
+        let key = self.value_stack.pop().unwrap();
+        let object = self.value_stack.pop().unwrap();
+
+        let object = self.expect_std_func_arg_object(object, "objectRemoveKey", 0)?;
+        let key = self.expect_std_func_arg_string(key, "objectRemoveKey", 1)?;
+
+        let key = self.program.str_interner.get_interned(&key);
+
+        let mut fields = FHashMap::default();
+        for field_name in object.get_visible_fields_order() {
+            if Some(field_name) != key {
+                let field_thunk = self
+                    .program
+                    .find_object_field_thunk(&object, 0, field_name)
+                    .unwrap();
+                fields.insert(
+                    field_name,
+                    ObjectField {
+                        base_env: None,
+                        visibility: ast::Visibility::Default,
+                        expr: None,
+                        thunk: OnceCell::from(Gc::from(&field_thunk)),
+                    },
+                );
+            }
+        }
+
+        self.value_stack.push(ValueData::Object(
+            self.program.gc_alloc(ObjectData::new_simple(fields)),
+        ));
+        self.check_object_asserts(&object);
+
+        Ok(())
+    }
+
     pub(super) fn do_std_map_with_key(&mut self) -> EvalResult<()> {
         let object = self.value_stack.pop().unwrap();
         let func = self.value_stack.pop().unwrap();
@@ -425,6 +461,24 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
+    pub(super) fn do_std_log2(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "log2", 0)?;
+        let r = arg.log2();
+        self.check_number_value(r, None)?;
+        self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_log10(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "log10", 0)?;
+        let r = arg.log10();
+        self.check_number_value(r, None)?;
+        self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
     pub(super) fn do_std_sqrt(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let arg = self.expect_std_func_arg_number(arg, "sqrt", 0)?;
@@ -485,6 +539,78 @@ impl<'p> Evaluator<'_, 'p> {
         let r = arg.atan();
         self.check_number_value(r, None)?;
         self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_atan2(&mut self) -> EvalResult<()> {
+        let arg1 = self.value_stack.pop().unwrap();
+        let arg0 = self.value_stack.pop().unwrap();
+        let arg0 = self.expect_std_func_arg_number(arg0, "atan2", 0)?;
+        let arg1 = self.expect_std_func_arg_number(arg1, "atan2", 1)?;
+        let r = f64::atan2(arg0, arg1);
+        self.check_number_value(r, None)?;
+        self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_deg2rad(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "deg2rad", 0)?;
+        let r = arg.to_radians();
+        self.check_number_value(r, None)?;
+        self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_rad2deg(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "rad2deg", 0)?;
+        let r = arg.to_degrees();
+        self.check_number_value(r, None)?;
+        self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_hypot(&mut self) -> EvalResult<()> {
+        let arg1 = self.value_stack.pop().unwrap();
+        let arg0 = self.value_stack.pop().unwrap();
+        let arg0 = self.expect_std_func_arg_number(arg0, "hypot", 0)?;
+        let arg1 = self.expect_std_func_arg_number(arg1, "hypot", 1)?;
+        let r = f64::hypot(arg0, arg1);
+        self.check_number_value(r, None)?;
+        self.value_stack.push(ValueData::Number(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_is_even(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "isEven", 0)?;
+        let r = arg % 2.0 == 0.0;
+        self.value_stack.push(ValueData::Bool(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_is_odd(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "isOdd", 0)?;
+        let r = arg % 2.0 != 0.0;
+        self.value_stack.push(ValueData::Bool(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_is_integer(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "isInteger", 0)?;
+        let r = arg.trunc() == arg;
+        self.value_stack.push(ValueData::Bool(r));
+        Ok(())
+    }
+
+    pub(super) fn do_std_is_decimal(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_number(arg, "isDecimal", 0)?;
+        let r = arg.trunc() != arg;
+        self.value_stack.push(ValueData::Bool(r));
         Ok(())
     }
 
@@ -861,6 +987,29 @@ impl<'p> Evaluator<'_, 'p> {
 
         let result = s.replace(&*from, &to);
         self.value_stack.push(ValueData::String(result.into()));
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_trim(&mut self) -> EvalResult<()> {
+        let s = self.value_stack.pop().unwrap();
+        let s = self.expect_std_func_arg_string(s, "trim", 0)?;
+        let result = s.trim_matches(|c| {
+            matches!(c, '\t' | '\n' | '\u{0C}' | '\r' | ' ' | '\u{85}' | '\u{A0}')
+        });
+        self.value_stack.push(ValueData::String(result.into()));
+        Ok(())
+    }
+
+    pub(super) fn do_std_equals_ignore_case(&mut self) -> EvalResult<()> {
+        let s2 = self.value_stack.pop().unwrap();
+        let s1 = self.value_stack.pop().unwrap();
+
+        let s1 = self.expect_std_func_arg_string(s1, "equalsIgnoreCase", 0)?;
+        let s2 = self.expect_std_func_arg_string(s2, "equalsIgnoreCase", 1)?;
+
+        self.value_stack
+            .push(ValueData::Bool(s1.eq_ignore_ascii_case(&s2)));
 
         Ok(())
     }
@@ -2279,6 +2428,64 @@ impl<'p> Evaluator<'_, 'p> {
         Ok(())
     }
 
+    pub(super) fn do_std_flatten_deep_array(&mut self) {
+        let value = self.value_stack.pop().unwrap();
+
+        if let ValueData::Array(array) = value {
+            let array = array.view();
+            if let Some(item0) = array.first() {
+                let item0 = item0.view();
+                self.array_stack.push(Vec::new());
+                self.state_stack.push(State::ArrayToValue);
+                self.state_stack
+                    .push(State::StdFlattenDeepArrayItem { array, index: 0 });
+                self.state_stack.push(State::DoThunk(item0));
+            } else {
+                self.value_stack
+                    .push(ValueData::Array(Gc::from(&self.program.empty_array)));
+            }
+        } else {
+            self.value_stack.push(ValueData::Array(
+                self.program.make_value_array(std::iter::once(value)),
+            ));
+        }
+    }
+
+    pub(super) fn do_std_flatten_deep_array_item(
+        &mut self,
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+    ) {
+        let item_value = self.value_stack.pop().unwrap();
+
+        let next_index = index + 1;
+        if let Some(next_item) = array.get(next_index) {
+            let next_item = next_item.view();
+            self.state_stack.push(State::StdFlattenDeepArrayItem {
+                array: array.clone(),
+                index: next_index,
+            });
+            self.state_stack.push(State::DoThunk(next_item));
+        }
+
+        if let ValueData::Array(sub_array) = item_value {
+            let sub_array = sub_array.view();
+            if let Some(sub_item0) = sub_array.first() {
+                let sub_item0 = sub_item0.view();
+                self.state_stack.push(State::StdFlattenDeepArrayItem {
+                    array: sub_array,
+                    index: 0,
+                });
+                self.state_stack.push(State::DoThunk(sub_item0));
+            }
+        } else {
+            self.array_stack
+                .last_mut()
+                .unwrap()
+                .push(array[index].clone());
+        }
+    }
+
     pub(super) fn do_std_reverse(&mut self) -> EvalResult<()> {
         let value = self.value_stack.pop().unwrap();
         let reverse = match value {
@@ -2712,6 +2919,387 @@ impl<'p> Evaluator<'_, 'p> {
                 self.state_stack.push(State::StdAnyItem { array, index });
                 self.state_stack.push(State::DoThunk(item_thunk));
             }
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_sum(&mut self) -> EvalResult<()> {
+        let arr = self.value_stack.pop().unwrap();
+
+        let array = self.expect_std_func_arg_array(arr, "sum", 0)?;
+        if array.is_empty() {
+            self.value_stack.push(ValueData::Number(0.0));
+        } else {
+            let item_thunk = array[0].view();
+            self.state_stack.push(State::StdSumItem {
+                array,
+                index: 0,
+                sum: 0.0,
+            });
+            self.state_stack.push(State::DoThunk(item_thunk));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_sum_item(
+        &mut self,
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+        sum: f64,
+    ) -> EvalResult<()> {
+        let item_value = self.value_stack.pop().unwrap();
+        let ValueData::Number(item_value) = item_value else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!(
+                    "array item {index} must be a number, got {}",
+                    EvalErrorValueType::from_value(&item_value).to_str(),
+                ),
+            }));
+        };
+
+        let sum = sum + item_value;
+        let index = index + 1;
+        if index == array.len() {
+            self.value_stack.push(ValueData::Number(sum));
+        } else {
+            let item_thunk = array[index].view();
+            self.state_stack
+                .push(State::StdSumItem { array, index, sum });
+            self.state_stack.push(State::DoThunk(item_thunk));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_avg(&mut self) -> EvalResult<()> {
+        let arr = self.value_stack.pop().unwrap();
+
+        let array = self.expect_std_func_arg_array(arr, "avg", 0)?;
+        if array.is_empty() {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: "cannot calculate average of empty array".into(),
+            }));
+        } else {
+            let item_thunk = array[0].view();
+            self.state_stack.push(State::StdAvgItem {
+                array,
+                index: 0,
+                sum: 0.0,
+            });
+            self.state_stack.push(State::DoThunk(item_thunk));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_avg_item(
+        &mut self,
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+        sum: f64,
+    ) -> EvalResult<()> {
+        let item_value = self.value_stack.pop().unwrap();
+        let ValueData::Number(item_value) = item_value else {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: format!(
+                    "array item {index} must be a number, got {}",
+                    EvalErrorValueType::from_value(&item_value).to_str(),
+                ),
+            }));
+        };
+
+        let sum = sum + item_value;
+        let index = index + 1;
+        if index == array.len() {
+            self.value_stack
+                .push(ValueData::Number(sum / (array.len() as f64)));
+        } else {
+            let item_thunk = array[index].view();
+            self.state_stack
+                .push(State::StdAvgItem { array, index, sum });
+            self.state_stack.push(State::DoThunk(item_thunk));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_min_array(&mut self, on_empty: GcView<ThunkData<'p>>) -> EvalResult<()> {
+        let keyf = self.value_stack.pop().unwrap();
+        let arr = self.value_stack.pop().unwrap();
+
+        let array = self.expect_std_func_arg_array(arr, "minArray", 0)?;
+        let keyf = self.expect_std_func_arg_func(keyf, "minArray", 1)?;
+
+        if array.is_empty() {
+            self.state_stack.push(State::DoThunk(on_empty));
+        } else if array.len() == 1 {
+            self.state_stack.push(State::DoThunk(array[0].view()));
+        } else {
+            let item0 = array[0].view();
+            let item1 = array[1].view();
+            self.state_stack.push(State::StdMinArrayCompareItem {
+                keyf: keyf.clone(),
+                array,
+                cur_index: 1,
+                max_index: 0,
+            });
+            self.check_thunk_args_and_execute_call(&keyf, &[item1], &[], None)?;
+            self.check_thunk_args_and_execute_call(&keyf, &[item0], &[], None)?;
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_min_array_compare_item(
+        &mut self,
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        max_index: usize,
+    ) -> EvalResult<()> {
+        self.value_stack
+            .extend_from_within((self.value_stack.len() - 2)..);
+
+        self.state_stack.push(State::StdMinArrayCheckItem {
+            keyf: keyf.clone(),
+            array,
+            cur_index,
+            max_index,
+        });
+        self.state_stack.push(State::CompareValue);
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_min_array_check_item(
+        &mut self,
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        mut max_index: usize,
+    ) -> EvalResult<()> {
+        let cmp_ord = self.cmp_ord_stack.pop().unwrap();
+        if cmp_ord.is_gt() {
+            max_index = cur_index;
+            self.value_stack.remove(self.value_stack.len() - 2);
+        } else {
+            self.value_stack.remove(self.value_stack.len() - 1);
+        }
+
+        let cur_index = cur_index + 1;
+        if cur_index == array.len() {
+            self.value_stack.pop().unwrap();
+            self.state_stack
+                .push(State::DoThunk(array[max_index].view()));
+        } else {
+            let item = array[cur_index].view();
+            self.state_stack.push(State::StdMinArrayCompareItem {
+                keyf: keyf.clone(),
+                array,
+                cur_index,
+                max_index,
+            });
+            self.check_thunk_args_and_execute_call(&keyf, &[item], &[], None)?;
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_max_array(&mut self, on_empty: GcView<ThunkData<'p>>) -> EvalResult<()> {
+        let keyf = self.value_stack.pop().unwrap();
+        let arr = self.value_stack.pop().unwrap();
+
+        let array = self.expect_std_func_arg_array(arr, "maxArray", 0)?;
+        let keyf = self.expect_std_func_arg_func(keyf, "maxArray", 1)?;
+
+        if array.is_empty() {
+            self.state_stack.push(State::DoThunk(on_empty));
+        } else if array.len() == 1 {
+            self.state_stack.push(State::DoThunk(array[0].view()));
+        } else {
+            let item0 = array[0].view();
+            let item1 = array[1].view();
+            self.state_stack.push(State::StdMaxArrayCompareItem {
+                keyf: keyf.clone(),
+                array,
+                cur_index: 1,
+                max_index: 0,
+            });
+            self.check_thunk_args_and_execute_call(&keyf, &[item1], &[], None)?;
+            self.check_thunk_args_and_execute_call(&keyf, &[item0], &[], None)?;
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_max_array_compare_item(
+        &mut self,
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        max_index: usize,
+    ) -> EvalResult<()> {
+        self.value_stack
+            .extend_from_within((self.value_stack.len() - 2)..);
+
+        self.state_stack.push(State::StdMaxArrayCheckItem {
+            keyf: keyf.clone(),
+            array,
+            cur_index,
+            max_index,
+        });
+        self.state_stack.push(State::CompareValue);
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_max_array_check_item(
+        &mut self,
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        mut max_index: usize,
+    ) -> EvalResult<()> {
+        let cmp_ord = self.cmp_ord_stack.pop().unwrap();
+        if cmp_ord.is_lt() {
+            max_index = cur_index;
+            self.value_stack.remove(self.value_stack.len() - 2);
+        } else {
+            self.value_stack.remove(self.value_stack.len() - 1);
+        }
+
+        let cur_index = cur_index + 1;
+        if cur_index == array.len() {
+            self.value_stack.pop().unwrap();
+            self.state_stack
+                .push(State::DoThunk(array[max_index].view()));
+        } else {
+            let item = array[cur_index].view();
+            self.state_stack.push(State::StdMaxArrayCompareItem {
+                keyf: keyf.clone(),
+                array,
+                cur_index,
+                max_index,
+            });
+            self.check_thunk_args_and_execute_call(&keyf, &[item], &[], None)?;
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_contains(&mut self, value: GcView<ThunkData<'p>>) -> EvalResult<()> {
+        let array = self.value_stack.pop().unwrap();
+        let array = self.expect_std_func_arg_array(array, "contains", 0)?;
+
+        if let Some(item0) = array.first() {
+            let item0 = item0.view();
+
+            self.state_stack
+                .push(State::StdContainsItem { array, index: 0 });
+            self.state_stack.push(State::EqualsValue);
+            self.state_stack.push(State::DoThunk(item0));
+            self.state_stack.push(State::DoThunk(value.clone()));
+            self.state_stack.push(State::DoThunk(value));
+        } else {
+            self.value_stack.push(ValueData::Bool(false));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_contains_item(&mut self, array: GcView<ArrayData<'p>>, index: usize) {
+        let equal = self.bool_stack.pop().unwrap();
+        if equal {
+            *self.value_stack.last_mut().unwrap() = ValueData::Bool(true);
+        } else {
+            let next_index = index + 1;
+            if let Some(next_item) = array.get(next_index) {
+                let next_item = next_item.view();
+                self.value_stack
+                    .push(self.value_stack.last().unwrap().clone());
+                self.state_stack.push(State::StdContainsItem {
+                    array,
+                    index: next_index,
+                });
+                self.state_stack.push(State::EqualsValue);
+                self.state_stack.push(State::DoThunk(next_item));
+            } else {
+                *self.value_stack.last_mut().unwrap() = ValueData::Bool(false);
+            }
+        }
+    }
+
+    pub(super) fn do_std_remove(&mut self, value: GcView<ThunkData<'p>>) -> EvalResult<()> {
+        let array = self.value_stack.pop().unwrap();
+        let array = self.expect_std_func_arg_array(array, "contains", 0)?;
+
+        if let Some(item0) = array.first() {
+            let item0 = item0.view();
+
+            self.state_stack
+                .push(State::StdRemoveCheckItem { array, index: 0 });
+            self.state_stack.push(State::EqualsValue);
+            self.state_stack.push(State::DoThunk(item0));
+            self.state_stack.push(State::DoThunk(value.clone()));
+            self.state_stack.push(State::DoThunk(value));
+        } else {
+            self.value_stack.push(ValueData::Array(Gc::from(&array)));
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_remove_check_item(&mut self, array: GcView<ArrayData<'p>>, index: usize) {
+        let equal = self.bool_stack.pop().unwrap();
+        if equal {
+            let new_array = self.program.make_thunk_array(
+                array[..index]
+                    .iter()
+                    .cloned()
+                    .chain(array[(index + 1)..].iter().cloned()),
+            );
+            *self.value_stack.last_mut().unwrap() = ValueData::Array(new_array);
+        } else {
+            let next_index = index + 1;
+            if let Some(next_item) = array.get(next_index) {
+                let next_item = next_item.view();
+                self.value_stack
+                    .push(self.value_stack.last().unwrap().clone());
+                self.state_stack.push(State::StdRemoveCheckItem {
+                    array,
+                    index: next_index,
+                });
+                self.state_stack.push(State::EqualsValue);
+                self.state_stack.push(State::DoThunk(next_item));
+            } else {
+                *self.value_stack.last_mut().unwrap() = ValueData::Array(Gc::from(&array));
+            }
+        }
+    }
+
+    pub(super) fn do_std_remove_at(&mut self) -> EvalResult<()> {
+        let index = self.value_stack.pop().unwrap();
+        let array = self.value_stack.pop().unwrap();
+
+        let array = self.expect_std_func_arg_array(array, "containsAt", 0)?;
+        let index_f = self.expect_std_func_arg_number(index, "containsAt", 1)?;
+
+        let index = index_f as usize;
+        if index_f.trunc() == index_f && index_f >= 0.0 && index < array.len() {
+            let new_array = self.program.make_thunk_array(
+                array[..index]
+                    .iter()
+                    .cloned()
+                    .chain(array[(index + 1)..].iter().cloned()),
+            );
+            self.value_stack.push(ValueData::Array(new_array));
+        } else {
+            self.value_stack.push(ValueData::Array(Gc::from(&array)));
         }
 
         Ok(())
@@ -3255,11 +3843,59 @@ impl<'p> Evaluator<'_, 'p> {
         use md5::Digest as _;
         let hash = md5::Md5::digest(arg.as_bytes());
 
-        let mut hash_string = String::with_capacity(32);
-        for &byte in hash.iter() {
-            write!(hash_string, "{byte:02x}").unwrap();
-        }
+        let hash_string = hash_to_hex_string(&hash);
+        self.value_stack.push(ValueData::String(hash_string.into()));
 
+        Ok(())
+    }
+
+    pub(super) fn do_std_sha1(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_string(arg, "sha1", 0)?;
+
+        use sha1::Digest as _;
+        let hash = sha1::Sha1::digest(arg.as_bytes());
+
+        let hash_string = hash_to_hex_string(&hash);
+        self.value_stack.push(ValueData::String(hash_string.into()));
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_sha256(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_string(arg, "sha256", 0)?;
+
+        use sha2::Digest as _;
+        let hash = sha2::Sha256::digest(arg.as_bytes());
+
+        let hash_string = hash_to_hex_string(&hash);
+        self.value_stack.push(ValueData::String(hash_string.into()));
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_sha512(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_string(arg, "sha512", 0)?;
+
+        use sha2::Digest as _;
+        let hash = sha2::Sha512::digest(arg.as_bytes());
+
+        let hash_string = hash_to_hex_string(&hash);
+        self.value_stack.push(ValueData::String(hash_string.into()));
+
+        Ok(())
+    }
+
+    pub(super) fn do_std_sha3(&mut self) -> EvalResult<()> {
+        let arg = self.value_stack.pop().unwrap();
+        let arg = self.expect_std_func_arg_string(arg, "sha3", 0)?;
+
+        use sha3::Digest as _;
+        let hash = sha3::Sha3_512::digest(arg.as_bytes());
+
+        let hash_string = hash_to_hex_string(&hash);
         self.value_stack.push(ValueData::String(hash_string.into()));
 
         Ok(())
@@ -3409,6 +4045,14 @@ impl<'p> Evaluator<'_, 'p> {
             })),
         }
     }
+}
+
+fn hash_to_hex_string(hash: &[u8]) -> String {
+    let mut hash_string = String::with_capacity(hash.len() * 2);
+    for &byte in hash {
+        write!(hash_string, "{byte:02x}").unwrap();
+    }
+    hash_string
 }
 
 fn encode_base64<I>(input: I) -> EvalResult<String>

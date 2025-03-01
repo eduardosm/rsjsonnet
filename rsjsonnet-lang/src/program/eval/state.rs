@@ -328,6 +328,11 @@ pub(super) enum State<'a, 'p> {
         sep: GcView<ArrayData<'p>>,
     },
     StdJoinArrayFinish,
+    StdFlattenDeepArray,
+    StdFlattenDeepArrayItem {
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+    },
     StdSort,
     StdSortSetKey {
         keys: Rc<Vec<OnceCell<ValueData<'p>>>>,
@@ -392,6 +397,62 @@ pub(super) enum State<'a, 'p> {
     },
     StdAny,
     StdAnyItem {
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+    },
+    StdSum,
+    StdSumItem {
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+        sum: f64,
+    },
+    StdAvg,
+    StdAvgItem {
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+        sum: f64,
+    },
+    StdMinArray {
+        on_empty: GcView<ThunkData<'p>>,
+    },
+    StdMinArrayCompareItem {
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        max_index: usize,
+    },
+    StdMinArrayCheckItem {
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        max_index: usize,
+    },
+    StdMaxArray {
+        on_empty: GcView<ThunkData<'p>>,
+    },
+    StdMaxArrayCompareItem {
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        max_index: usize,
+    },
+    StdMaxArrayCheckItem {
+        keyf: GcView<FuncData<'p>>,
+        array: GcView<ArrayData<'p>>,
+        cur_index: usize,
+        max_index: usize,
+    },
+    StdContains {
+        value: GcView<ThunkData<'p>>,
+    },
+    StdContainsItem {
+        array: GcView<ArrayData<'p>>,
+        index: usize,
+    },
+    StdRemove {
+        value: GcView<ThunkData<'p>>,
+    },
+    StdRemoveCheckItem {
         array: GcView<ArrayData<'p>>,
         index: usize,
     },

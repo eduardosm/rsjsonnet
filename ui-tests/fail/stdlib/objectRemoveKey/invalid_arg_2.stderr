@@ -1,0 +1,8 @@
+error: second argument of `std.objectRemoveKey` is expected to be string, got null
+note: while evaluating call to `objectRemoveKey`
+ --> invalid_arg_2.jsonnet:1:1
+  |
+1 | std.objectRemoveKey({}, null)
+  | -----------------------------
+note: during top-level value evaluation
+

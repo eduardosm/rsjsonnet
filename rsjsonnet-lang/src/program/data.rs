@@ -43,6 +43,19 @@ impl<'p> Program<'p> {
     }
 
     #[inline]
+    pub(super) fn make_thunk_array(
+        &mut self,
+        items: impl IntoIterator<Item = Gc<ThunkData<'p>>>,
+    ) -> Gc<ArrayData<'p>> {
+        let items: Box<[_]> = items.into_iter().collect();
+        if items.is_empty() {
+            Gc::from(&self.empty_array)
+        } else {
+            self.gc_alloc(items)
+        }
+    }
+
+    #[inline]
     pub(super) fn make_value_array(
         &mut self,
         items: impl IntoIterator<Item = ValueData<'p>>,
@@ -682,6 +695,7 @@ pub(super) enum BuiltInFunc {
     Prune,
     ObjectHasEx,
     ObjectFieldsEx,
+    ObjectRemoveKey,
     MapWithKey,
     PrimitiveEquals,
     Equals,
@@ -696,6 +710,8 @@ pub(super) enum BuiltInFunc {
     Pow,
     Exp,
     Log,
+    Log2,
+    Log10,
     Sqrt,
     Sin,
     Cos,
@@ -703,6 +719,14 @@ pub(super) enum BuiltInFunc {
     Asin,
     Acos,
     Atan,
+    Atan2,
+    Deg2Rad,
+    Rad2Deg,
+    Hypot,
+    IsEven,
+    IsOdd,
+    IsInteger,
+    IsDecimal,
     // Assertions
     AssertEqual,
     // String Manipulation
@@ -720,6 +744,8 @@ pub(super) enum BuiltInFunc {
     SplitLimit,
     SplitLimitR,
     StrReplace,
+    Trim,
+    EqualsIgnoreCase,
     AsciiUpper,
     AsciiLower,
     StringChars,
@@ -764,11 +790,19 @@ pub(super) enum BuiltInFunc {
     Join,
     DeepJoin,
     FlattenArrays,
+    FlattenDeepArray,
     Reverse,
     Sort,
     Uniq,
     All,
     Any,
+    Sum,
+    Avg,
+    MinArray,
+    MaxArray,
+    Contains,
+    Remove,
+    RemoveAt,
     // Sets
     Set,
     SetInter,
@@ -780,6 +814,10 @@ pub(super) enum BuiltInFunc {
     Base64DecodeBytes,
     Base64Decode,
     Md5,
+    Sha1,
+    Sha256,
+    Sha512,
+    Sha3,
     // JSON Merge Patch
     MergePatch,
     // Other

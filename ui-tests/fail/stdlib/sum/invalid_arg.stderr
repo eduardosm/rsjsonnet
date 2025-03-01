@@ -1,0 +1,8 @@
+error: first argument of `std.sum` is expected to be array, got null
+note: while evaluating call to `sum`
+ --> invalid_arg.jsonnet:1:1
+  |
+1 | std.sum(null)
+  | -------------
+note: during top-level value evaluation
+

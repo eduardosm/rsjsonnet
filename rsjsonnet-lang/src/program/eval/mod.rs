@@ -1383,6 +1383,10 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                 State::StdJoinStrFinish => self.do_std_join_str_finish(),
                 State::StdJoinArrayItem { sep } => self.do_std_join_array_item(sep)?,
                 State::StdJoinArrayFinish => self.do_std_join_array_finish(),
+                State::StdFlattenDeepArray => self.do_std_flatten_deep_array(),
+                State::StdFlattenDeepArrayItem { array, index } => {
+                    self.do_std_flatten_deep_array_item(array, index)
+                }
                 State::StdSort => self.do_std_sort()?,
                 State::StdSortSetKey { keys, index } => self.do_std_sort_set_key(keys, index),
                 State::StdSortCompare { keys, lhs, rhs } => {
@@ -1436,6 +1440,46 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                 State::StdAllItem { array, index } => self.do_std_all_item(array, index)?,
                 State::StdAny => self.do_std_any()?,
                 State::StdAnyItem { array, index } => self.do_std_any_item(array, index)?,
+                State::StdSum => self.do_std_sum()?,
+                State::StdSumItem { array, index, sum } => {
+                    self.do_std_sum_item(array, index, sum)?
+                }
+                State::StdAvg => self.do_std_avg()?,
+                State::StdAvgItem { array, index, sum } => {
+                    self.do_std_avg_item(array, index, sum)?
+                }
+                State::StdMinArray { on_empty } => self.do_std_min_array(on_empty)?,
+                State::StdMinArrayCompareItem {
+                    keyf,
+                    array,
+                    cur_index,
+                    max_index,
+                } => self.do_std_min_array_compare_item(keyf, array, cur_index, max_index)?,
+                State::StdMinArrayCheckItem {
+                    keyf,
+                    array,
+                    cur_index,
+                    max_index,
+                } => self.do_std_min_array_check_item(keyf, array, cur_index, max_index)?,
+                State::StdMaxArray { on_empty } => self.do_std_max_array(on_empty)?,
+                State::StdMaxArrayCompareItem {
+                    keyf,
+                    array,
+                    cur_index,
+                    max_index,
+                } => self.do_std_max_array_compare_item(keyf, array, cur_index, max_index)?,
+                State::StdMaxArrayCheckItem {
+                    keyf,
+                    array,
+                    cur_index,
+                    max_index,
+                } => self.do_std_max_array_check_item(keyf, array, cur_index, max_index)?,
+                State::StdContains { value } => self.do_std_contains(value)?,
+                State::StdContainsItem { array, index } => self.do_std_contains_item(array, index),
+                State::StdRemove { value } => self.do_std_remove(value)?,
+                State::StdRemoveCheckItem { array, index } => {
+                    self.do_std_remove_check_item(array, index)
+                }
                 State::StdSet => self.do_std_set()?,
                 State::StdSetUniq {
                     orig_array,
