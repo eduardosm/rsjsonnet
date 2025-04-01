@@ -146,6 +146,9 @@ pub enum EvalErrorKind {
         lhs_type: EvalErrorValueType,
         rhs_type: EvalErrorValueType,
     },
+    NumberNotBitwiseSafe {
+        span: Option<SpanId>,
+    },
     NumberOverflow {
         span: Option<SpanId>,
     },

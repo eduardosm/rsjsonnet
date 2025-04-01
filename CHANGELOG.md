@@ -2,6 +2,11 @@
 
 ## 0.4.0 (unreleased)
 
+### Breaking
+
+- Performing bitwise operations with numeric values that cannot be safely
+  converted to `i64` will fail.
+
 ### Added
 
 - New language features from Jsonnet 0.21:
