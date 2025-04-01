@@ -1,0 +1,7 @@
+error: numeric value cannot be safely used for bitwise operation
+ --> bitwise_not_unsafe.jsonnet:1:1
+  |
+1 | ~1e50
+  | ^^^^^
+note: during top-level value evaluation
+

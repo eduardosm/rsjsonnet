@@ -886,7 +886,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                             self.value_stack.push(ValueData::Number(rhs));
                         }
                         (ast::UnaryOp::BitwiseNot, ValueData::Number(rhs)) => {
-                            let int = rhs as i64;
+                            let int = self.safe_f64_to_i64(rhs, Some(span))?;
                             self.value_stack.push(ValueData::Number(!int as f64));
                         }
                         (ast::UnaryOp::LogicNot, ValueData::Bool(rhs)) => {
@@ -1643,6 +1643,17 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                     });
                 }
             }
+        }
+    }
+
+    fn safe_f64_to_i64(&mut self, value: f64, span: Option<SpanId>) -> EvalResult<i64> {
+        let max = (1u64 << 53) as f64;
+        let min = -max;
+
+        if value < min || value > max {
+            Err(self.report_error(EvalErrorKind::NumberNotBitwiseSafe { span }))
+        } else {
+            Ok(value as i64)
         }
     }
 

@@ -760,38 +760,42 @@ impl<'p> Evaluator<'_, 'p> {
                 self.value_stack.push(ValueData::Number(r));
             }
             (ast::BinaryOp::Shl, ValueData::Number(lhs), ValueData::Number(rhs)) => {
-                let lhs = lhs as i64;
+                let lhs = self.safe_f64_to_i64(lhs, span)?;
                 if rhs.is_sign_negative() {
                     return Err(self.report_error(EvalErrorKind::ShiftByNegative { span }));
                 }
-                let rhs = rhs as i64;
-                let r = lhs << (rhs & 63);
+                let rhs = self.safe_f64_to_i64(rhs, span)?;
+                let shift = rhs & 63;
+                let r = lhs << shift;
+                if r >> shift != lhs {
+                    return Err(self.report_error(EvalErrorKind::NumberNotBitwiseSafe { span }));
+                }
                 self.value_stack.push(ValueData::Number(r as f64));
             }
             (ast::BinaryOp::Shr, ValueData::Number(lhs), ValueData::Number(rhs)) => {
-                let lhs = lhs as i64;
+                let lhs = self.safe_f64_to_i64(lhs, span)?;
                 if rhs.is_sign_negative() {
                     return Err(self.report_error(EvalErrorKind::ShiftByNegative { span }));
                 }
-                let rhs = rhs as i64;
+                let rhs = self.safe_f64_to_i64(rhs, span)?;
                 let r = lhs >> (rhs & 63);
                 self.value_stack.push(ValueData::Number(r as f64));
             }
             (ast::BinaryOp::BitwiseAnd, ValueData::Number(lhs), ValueData::Number(rhs)) => {
-                let lhs = lhs as i64;
-                let rhs = rhs as i64;
+                let lhs = self.safe_f64_to_i64(lhs, span)?;
+                let rhs = self.safe_f64_to_i64(rhs, span)?;
                 let r = lhs & rhs;
                 self.value_stack.push(ValueData::Number(r as f64));
             }
             (ast::BinaryOp::BitwiseOr, ValueData::Number(lhs), ValueData::Number(rhs)) => {
-                let lhs = lhs as i64;
-                let rhs = rhs as i64;
+                let lhs = self.safe_f64_to_i64(lhs, span)?;
+                let rhs = self.safe_f64_to_i64(rhs, span)?;
                 let r = lhs | rhs;
                 self.value_stack.push(ValueData::Number(r as f64));
             }
             (ast::BinaryOp::BitwiseXor, ValueData::Number(lhs), ValueData::Number(rhs)) => {
-                let lhs = lhs as i64;
-                let rhs = rhs as i64;
+                let lhs = self.safe_f64_to_i64(lhs, span)?;
+                let rhs = self.safe_f64_to_i64(rhs, span)?;
                 let r = lhs ^ rhs;
                 self.value_stack.push(ValueData::Number(r as f64));
             }

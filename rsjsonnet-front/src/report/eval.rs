@@ -375,6 +375,21 @@ pub(crate) fn render_error_kind(
             }
             .render(span_mgr, src_mgr, &mut out);
         }
+        EvalErrorKind::NumberNotBitwiseSafe { span } => {
+            Message {
+                kind: MessageKind::Error,
+                message: "numeric value cannot be safely used for bitwise operation".into(),
+                labels: span
+                    .map(|span| MessageLabel {
+                        kind: LabelKind::Error,
+                        span,
+                        text: String::new(),
+                    })
+                    .into_iter()
+                    .collect(),
+            }
+            .render(span_mgr, src_mgr, &mut out);
+        }
         EvalErrorKind::NumberOverflow { span } => {
             Message {
                 kind: MessageKind::Error,
@@ -550,6 +565,7 @@ pub(crate) fn render_error_kind(
             }
             .render(span_mgr, src_mgr, &mut out);
         }
+
         EvalErrorKind::CompareBooleanInequality => {
             Message {
                 kind: MessageKind::Error,

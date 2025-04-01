@@ -1,0 +1,7 @@
+error: numeric value cannot be safely used for bitwise operation
+ --> or_unsafe_lhs.jsonnet:1:1
+  |
+1 | 1e50 | 0
+  | ^^^^^^^^
+note: during top-level value evaluation
+
