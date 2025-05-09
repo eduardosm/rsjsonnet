@@ -1,7 +1,7 @@
 # rsjsonnet
 
 [![GitHub Actions Status](https://github.com/eduardosm/rsjsonnet/workflows/CI/badge.svg)](https://github.com/eduardosm/rsjsonnet/actions)
-![MSRV](https://img.shields.io/badge/rustc-1.74+-lightgray.svg)
+![MSRV](https://img.shields.io/badge/rustc-1.75+-lightgray.svg)
 
 A Rust implementation of the [Jsonnet language](https://jsonnet.org/).
 Currently, it targets Jsonnet version 0.21.
