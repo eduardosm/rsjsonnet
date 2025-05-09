@@ -118,11 +118,11 @@ pub(super) fn parse_yaml<'p>(
     }
 }
 
-enum AnchorValue<'p> {
+enum AnchorValue<'p, 'a> {
     Pending,
     Scalar {
-        style: saphyr_parser::TScalarStyle,
-        value: String,
+        style: saphyr_parser::ScalarStyle,
+        value: std::borrow::Cow<'a, str>,
     },
     Array(Gc<ArrayData<'p>>),
     Object(Gc<ObjectData<'p>>),
@@ -130,7 +130,7 @@ enum AnchorValue<'p> {
 
 fn parse_yaml_document<'p>(
     program: &mut Program<'p>,
-    parser: &mut saphyr_parser::Parser<saphyr_parser::StrInput<'_>>,
+    parser: &mut saphyr_parser::Parser<'_, saphyr_parser::StrInput<'_>>,
 ) -> Result<ValueData<'p>, ParseError<'p>> {
     enum StackItem<'p> {
         Array {
@@ -367,10 +367,10 @@ fn parse_yaml_document<'p>(
 }
 
 fn scalar_to_value<'p>(
-    style: saphyr_parser::TScalarStyle,
+    style: saphyr_parser::ScalarStyle,
     value: &str,
 ) -> Result<ValueData<'p>, ParseError<'p>> {
-    if style == saphyr_parser::TScalarStyle::Plain {
+    if style == saphyr_parser::ScalarStyle::Plain {
         match value {
             "null" | "Null" | "NULL" | "~" => Ok(ValueData::Null),
             "true" | "True" | "TRUE" => Ok(ValueData::Bool(true)),
