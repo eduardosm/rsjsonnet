@@ -39,6 +39,10 @@
   - `std.sha512(s)`
   - `std.sha3(s)`
 
+### Compatibility
+
+- Minimum Supported Rust Version (MSRV) has been bumped to 1.75.
+
 ## 0.3.0 (2024-11-07)
 
 ### Breaking
