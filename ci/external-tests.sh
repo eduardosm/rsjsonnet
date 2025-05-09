@@ -11,7 +11,7 @@ begin_group "Build"
 cargo build -p rsjsonnet --frozen
 end_group
 
-ext_jsonnet_ver="0.20.0"
+ext_jsonnet_ver="0.21.0"
 begin_group "Download jsonnet $ext_jsonnet_ver"
 curl -fL "https://github.com/google/jsonnet/archive/refs/tags/v${ext_jsonnet_ver}.tar.gz" | tar -xz
 end_group
