@@ -1647,7 +1647,10 @@ impl<'p, 'a> Evaluator<'a, 'p> {
     }
 
     fn safe_f64_to_i64(&mut self, value: f64, span: Option<SpanId>) -> EvalResult<i64> {
-        let max = (1u64 << 53) as f64;
+        // An integer is considered safely representable as an f64 if its value (x), as
+        // well as its immediate successor (x + 1) and predecessor (x - 1), can all be
+        // represented exactly as f64 values.
+        let max = ((1u64 << 53) - 1) as f64;
         let min = -max;
 
         if value < min || value > max {
