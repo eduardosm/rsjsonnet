@@ -477,7 +477,7 @@ dependencies = [
 
 [[package]]
 name = "rsjsonnet"
-version = "0.4.0-pre"
+version = "0.4.0"
 dependencies = [
  "clap",
  "libtest-mimic",
@@ -490,7 +490,7 @@ dependencies = [
 
 [[package]]
 name = "rsjsonnet-front"
-version = "0.4.0-pre"
+version = "0.4.0"
 dependencies = [
  "crossterm",
  "rsjsonnet-lang",
@@ -499,7 +499,7 @@ dependencies = [
 
 [[package]]
 name = "rsjsonnet-lang"
-version = "0.4.0-pre"
+version = "0.4.0"
 dependencies = [
  "bumpalo",
  "foldhash",

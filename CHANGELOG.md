@@ -1,11 +1,11 @@
 # Changelog
 
-## 0.4.0 (unreleased)
+## 0.4.0 (2025-05-10)
 
 ### Breaking
 
-- Performing bitwise operations with numeric values that cannot be safely
-  converted to `i64` will fail.
+- Performing bitwise operations with integers that cannot be safely represented
+  by a `f64` will fail.
 
 ### Added
 
