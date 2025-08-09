@@ -142,7 +142,7 @@ impl<'a, 'p, 'ast> Lexer<'a, 'p, 'ast> {
                     self.lex_verbatim_string(b'"')
                 } else {
                     let span = self.make_span(self.start_pos, self.end_pos);
-                    return Err(LexError::InvalidChar { span, chr: '@' });
+                    Err(LexError::InvalidChar { span, chr: '@' })
                 }
             }
             Some(b'\'') => self.lex_quoted_string(b'\''),
