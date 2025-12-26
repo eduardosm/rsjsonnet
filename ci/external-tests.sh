@@ -26,7 +26,7 @@ failures=0
 cd "$ext_src_dir/test_suite"
 for test in *.jsonnet; do
   if [[ "$test" = "safe_integer_conversion.jsonnet" ]]; then
-    # Skip this test, since C++ Jsonnet considers 2^53 as a safe.
+    # Skip this test, since C++ Jsonnet considers 2^53 as a safe integer.
     continue
   fi
 
