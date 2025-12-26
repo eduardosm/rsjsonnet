@@ -539,9 +539,9 @@ impl<'p> Evaluator<'_, 'p> {
             let pad_len = fw - s.chars().count();
             if code.cflags.left {
                 result.push_str(&s);
-                result.extend(std::iter::repeat(' ').take(pad_len));
+                result.extend(std::iter::repeat_n(' ', pad_len));
             } else {
-                result.extend(std::iter::repeat(' ').take(pad_len));
+                result.extend(std::iter::repeat_n(' ', pad_len));
                 result.push_str(&s);
             }
         } else {
@@ -684,9 +684,9 @@ impl<'p> Evaluator<'_, 'p> {
             let pad_len = fw - s.chars().count();
             if code.cflags.left {
                 result.push_str(&s);
-                result.extend(std::iter::repeat(' ').take(pad_len));
+                result.extend(std::iter::repeat_n(' ', pad_len));
             } else {
-                result.extend(std::iter::repeat(' ').take(pad_len));
+                result.extend(std::iter::repeat_n(' ', pad_len));
                 result.push_str(&s);
             }
         } else {
@@ -990,7 +990,7 @@ impl<'p> Evaluator<'_, 'p> {
             .saturating_sub(digits_s.len())
             .max(min_chars.saturating_sub(result.len() + digits_s.len()));
 
-        result.extend(std::iter::repeat('0').take(pad_len));
+        result.extend(std::iter::repeat_n('0', pad_len));
         result.push_str(&digits_s);
         result
     }
@@ -1043,7 +1043,7 @@ impl<'p> Evaluator<'_, 'p> {
             .saturating_sub(digits_s.len())
             .max(min_chars.saturating_sub(result.len() + digits_s.len()));
 
-        result.extend(std::iter::repeat('0').take(pad_len));
+        result.extend(std::iter::repeat_n('0', pad_len));
         result.push_str(&digits_s);
         result
     }
@@ -1128,7 +1128,7 @@ fn decorate_digits(
         .saturating_sub(digits.len())
         .max(min_chars.saturating_sub(unpadded_len));
 
-    s.extend(std::iter::repeat('0').take(pad_len));
+    s.extend(std::iter::repeat_n('0', pad_len));
     s.push_str(digits);
 
     s

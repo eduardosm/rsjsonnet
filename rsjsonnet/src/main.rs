@@ -87,7 +87,7 @@ fn main_inner() -> Result<(), RunError> {
         session.set_max_trace(max_trace);
     }
 
-    session.set_colored_output(!std::env::var_os("NO_COLOR").is_some_and(|v| !v.is_empty()));
+    session.set_colored_output(std::env::var_os("NO_COLOR").is_none_or(|v| v.is_empty()));
 
     for path in args.jpath.iter().rev() {
         session.add_search_path(path.clone());

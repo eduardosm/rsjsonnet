@@ -64,10 +64,10 @@ pub(crate) fn run(
         expected_exit_code = if cmd_output.stderr.is_empty() { 0 } else { 1 };
     }
 
-    if !cmd_output
+    if cmd_output
         .status
         .code()
-        .is_some_and(|code| code == i32::from(expected_exit_code))
+        .is_none_or(|code| code != i32::from(expected_exit_code))
     {
         let mut err = String::new();
         if let Some(exit_code) = cmd_output.status.code() {

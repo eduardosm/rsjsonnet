@@ -2204,8 +2204,7 @@ impl<'p> Evaluator<'_, 'p> {
                 let array = array.view();
                 self.value_stack.push(ValueData::Array(
                     self.program.gc_alloc(
-                        std::iter::repeat(&array)
-                            .take(count)
+                        std::iter::repeat_n(&array, count)
                             .flat_map(|a| a.iter())
                             .cloned()
                             .collect(),
