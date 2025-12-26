@@ -11,9 +11,9 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-bumpalo = "3.19.0"
+bumpalo = "3.19.1"
 foldhash = "0.2.0"
-hashbrown = "0.16.0"
+hashbrown = "0.16.1"
 md-5 = { version = "0.10.6", default-features = false }
 saphyr-parser = "0.0.6"
 sha1 = { version = "0.10.6", default-features = false }

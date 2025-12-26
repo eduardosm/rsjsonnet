@@ -15,7 +15,7 @@ name = "ui"
 harness = false
 
 [dependencies]
-clap = { version = "4.5.47", features = ["derive"] }
+clap = { version = "4.5.53", features = ["derive"] }
 mimalloc = "0.1.48"
 rsjsonnet-front = { workspace = true, features = ["crossterm"] }
 rsjsonnet-lang = { workspace = true }
