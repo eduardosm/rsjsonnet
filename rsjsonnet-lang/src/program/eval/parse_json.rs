@@ -3,7 +3,7 @@ use std::cell::OnceCell;
 use super::{ObjectData, ObjectField, Program, ThunkData, ValueData};
 use crate::gc::Gc;
 use crate::interner::InternedStr;
-use crate::{ast, FHashMap};
+use crate::{FHashMap, ast};
 
 pub(super) struct ParseError<'p> {
     line: usize,

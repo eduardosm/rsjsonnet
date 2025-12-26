@@ -1,9 +1,9 @@
 use std::collections::hash_map::Entry as HashMapEntry;
 
-use super::{ir, AnalyzeError, Program};
+use super::{AnalyzeError, Program, ir};
 use crate::interner::InternedStr;
 use crate::span::SpanId;
-use crate::{ast, FHashMap, FHashSet};
+use crate::{FHashMap, FHashSet, ast};
 
 pub(super) struct Analyzer<'a, 'p> {
     program: &'a Program<'p>,

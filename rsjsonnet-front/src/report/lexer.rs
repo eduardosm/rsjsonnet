@@ -1,8 +1,8 @@
 use rsjsonnet_lang::lexer::LexError;
 use rsjsonnet_lang::span::SpanManager;
 
-use super::message::{LabelKind, Message, MessageKind, MessageLabel};
 use super::TextPartKind;
+use super::message::{LabelKind, Message, MessageKind, MessageLabel};
 use crate::src_manager::SrcManager;
 
 #[must_use]

@@ -2,8 +2,8 @@ use rsjsonnet_lang::parser::{ActualToken, ExpectedToken, ParseError};
 use rsjsonnet_lang::span::SpanManager;
 use rsjsonnet_lang::token::STokenKind;
 
-use super::message::{LabelKind, Message, MessageKind, MessageLabel};
 use super::TextPartKind;
+use super::message::{LabelKind, Message, MessageKind, MessageLabel};
 use crate::src_manager::SrcManager;
 
 #[must_use]

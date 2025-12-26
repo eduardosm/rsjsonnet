@@ -2,10 +2,10 @@ use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
-use super::{ir, Program};
+use super::{Program, ir};
 use crate::gc::{Gc, GcTrace, GcTraceCtx, GcView};
 use crate::interner::{InternedStr, SortedInternedStr};
-use crate::{ast, FHashMap};
+use crate::{FHashMap, ast};
 
 impl<'p> Program<'p> {
     pub(super) fn try_value_from_expr(&self, expr: &'p ir::Expr<'p>) -> Option<ValueData<'p>> {

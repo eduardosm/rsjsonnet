@@ -2,8 +2,8 @@ use rsjsonnet_lang::ast;
 use rsjsonnet_lang::program::{EvalErrorKind, EvalErrorValueType};
 use rsjsonnet_lang::span::SpanManager;
 
-use super::message::{LabelKind, Message, MessageKind, MessageLabel};
 use super::TextPartKind;
+use super::message::{LabelKind, Message, MessageKind, MessageLabel};
 use crate::src_manager::SrcManager;
 
 #[must_use]
