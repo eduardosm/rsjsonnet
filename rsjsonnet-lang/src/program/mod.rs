@@ -83,7 +83,7 @@ use crate::interner::{InternedStr, StrInterner};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 use crate::span::{SourceId, SpanContextId, SpanId, SpanManager};
-use crate::{ast, FHashMap};
+use crate::{FHashMap, ast};
 
 mod analyze;
 mod data;

@@ -3,7 +3,7 @@ use std::cell::OnceCell;
 use super::{ArrayData, ObjectData, ObjectField, Program, ThunkData, ValueData};
 use crate::gc::Gc;
 use crate::interner::InternedStr;
-use crate::{ast, FHashMap};
+use crate::{FHashMap, ast};
 
 pub(crate) enum ParseError<'p> {
     Parser(saphyr_parser::ScanError),
@@ -84,7 +84,7 @@ pub(super) fn parse_yaml<'p>(
                     StreamKind::Empty => {
                         if explicit {
                             stream_kind = StreamKind::Stream(vec![
-                                program.gc_alloc(ThunkData::new_done(value))
+                                program.gc_alloc(ThunkData::new_done(value)),
                             ]);
                         } else {
                             stream_kind = StreamKind::Single(value);

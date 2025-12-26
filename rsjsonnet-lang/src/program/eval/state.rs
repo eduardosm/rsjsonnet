@@ -1,7 +1,7 @@
 use std::cell::{Cell, OnceCell};
 use std::rc::Rc;
 
-use super::super::{ir, ArrayData, FuncData, ObjectData, ThunkData, ThunkEnv, ValueData};
+use super::super::{ArrayData, FuncData, ObjectData, ThunkData, ThunkEnv, ValueData, ir};
 use super::format::FormatPart;
 use super::{EvalResult, Evaluator, ManifestJsonFormat, TraceItem};
 use crate::ast;

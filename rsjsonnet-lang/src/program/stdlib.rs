@@ -1,13 +1,13 @@
 use std::cell::OnceCell;
 
 use super::{
-    ir, BuiltInFunc, FuncData, FuncKind, ObjectData, ObjectField, Program, ThunkData, ValueData,
+    BuiltInFunc, FuncData, FuncKind, ObjectData, ObjectField, Program, ThunkData, ValueData, ir,
 };
 use crate::arena::Arena;
 use crate::gc::{Gc, GcContext, GcView};
 use crate::interner::{InternedStr, StrInterner};
 use crate::span::SpanContextId;
-use crate::{ast, FHashMap};
+use crate::{FHashMap, ast};
 
 pub(super) const STDLIB_DATA: &[u8] = include_bytes!("std.libsonnet");
 

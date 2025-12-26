@@ -3,14 +3,14 @@ use std::collections::hash_map::Entry as HashMapEntry;
 use std::rc::Rc;
 
 use super::{
-    ir, ArrayData, Callbacks, EvalError, EvalErrorKind, EvalErrorValueType, EvalStackTraceItem,
+    ArrayData, Callbacks, EvalError, EvalErrorKind, EvalErrorValueType, EvalStackTraceItem,
     FuncData, FuncKind, ObjectData, ObjectField, ObjectLayer, PendingThunk, Program, ThunkData,
-    ThunkEnv, ThunkEnvData, ThunkState, ValueData,
+    ThunkEnv, ThunkEnvData, ThunkState, ValueData, ir,
 };
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
 use crate::span::SpanId;
-use crate::{ast, float, FHashMap};
+use crate::{FHashMap, ast, float};
 
 mod call;
 mod expr;

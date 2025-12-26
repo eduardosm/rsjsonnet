@@ -1,14 +1,14 @@
 use std::cell::{Cell, OnceCell};
 
 use super::super::{
-    ir, ArrayData, FuncData, FuncKind, ImportError, ObjectData, ObjectLayer, ThunkEnv,
-    ThunkEnvData, ValueData,
+    ArrayData, FuncData, FuncKind, ImportError, ObjectData, ObjectLayer, ThunkEnv, ThunkEnvData,
+    ValueData, ir,
 };
 use super::{EvalErrorKind, EvalErrorValueType, EvalResult, Evaluator, State, TraceItem};
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
 use crate::span::SpanId;
-use crate::{ast, FHashMap};
+use crate::{FHashMap, ast};
 
 impl<'p> Evaluator<'_, 'p> {
     pub(super) fn do_expr(

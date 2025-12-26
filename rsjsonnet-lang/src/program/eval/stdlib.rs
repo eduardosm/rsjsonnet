@@ -4,13 +4,13 @@ use std::rc::Rc;
 
 use super::manifest::{escape_string_json, escape_string_python};
 use super::{
-    float, parse_num_radix, ArrayData, EvalErrorKind, EvalErrorValueType, EvalResult, Evaluator,
-    FuncData, ManifestJsonFormat, ObjectData, ObjectField, ParseNumRadixError, State, ThunkData,
-    TraceItem, ValueData,
+    ArrayData, EvalErrorKind, EvalErrorValueType, EvalResult, Evaluator, FuncData,
+    ManifestJsonFormat, ObjectData, ObjectField, ParseNumRadixError, State, ThunkData, TraceItem,
+    ValueData, float, parse_num_radix,
 };
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
-use crate::{ast, FHashMap, FHashSet};
+use crate::{FHashMap, FHashSet, ast};
 
 impl<'p> Evaluator<'_, 'p> {
     pub(super) fn do_std_ext_var(&mut self) -> EvalResult<()> {

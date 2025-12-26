@@ -1,5 +1,5 @@
 use super::super::{
-    ir, BuiltInFunc, FuncData, FuncKind, FuncParams, ThunkData, ThunkEnv, ThunkEnvData,
+    BuiltInFunc, FuncData, FuncKind, FuncParams, ThunkData, ThunkEnv, ThunkEnvData, ir,
 };
 use super::{EvalErrorKind, EvalResult, Evaluator, State, TraceItem};
 use crate::gc::{Gc, GcView};
