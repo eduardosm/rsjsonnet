@@ -11,7 +11,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-bumpalo = "3.19.1"
+bumpalo = "3.20.2"
 foldhash = "0.2.0"
 hashbrown = "0.16.1"
 md-5 = { version = "0.10.6", default-features = false }

@@ -3,7 +3,7 @@ note: while evaluating call to `parseYaml`
  --> cross_document_anchor_in_key0.jsonnet:1:1
   |
 1 | / std.parseYaml(|||
-  : | 
+  : |
 5 | | |||)
   | |____- 
 note: during top-level value evaluation

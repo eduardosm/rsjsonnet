@@ -3,7 +3,7 @@ note: while evaluating call to `trace`
  --> crlf_source.jsonnet:3:1
   |
 3 | / std.trace(
-  : | 
+  : |
 6 | | )
   | |_- 
 note: during top-level value evaluation
