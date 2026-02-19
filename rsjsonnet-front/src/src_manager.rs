@@ -12,7 +12,7 @@ pub(crate) struct SrcManager {
 struct File {
     repr_path: String,
     data: Box<[u8]>,
-    snippet: OnceCell<sourceannot::SourceSnippet>,
+    snippet: OnceCell<sourceannot::Snippet>,
 }
 
 impl Default for SrcManager {
@@ -59,9 +59,18 @@ impl SrcManager {
     pub(crate) fn get_file_snippet(
         &self,
         id: rsjsonnet_lang::span::SourceId,
-    ) -> &sourceannot::SourceSnippet {
+    ) -> &sourceannot::Snippet {
         let file = &self.files[&id];
-        file.snippet
-            .get_or_init(|| sourceannot::SourceSnippet::build_from_utf8(1, &file.data, 4))
+        file.snippet.get_or_init(|| {
+            sourceannot::Snippet::with_utf8_bytes(
+                1,
+                &file.data,
+                4,
+                sourceannot::ControlCharStyle::Codepoint,
+                true,
+                sourceannot::InvalidSeqStyle::Hexadecimal,
+                true,
+            )
+        })
     }
 }

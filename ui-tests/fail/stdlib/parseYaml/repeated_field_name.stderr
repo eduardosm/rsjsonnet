@@ -3,7 +3,7 @@ note: while evaluating call to `parseYaml`
  --> repeated_field_name.jsonnet:1:1
   |
 1 | / std.parseYaml(|||
-  : | 
+  : |
 4 | | |||)
   | |____- 
 note: during top-level value evaluation

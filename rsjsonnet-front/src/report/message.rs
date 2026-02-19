@@ -82,18 +82,21 @@ fn put_spans_and_labels(
     let main_style = get_main_style();
     let margin_line = main_style.margin.unwrap().line_char;
 
+    let error_anot_style = get_error_annot_style();
+    let note_anot_style = get_note_annot_style();
+
     for label in labels.iter() {
         let (span_ctx, span_start, span_end) = span_mgr.get_span(label.span);
         let rsjsonnet_lang::span::SpanContext::Source(src_id) = *span_mgr.get_context(span_ctx);
         let snippet = src_mgr.get_file_snippet(src_id);
-        let (line, col) = snippet.get_line_col(span_start);
+        let (line, col) = snippet.src_pos_to_line_col(span_start);
 
         by_src
             .entry(src_id)
             .or_insert_with(|| {
                 src_order.push(src_id);
                 SourceData {
-                    annots: sourceannot::Annotations::new(snippet, main_style),
+                    annots: sourceannot::Annotations::new(snippet, &main_style),
                     first_span_line: line,
                     first_span_col: col,
                 }
@@ -102,8 +105,8 @@ fn put_spans_and_labels(
             .add_annotation(
                 span_start..span_end,
                 match label.kind {
-                    LabelKind::Error => get_error_annot_style(),
-                    LabelKind::Note => get_note_annot_style(),
+                    LabelKind::Error => &error_anot_style,
+                    LabelKind::Note => &note_anot_style,
                 },
                 vec![(
                     label.text.clone(),
@@ -122,9 +125,17 @@ fn put_spans_and_labels(
         .unwrap_or(0);
 
     for &src_id in src_order.iter() {
-        let data = &by_src[&src_id];
-        let annot_parts = data.annots.render(max_line_no_width, 0, 0);
+        struct Output<'a>(&'a mut Vec<(String, TextPartKind)>);
 
+        impl sourceannot::Output<TextPartKind> for Output<'_> {
+            type Error = std::convert::Infallible;
+            fn put_str(&mut self, text: &str, meta: &TextPartKind) -> Result<(), Self::Error> {
+                self.0.push((text.into(), *meta));
+                Ok(())
+            }
+        }
+
+        let data = &by_src[&src_id];
         let repr_path = src_mgr.get_file_repr_path(src_id);
         let path_ex = format!(
             "{repr_path}:{}:{}",
@@ -141,7 +152,7 @@ fn put_spans_and_labels(
         out.push((margin_line.into(), TextPartKind::Margin));
         out.push(("\n".into(), TextPartKind::Space));
 
-        out.extend(annot_parts);
+        data.annots.render(max_line_no_width, 0, 0, Output(out));
     }
 }
 
@@ -149,7 +160,7 @@ fn get_main_style() -> sourceannot::MainStyle<TextPartKind> {
     sourceannot::MainStyle {
         margin: Some(sourceannot::MarginStyle {
             line_char: '|',
-            dot_char: ':',
+            discontinuity_chars: [' ', ' ', ':'],
             meta: TextPartKind::Margin,
         }),
         horizontal_char: '_',
