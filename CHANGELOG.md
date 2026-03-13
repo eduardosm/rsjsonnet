@@ -13,6 +13,10 @@
 - New standard library elements from Jsonnet 0.22:
   - `std.isNull`
 
+### Changed
+
+- `std.parseYaml` now returns `null` for empty documents.
+
 ## 0.4.0 (2025-05-10)
 
 ### Breaking

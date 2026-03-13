@@ -7,7 +7,6 @@ use crate::{FHashMap, ast};
 
 pub(crate) enum ParseError<'p> {
     Parser(saphyr_parser::ScanError),
-    EmptyStream,
     Tag,
     AnchorContainsItself,
     AnchorFromOtherDoc,
@@ -28,7 +27,6 @@ impl std::fmt::Display for ParseError<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
             Self::Parser(ref e) => write!(f, "{e}"),
-            Self::EmptyStream => write!(f, "empty stream"),
             Self::Tag => write!(f, "tags are not allowed"),
             Self::AnchorContainsItself => write!(f, "anchor contains itself"),
             Self::AnchorFromOtherDoc => {
@@ -106,7 +104,7 @@ pub(super) fn parse_yaml<'p>(
     }
 
     match stream_kind {
-        StreamKind::Empty => Err(ParseError::EmptyStream),
+        StreamKind::Empty => Ok(ValueData::Null),
         StreamKind::Single(value) => Ok(value),
         StreamKind::Stream(items) => {
             if items.is_empty() {
