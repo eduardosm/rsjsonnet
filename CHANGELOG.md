@@ -10,6 +10,8 @@
 
 - New language features from Jsonnet 0.22:
   - Allow underscores between digits in numbers.
+- New standard library elements from Jsonnet 0.22:
+  - `std.isNull`
 
 ## 0.4.0 (2025-05-10)
 

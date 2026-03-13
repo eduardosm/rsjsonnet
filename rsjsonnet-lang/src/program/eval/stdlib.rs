@@ -81,6 +81,12 @@ impl<'p> Evaluator<'_, 'p> {
             .push(ValueData::Bool(matches!(arg, ValueData::String(_))));
     }
 
+    pub(super) fn do_std_is_null(&mut self) {
+        let arg = self.value_stack.pop().unwrap();
+        self.value_stack
+            .push(ValueData::Bool(matches!(arg, ValueData::Null)));
+    }
+
     pub(super) fn do_std_length(&mut self) -> EvalResult<()> {
         let arg = self.value_stack.pop().unwrap();
         let length = match arg {

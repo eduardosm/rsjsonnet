@@ -55,6 +55,15 @@ std.assertEqual(std.isFunction({ a: 1, b: 2 }), false) &&
 std.assertEqual(std.isFunction(function() 0), true) &&
 std.assertEqual(std.isFunction(std.length), true) &&
 
+std.assertEqual(std.isNull(null), true) &&
+std.assertEqual(std.isNull(true), false) &&
+std.assertEqual(std.isNull(0), false) &&
+std.assertEqual(std.isNull("str"), false) &&
+std.assertEqual(std.isNull([1, 2]), false) &&
+std.assertEqual(std.isNull({ a: 1, b: 2 }), false) &&
+std.assertEqual(std.isNull(function() 0), false) &&
+std.assertEqual(std.isNull(std.length), false) &&
+
 // Object asserts are not checked
 std.assertEqual(std.type({ assert false, a: 1 }), "object") &&
 std.assertEqual(std.isObject({ assert false, a: 1 }), true) &&
