@@ -180,6 +180,11 @@ std.assertEqual(std.parseYaml("|-\n x\n"), "x") &&
 std.assertEqual(std.parseYaml("|-\n x\n y"), "x\ny") &&
 std.assertEqual(std.parseYaml("|-\n x\n y\n"), "x\ny") &&
 
+std.assertEqual(std.parseYaml(""), null) &&
+std.assertEqual(std.parseYaml("\n"), null) &&
+std.assertEqual(std.parseYaml("  "), null) &&
+std.assertEqual(std.parseYaml("  \n"), null) &&
+
 std.assertEqual(
   std.parseYaml(|||
     x: |
