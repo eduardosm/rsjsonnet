@@ -291,6 +291,12 @@ impl<'p> Evaluator<'_, 'p> {
                     .push(State::FnInfallible(Self::do_std_is_string));
                 self.state_stack.push(State::DoThunk(arg.view()));
             }
+            BuiltInFunc::IsNull => {
+                let [arg] = check_num_args(args);
+                self.state_stack
+                    .push(State::FnInfallible(Self::do_std_is_null));
+                self.state_stack.push(State::DoThunk(arg.view()));
+            }
             BuiltInFunc::Length => {
                 let [arg] = check_num_args(args);
                 self.state_stack
