@@ -86,6 +86,18 @@ pub(crate) fn render_error(
             }
             .render(span_mgr, src_mgr, &mut out);
         }
+        LexError::MissingDigitAfterUnderscore { span } => {
+            Message {
+                kind: MessageKind::Error,
+                message: "missing digit after `_`".into(),
+                labels: vec![MessageLabel {
+                    span,
+                    kind: LabelKind::Error,
+                    text: "missing digit".into(),
+                }],
+            }
+            .render(span_mgr, src_mgr, &mut out);
+        }
         LexError::ExpOverflow { span } => {
             Message {
                 kind: MessageKind::Error,

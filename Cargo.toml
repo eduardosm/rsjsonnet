@@ -7,17 +7,17 @@ members = [
 resolver = "3"
 
 [workspace.package]
-version = "0.4.0"
+version = "0.5.0-pre"
 authors = ["Eduardo Sánchez Muñoz <eduardosm-dev@e64.io>"]
 edition = "2024"
 rust-version = "1.85"
 repository = "https://github.com/eduardosm/rsjsonnet"
 license = "MIT OR Apache-2.0"
-publish = true
+publish = false
 
 [workspace.dependencies]
-rsjsonnet-front = { path = "rsjsonnet-front", version = "0.4.0" }
-rsjsonnet-lang = { path = "rsjsonnet-lang", version = "0.4.0" }
+rsjsonnet-front = { path = "rsjsonnet-front", version = "0.5.0-pre" }
+rsjsonnet-lang = { path = "rsjsonnet-lang", version = "0.5.0-pre" }
 
 [profile.release]
 strip = "debuginfo"

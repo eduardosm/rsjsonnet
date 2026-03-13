@@ -586,6 +586,13 @@ fn test_number() {
             exp: -11,
         },
     );
+    test(
+        b"1_2.3_4e-1_0",
+        Number {
+            digits: "1234",
+            exp: -12,
+        },
+    );
 
     LexerTest {
         input: b"01",
@@ -664,6 +671,48 @@ fn test_number() {
                 error,
                 Some(LexError::MissingExpDigits {
                     span: session.intern_span(1, 3),
+                }),
+            );
+            assert_eq!(tokens, []);
+        },
+    }
+    .run();
+
+    LexerTest {
+        input: b"1_",
+        check: |session, error, tokens| {
+            assert_eq!(
+                error,
+                Some(LexError::MissingDigitAfterUnderscore {
+                    span: session.intern_span(1, 2),
+                }),
+            );
+            assert_eq!(tokens, []);
+        },
+    }
+    .run();
+
+    LexerTest {
+        input: b"1.1_",
+        check: |session, error, tokens| {
+            assert_eq!(
+                error,
+                Some(LexError::MissingDigitAfterUnderscore {
+                    span: session.intern_span(3, 4),
+                }),
+            );
+            assert_eq!(tokens, []);
+        },
+    }
+    .run();
+
+    LexerTest {
+        input: b"1.1e1_",
+        check: |session, error, tokens| {
+            assert_eq!(
+                error,
+                Some(LexError::MissingDigitAfterUnderscore {
+                    span: session.intern_span(5, 6),
                 }),
             );
             assert_eq!(tokens, []);
