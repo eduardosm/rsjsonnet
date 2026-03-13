@@ -270,72 +270,130 @@ impl<'a, 'p, 'ast> Lexer<'a, 'p, 'ast> {
     }
 
     fn lex_number(&mut self, chr0: u8) -> Result<Token<'p, 'ast>, LexError> {
+        enum State {
+            IntDigits(bool),
+            Dot,
+            FracDigits(bool),
+            Exp,
+            ExpSign,
+            ExpDigits(bool),
+        }
+
+        assert!(chr0.is_ascii_digit());
         let leading_zero = chr0 == b'0';
+
         let mut digits = String::new();
         digits.push(char::from(chr0));
 
-        while let Some(chr) = self.eat_get_byte_if(|b| b.is_ascii_digit()) {
-            if digits.len() == 1 && leading_zero {
-                let span = self.make_span(self.end_pos - 2, self.end_pos - 1);
-                return Err(LexError::LeadingZeroInNumber { span });
-            }
-            digits.push(char::from(chr));
-        }
+        let mut implicit_exp = 0isize;
+        let mut explicit_exp = Some(0u64);
+        let mut explicit_exp_sign = false;
 
-        let mut implicit_exp = 0i64;
-        if self.eat_byte(b'.') {
-            while let Some(chr) = self.eat_get_byte_if(|b| b.is_ascii_digit()) {
-                digits.push(char::from(chr));
-                implicit_exp -= 1;
-            }
-            if implicit_exp == 0 {
-                let span = self.make_span(self.end_pos - 1, self.end_pos);
-                return Err(LexError::MissingFracDigits { span });
-            }
-        }
-
-        let eff_exp;
-        if self.eat_byte_if(|b| matches!(b, b'e' | b'E')) {
-            let mut explicit_exp_sign = false;
-            let mut explicit_exp = Some(0u64);
-
-            let exp_start = self.end_pos - 1;
-
-            if self.eat_byte(b'+') {
-                // explicit +
-            } else if self.eat_byte(b'-') {
-                explicit_exp_sign = true;
-            }
-
-            let mut num_exp_digits = 0;
-            while let Some(chr) = self.eat_get_byte_if(|b| b.is_ascii_digit()) {
-                explicit_exp = explicit_exp
-                    .and_then(|e| e.checked_mul(10))
-                    .and_then(|e| e.checked_add(u64::from(chr - b'0')));
-                num_exp_digits += 1;
-            }
-
-            if num_exp_digits == 0 {
-                let span = self.make_span(exp_start, self.end_pos);
-                return Err(LexError::MissingExpDigits { span });
-            }
-
-            eff_exp = explicit_exp
-                .and_then(|e| i64::try_from(e).ok())
-                .and_then(|e| {
-                    if explicit_exp_sign {
-                        implicit_exp.checked_sub(e)
+        let mut state = State::IntDigits(false);
+        loop {
+            match state {
+                State::IntDigits(underscore) => {
+                    if let Some(chr) = self.eat_get_byte_if(|b| b.is_ascii_digit()) {
+                        if digits.len() == 1 && leading_zero {
+                            let span = self.make_span(self.end_pos - 2, self.end_pos - 1);
+                            return Err(LexError::LeadingZeroInNumber { span });
+                        }
+                        digits.push(char::from(chr));
+                        state = State::IntDigits(false);
+                    } else if !underscore && self.eat_byte(b'_') {
+                        state = State::IntDigits(true);
+                    } else if self.eat_byte(b'.') {
+                        state = State::Dot;
+                    } else if self.eat_byte_if(|b| matches!(b, b'e' | b'E')) {
+                        state = State::Exp;
+                    } else if underscore {
+                        let span = self.make_span(self.end_pos - 1, self.end_pos);
+                        return Err(LexError::MissingDigitAfterUnderscore { span });
                     } else {
-                        implicit_exp.checked_add(e)
+                        break;
                     }
-                })
-                .ok_or_else(|| {
-                    let span = self.make_span(exp_start, self.end_pos);
-                    LexError::ExpOverflow { span }
-                })?;
-        } else {
-            eff_exp = implicit_exp;
+                }
+                State::Dot => {
+                    if let Some(chr) = self.eat_get_byte_if(|b| b.is_ascii_digit()) {
+                        digits.push(char::from(chr));
+                        implicit_exp -= 1;
+                        state = State::FracDigits(false);
+                    } else {
+                        let span = self.make_span(self.end_pos - 1, self.end_pos);
+                        return Err(LexError::MissingFracDigits { span });
+                    }
+                }
+                State::FracDigits(underscore) => {
+                    if let Some(chr) = self.eat_get_byte_if(|b| b.is_ascii_digit()) {
+                        digits.push(char::from(chr));
+                        implicit_exp -= 1;
+                        state = State::FracDigits(false);
+                    } else if !underscore && self.eat_byte(b'_') {
+                        state = State::FracDigits(true);
+                    } else if self.eat_byte_if(|b| matches!(b, b'e' | b'E')) {
+                        state = State::Exp;
+                    } else if underscore {
+                        let span = self.make_span(self.end_pos - 1, self.end_pos);
+                        return Err(LexError::MissingDigitAfterUnderscore { span });
+                    } else {
+                        break;
+                    }
+                }
+                State::Exp => {
+                    if self.eat_byte(b'+') {
+                        state = State::ExpSign;
+                    } else if self.eat_byte(b'-') {
+                        explicit_exp_sign = true;
+                        state = State::ExpSign;
+                    } else if let Some(chr) = self.eat_get_byte_if(|b| b.is_ascii_digit()) {
+                        explicit_exp = Some(u64::from(chr - b'0'));
+                        state = State::ExpDigits(false);
+                    } else {
+                        let span = self.make_span(self.end_pos - 1, self.end_pos);
+                        return Err(LexError::MissingExpDigits { span });
+                    }
+                }
+                State::ExpSign => {
+                    if let Some(chr) = self.eat_get_byte_if(|b| b.is_ascii_digit()) {
+                        explicit_exp = Some(u64::from(chr - b'0'));
+                        state = State::ExpDigits(false);
+                    } else {
+                        let span = self.make_span(self.end_pos - 2, self.end_pos);
+                        return Err(LexError::MissingExpDigits { span });
+                    }
+                }
+                State::ExpDigits(underscore) => {
+                    if let Some(chr) = self.eat_get_byte_if(|b| b.is_ascii_digit()) {
+                        explicit_exp = explicit_exp
+                            .and_then(|e| e.checked_mul(10))
+                            .and_then(|e| e.checked_add(u64::from(chr - b'0')));
+                        state = State::ExpDigits(false);
+                    } else if !underscore && self.eat_byte(b'_') {
+                        state = State::ExpDigits(true);
+                    } else if underscore {
+                        let span = self.make_span(self.end_pos - 1, self.end_pos);
+                        return Err(LexError::MissingDigitAfterUnderscore { span });
+                    } else {
+                        break;
+                    }
+                }
+            }
         }
+
+        let eff_exp = explicit_exp
+            .and_then(|e| i64::try_from(e).ok())
+            .and_then(|e| {
+                let implicit_exp = i64::try_from(implicit_exp).ok()?;
+                if explicit_exp_sign {
+                    implicit_exp.checked_sub(e)
+                } else {
+                    implicit_exp.checked_add(e)
+                }
+            })
+            .ok_or_else(|| {
+                let span = self.make_span(self.start_pos, self.end_pos);
+                LexError::ExpOverflow { span }
+            })?;
 
         Ok(self.commit_token(TokenKind::Number(Number {
             digits: self.ast_arena.alloc_str(&digits),

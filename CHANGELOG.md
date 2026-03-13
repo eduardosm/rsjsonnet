@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0 (unreleased)
+
+### Breaking
+
+- A new enum variant has been added to `LexError`.
+
+### Added
+
+- New language features from Jsonnet 0.22:
+  - Allow underscores between digits in numbers.
+
 ## 0.4.0 (2025-05-10)
 
 ### Breaking
