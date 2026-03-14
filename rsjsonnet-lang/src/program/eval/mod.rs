@@ -272,8 +272,10 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                         }
                     } else if let ValueData::Object(object) = value {
                         let object = object.view();
-                        for &(field_name, field_visible) in object.get_fields_order().iter().rev() {
-                            if field_visible {
+                        for &(field_name, field_visibility) in
+                            object.get_fields_order().iter().rev()
+                        {
+                            if field_visibility != ast::Visibility::Hidden {
                                 let thunk = self
                                     .program
                                     .find_object_field_thunk(&object, 0, field_name)

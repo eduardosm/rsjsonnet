@@ -231,8 +231,8 @@ impl<'p> Evaluator<'_, 'p> {
 
         let array = self
             .program
-            .make_value_array(fields_order.iter().filter_map(|(name, visible)| {
-                if inc_hidden || *visible {
+            .make_value_array(fields_order.iter().filter_map(|(name, visibility)| {
+                if inc_hidden || *visibility != ast::Visibility::Hidden {
                     Some(ValueData::String(name.value().into()))
                 } else {
                     None
@@ -254,7 +254,7 @@ impl<'p> Evaluator<'_, 'p> {
         let key = self.program.str_interner.get_interned(&key);
 
         let mut fields = FHashMap::default();
-        for field_name in object.get_visible_fields_order() {
+        for &(field_name, field_visibility) in object.get_fields_order() {
             if Some(field_name) != key {
                 let field_thunk = self
                     .program
@@ -264,7 +264,7 @@ impl<'p> Evaluator<'_, 'p> {
                     field_name,
                     ObjectField {
                         base_env: None,
-                        visibility: ast::Visibility::Default,
+                        visibility: field_visibility,
                         expr: None,
                         thunk: OnceCell::from(Gc::from(&field_thunk)),
                     },
