@@ -742,8 +742,8 @@ impl<'p> Value<'p> {
 
     fn extract_object(object: &ObjectData<'p>) -> Vec<(InternedStr<'p>, Self)> {
         let mut fields = Vec::new();
-        for &(name, visible) in object.get_fields_order().iter() {
-            if visible {
+        for &(name, visibility) in object.get_fields_order().iter() {
+            if visibility != ast::Visibility::Hidden {
                 let (_, field) = object.find_field(0, name).unwrap();
                 let thunk = field.thunk.get().unwrap().clone();
                 fields.push((name, Self::from_thunk(&thunk.view())));

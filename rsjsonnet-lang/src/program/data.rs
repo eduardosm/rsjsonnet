@@ -419,7 +419,7 @@ pub(super) type ArrayData<'p> = Box<[Gc<ThunkData<'p>>]>;
 pub(super) struct ObjectData<'p> {
     pub(super) self_layer: ObjectLayer<'p>,
     pub(super) super_layers: Vec<ObjectLayer<'p>>,
-    pub(super) fields_order: OnceCell<Box<[(InternedStr<'p>, bool)]>>,
+    pub(super) fields_order: OnceCell<Box<[(InternedStr<'p>, ast::Visibility)]>>,
     pub(super) asserts_checked: Cell<bool>,
 }
 
@@ -500,7 +500,7 @@ impl<'p> ObjectData<'p> {
         self.find_field(layer_i, name).is_some()
     }
 
-    pub(super) fn get_fields_order(&self) -> &[(InternedStr<'p>, bool)] {
+    pub(super) fn get_fields_order(&self) -> &[(InternedStr<'p>, ast::Visibility)] {
         self.fields_order.get_or_init(|| {
             let mut all_fields = BTreeMap::new();
             all_fields.extend(
@@ -523,10 +523,7 @@ impl<'p> ObjectData<'p> {
                     }
                 }
             }
-            all_fields
-                .into_iter()
-                .map(|(n, vis)| (n.0, vis != ast::Visibility::Hidden))
-                .collect()
+            all_fields.into_iter().map(|(n, vis)| (n.0, vis)).collect()
         })
     }
 
@@ -536,7 +533,9 @@ impl<'p> ObjectData<'p> {
     ) -> impl DoubleEndedIterator<Item = InternedStr<'p>> + Clone + '_ {
         self.get_fields_order()
             .iter()
-            .filter_map(|&(name, visible)| visible.then_some(name))
+            .filter_map(|&(name, visibility)| {
+                (visibility != ast::Visibility::Hidden).then_some(name)
+            })
     }
 
     pub(super) fn has_visible_field(&self, name: InternedStr<'p>) -> bool {
