@@ -49,6 +49,7 @@ Options:
   -m, --multi <dir>               Write multiple files to the directory, list files on stdout
   -y, --yaml-stream               Write output as a YAML stream of JSON documents
   -S, --string                    Expect a string, manifest as plain text
+      --no-trailing-newline       Do not add a trailing newline to the output
   -s, --max-stack <n>             Number of allowed stack frames
   -t, --max-trace <n>             Max length of stack trace before cropping
   -V, --ext-str <var[=val]>       Provide an external variable as a string
