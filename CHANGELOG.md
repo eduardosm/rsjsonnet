@@ -8,6 +8,8 @@
 
 ### Added
 
+- `--no-trailing-newline` option to disable adding a newline at the end of the
+  output.
 - New language features from Jsonnet 0.22:
   - Allow underscores between digits in numbers.
 - New standard library elements from Jsonnet 0.22:

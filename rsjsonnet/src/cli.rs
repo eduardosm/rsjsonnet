@@ -41,6 +41,11 @@ pub(crate) struct Cli {
     )]
     pub(crate) string: bool,
     #[clap(
+        long = "no-trailing-newline",
+        help = "Do not add a trailing newline to the output"
+    )]
+    pub(crate) no_trailing_newline: bool,
+    #[clap(
         long = "max-stack",
         short = 's',
         help = "Number of allowed stack frames",

@@ -352,11 +352,14 @@ fn value_to_repr<'p>(
     value: &Value<'p>,
 ) -> Result<String, RunError> {
     if args.string {
-        let Some(s) = value.to_string() else {
+        let Some(mut s) = value.to_string() else {
             session.print_error("in string mode, the value must be a string");
             return Err(RunError::Generic);
         };
-        Ok(s + "\n")
+        if !args.no_trailing_newline {
+            s.push('\n');
+        }
+        Ok(s)
     } else if args.yaml_stream {
         let Some(items) = value.to_array() else {
             session.print_error("in YAML stream mode, the value must be an array");
@@ -380,14 +383,20 @@ fn value_to_repr<'p>(
                 yaml.push_str(manifested_item);
                 yaml.push('\n');
             }
-            yaml.push_str("...\n");
+            if args.no_trailing_newline {
+                yaml.push_str("...");
+            } else {
+                yaml.push_str("...\n");
+            }
             Ok(yaml)
         }
     } else {
         let Some(mut s) = session.manifest_json(value, true) else {
             return Err(RunError::Generic);
         };
-        s.push('\n');
+        if !args.no_trailing_newline {
+            s.push('\n');
+        }
         Ok(s)
     }
 }
