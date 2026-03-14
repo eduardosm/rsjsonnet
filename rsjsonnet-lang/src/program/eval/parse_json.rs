@@ -1,9 +1,8 @@
-use std::cell::OnceCell;
-
-use super::{ObjectData, ObjectField, Program, ThunkData, ValueData};
+use super::super::data::{ObjectData, SimpleObjectBuilder, ThunkData, ValueData};
+use super::Program;
+use crate::ast;
 use crate::gc::Gc;
 use crate::interner::InternedStr;
-use crate::{FHashMap, ast};
 
 pub(super) struct ParseError<'p> {
     line: usize,
@@ -63,7 +62,7 @@ pub(super) fn parse_json<'p>(
 ) -> Result<ValueData<'p>, ParseError<'p>> {
     enum StackItem<'p> {
         Array(Vec<Gc<ThunkData<'p>>>),
-        Object(FHashMap<InternedStr<'p>, ObjectField<'p>>, InternedStr<'p>),
+        Object(SimpleObjectBuilder<'p>, InternedStr<'p>),
     }
 
     let mut lexer = Lexer {
@@ -103,7 +102,7 @@ pub(super) fn parse_json<'p>(
             lexer.skip_spaces();
             if lexer.eat_char('}') {
                 lexer.skip_spaces();
-                ValueData::Object(program.gc_alloc(ObjectData::new_simple(FHashMap::default())))
+                ValueData::Object(program.gc_alloc(ObjectData::new_empty()))
             } else {
                 let first_key = lexer
                     .lex_string()?
@@ -114,7 +113,7 @@ pub(super) fn parse_json<'p>(
                 }
                 lexer.skip_spaces();
                 stack.push(StackItem::Object(
-                    FHashMap::default(),
+                    SimpleObjectBuilder::new(),
                     program.intern_str(&first_key),
                 ));
                 continue;
@@ -139,28 +138,20 @@ pub(super) fn parse_json<'p>(
                             return Err(lexer.get_error(ParseErrorKind::Expected2(']', ',')));
                         }
                     }
-                    StackItem::Object(mut fields, current_key) => {
-                        match fields.entry(current_key) {
-                            std::collections::hash_map::Entry::Vacant(entry) => {
-                                entry.insert(ObjectField {
-                                    base_env: None,
-                                    visibility: ast::Visibility::Default,
-                                    expr: None,
-                                    thunk: OnceCell::from(
-                                        program.gc_alloc(ThunkData::new_done(value)),
-                                    ),
-                                });
-                            }
-                            std::collections::hash_map::Entry::Occupied(entry) => {
-                                return Err(lexer
-                                    .get_error(ParseErrorKind::RepeatedFieldName(*entry.key())));
-                            }
+                    StackItem::Object(mut obj_builder, current_key) => {
+                        if !obj_builder.try_insert_field(
+                            current_key,
+                            ast::Visibility::Default,
+                            program.gc_alloc(ThunkData::new_done(value)),
+                        ) {
+                            return Err(
+                                lexer.get_error(ParseErrorKind::RepeatedFieldName(current_key))
+                            );
                         }
 
                         if lexer.eat_char('}') {
                             lexer.skip_spaces();
-                            value =
-                                ValueData::Object(program.gc_alloc(ObjectData::new_simple(fields)));
+                            value = ValueData::Object(program.gc_alloc(obj_builder.build()));
                         } else if lexer.eat_char(',') {
                             lexer.skip_spaces();
                             let next_key = lexer.lex_string()?.ok_or_else(|| {
@@ -171,7 +162,10 @@ pub(super) fn parse_json<'p>(
                                 return Err(lexer.get_error(ParseErrorKind::Expected1(':')));
                             }
                             lexer.skip_spaces();
-                            stack.push(StackItem::Object(fields, program.intern_str(&next_key)));
+                            stack.push(StackItem::Object(
+                                obj_builder,
+                                program.intern_str(&next_key),
+                            ));
                             break;
                         } else {
                             return Err(lexer.get_error(ParseErrorKind::Expected2('}', ',')));

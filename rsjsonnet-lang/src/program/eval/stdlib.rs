@@ -2,15 +2,17 @@ use std::cell::{Cell, OnceCell};
 use std::fmt::Write as _;
 use std::rc::Rc;
 
+use super::super::data::{
+    ArrayData, FuncData, ObjectData, ObjectField, SimpleObjectBuilder, ThunkData, ValueData,
+};
 use super::manifest::{escape_string_json, escape_string_python};
 use super::{
-    ArrayData, EvalErrorKind, EvalErrorValueType, EvalResult, Evaluator, FuncData,
-    ManifestJsonFormat, ObjectData, ObjectField, ParseNumRadixError, State, ThunkData, TraceItem,
-    ValueData, float, parse_num_radix,
+    EvalErrorKind, EvalErrorValueType, EvalResult, Evaluator, ManifestJsonFormat,
+    ParseNumRadixError, State, TraceItem, float, parse_num_radix,
 };
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
-use crate::{FHashMap, FHashSet, ast};
+use crate::{FHashSet, ast};
 
 impl<'p> Evaluator<'_, 'p> {
     pub(super) fn do_std_ext_var(&mut self) -> EvalResult<()> {
@@ -253,27 +255,19 @@ impl<'p> Evaluator<'_, 'p> {
 
         let key = self.program.str_interner.get_interned(&key);
 
-        let mut fields = FHashMap::default();
+        let mut obj_builder = SimpleObjectBuilder::new();
         for &(field_name, field_visibility) in object.get_fields_order() {
             if Some(field_name) != key {
                 let field_thunk = self
                     .program
                     .find_object_field_thunk(&object, 0, field_name)
                     .unwrap();
-                fields.insert(
-                    field_name,
-                    ObjectField {
-                        base_env: None,
-                        visibility: field_visibility,
-                        expr: None,
-                        thunk: OnceCell::from(Gc::from(&field_thunk)),
-                    },
-                );
+                obj_builder.insert_field(field_name, field_visibility, Gc::from(&field_thunk));
             }
         }
 
         self.value_stack.push(ValueData::Object(
-            self.program.gc_alloc(ObjectData::new_simple(fields)),
+            self.program.gc_alloc(obj_builder.build()),
         ));
         self.check_object_asserts(&object);
 
@@ -287,7 +281,7 @@ impl<'p> Evaluator<'_, 'p> {
         let func = self.expect_std_func_arg_func(func, "mapWithKey", 0)?;
         let object = self.expect_std_func_arg_object(object, "mapWithKey", 1)?;
 
-        let mut mapped_fields = FHashMap::default();
+        let mut mapped_obj_builder = SimpleObjectBuilder::new();
         for field_name in object.get_visible_fields_order() {
             let field_thunk = self
                 .program
@@ -301,22 +295,17 @@ impl<'p> Evaluator<'_, 'p> {
                 Gc::from(&field_thunk),
             ]);
 
-            let mapped_field = ObjectField {
-                base_env: None,
-                visibility: ast::Visibility::Default,
-                expr: None,
-                thunk: OnceCell::from(
-                    self.program
-                        .gc_alloc(ThunkData::new_pending_call(Gc::from(&func), args_thunks)),
-                ),
-            };
-
-            mapped_fields.insert(field_name, mapped_field);
+            mapped_obj_builder.insert_field(
+                field_name,
+                ast::Visibility::Default,
+                self.program
+                    .gc_alloc(ThunkData::new_pending_call(Gc::from(&func), args_thunks)),
+            );
         }
 
-        let mapped_object = ObjectData::new_simple(mapped_fields);
-        self.value_stack
-            .push(ValueData::Object(self.program.gc_alloc(mapped_object)));
+        self.value_stack.push(ValueData::Object(
+            self.program.gc_alloc(mapped_obj_builder.build()),
+        ));
 
         self.check_object_asserts(&object);
 

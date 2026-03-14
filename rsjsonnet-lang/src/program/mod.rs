@@ -75,8 +75,6 @@
 //! assert_eq!(value.as_number(), Some(3.0));
 //! ```
 
-use std::cell::OnceCell;
-
 use crate::arena::Arena;
 use crate::gc::{Gc, GcContext, GcTrace, GcView};
 use crate::interner::{InternedStr, StrInterner};
@@ -94,7 +92,7 @@ mod stdlib;
 
 use data::{
     ArrayData, BuiltInFunc, FuncData, FuncKind, FuncParams, ObjectData, ObjectField, ObjectLayer,
-    PendingThunk, ThunkData, ThunkEnv, ThunkEnvData, ThunkState, ValueData,
+    PendingThunk, SimpleObjectBuilder, ThunkData, ThunkEnv, ThunkEnvData, ThunkState, ValueData,
 };
 pub use error::{AnalyzeError, EvalError, EvalErrorKind, EvalErrorValueType, LoadError};
 
@@ -386,22 +384,16 @@ impl<'p> Program<'p> {
 
     /// Creates an object value.
     pub fn make_object(&mut self, obj_fields: &[(InternedStr<'p>, Value<'p>)]) -> Value<'p> {
-        let mut fields = FHashMap::default();
+        let mut obj_builder = SimpleObjectBuilder::new();
         for (name, value) in obj_fields.iter() {
-            let value_thunk = self.gc_alloc(ThunkData::new_done(value.inner.clone()));
-            let prev = fields.insert(
+            obj_builder.insert_field(
                 *name,
-                ObjectField {
-                    base_env: None,
-                    visibility: ast::Visibility::Default,
-                    expr: None,
-                    thunk: OnceCell::from(value_thunk),
-                },
+                ast::Visibility::Default,
+                self.gc_alloc(ThunkData::new_done(value.inner.clone())),
             );
-            assert!(prev.is_none(), "repeated field name {name:?}");
         }
 
-        let obj = self.gc_alloc(ObjectData::new_simple(fields));
+        let obj = self.gc_alloc(obj_builder.build());
         Value::from_value(ValueData::Object(obj))
     }
 

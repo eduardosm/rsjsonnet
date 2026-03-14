@@ -1,6 +1,5 @@
-use std::cell::OnceCell;
-
-use super::{ArrayData, ObjectData, ObjectField, Program, ThunkData, ValueData};
+use super::super::data::{ArrayData, ObjectData, SimpleObjectBuilder, ThunkData, ValueData};
+use super::Program;
 use crate::gc::Gc;
 use crate::interner::InternedStr;
 use crate::{FHashMap, ast};
@@ -137,7 +136,7 @@ fn parse_yaml_document<'p>(
         },
         Object {
             anchor_id: usize,
-            fields: FHashMap<InternedStr<'p>, ObjectField<'p>>,
+            obj_builder: SimpleObjectBuilder<'p>,
             current_key: InternedStr<'p>,
         },
     }
@@ -209,7 +208,7 @@ fn parse_yaml_document<'p>(
                                 let key = program.intern_str(value);
                                 stack.push(StackItem::Object {
                                     anchor_id,
-                                    fields: FHashMap::default(),
+                                    obj_builder: SimpleObjectBuilder::new(),
                                     current_key: key,
                                 });
                                 event = parser.next_event().unwrap()?;
@@ -230,7 +229,7 @@ fn parse_yaml_document<'p>(
                         return Err(ParseError::KeyIsObject(event.1.start));
                     }
                     saphyr_parser::Event::MappingEnd => {
-                        let object = program.gc_alloc(ObjectData::new_simple(FHashMap::default()));
+                        let object = program.gc_alloc(ObjectData::new_empty());
                         anchors.insert(anchor_id, AnchorValue::Object(object.clone()));
                         ValueData::Object(object)
                     }
@@ -243,7 +242,7 @@ fn parse_yaml_document<'p>(
                         anchors.insert(key_anchor_id, AnchorValue::Scalar { style, value });
                         stack.push(StackItem::Object {
                             anchor_id,
-                            fields: FHashMap::default(),
+                            obj_builder: SimpleObjectBuilder::new(),
                             current_key: key,
                         });
                         anchors.insert(anchor_id, AnchorValue::Pending);
@@ -278,23 +277,15 @@ fn parse_yaml_document<'p>(
                     }
                     StackItem::Object {
                         anchor_id,
-                        mut fields,
+                        mut obj_builder,
                         current_key,
                     } => {
-                        match fields.entry(current_key) {
-                            std::collections::hash_map::Entry::Vacant(entry) => {
-                                entry.insert(ObjectField {
-                                    base_env: None,
-                                    visibility: ast::Visibility::Default,
-                                    expr: None,
-                                    thunk: OnceCell::from(
-                                        program.gc_alloc(ThunkData::new_done(value)),
-                                    ),
-                                });
-                            }
-                            std::collections::hash_map::Entry::Occupied(entry) => {
-                                return Err(ParseError::RepeatedFieldName(*entry.key()));
-                            }
+                        if !obj_builder.try_insert_field(
+                            current_key,
+                            ast::Visibility::Default,
+                            program.gc_alloc(ThunkData::new_done(value)),
+                        ) {
+                            return Err(ParseError::RepeatedFieldName(current_key));
                         }
 
                         match event.0 {
@@ -310,7 +301,7 @@ fn parse_yaml_document<'p>(
                                         let key = program.intern_str(value);
                                         stack.push(StackItem::Object {
                                             anchor_id,
-                                            fields,
+                                            obj_builder,
                                             current_key: key,
                                         });
                                         event = parser.next_event().unwrap()?;
@@ -331,7 +322,7 @@ fn parse_yaml_document<'p>(
                                 return Err(ParseError::KeyIsObject(event.1.start));
                             }
                             saphyr_parser::Event::MappingEnd => {
-                                let object = program.gc_alloc(ObjectData::new_simple(fields));
+                                let object = program.gc_alloc(obj_builder.build());
                                 anchors.insert(anchor_id, AnchorValue::Object(object.clone()));
                                 value = ValueData::Object(object);
 
@@ -346,7 +337,7 @@ fn parse_yaml_document<'p>(
                                 anchors.insert(key_anchor_id, AnchorValue::Scalar { style, value });
                                 stack.push(StackItem::Object {
                                     anchor_id,
-                                    fields,
+                                    obj_builder,
                                     current_key: key,
                                 });
                                 event = parser.next_event().unwrap()?;

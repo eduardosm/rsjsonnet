@@ -452,23 +452,6 @@ impl<'p> ObjectData<'p> {
     }
 
     #[inline]
-    pub(super) fn new_simple(fields: FHashMap<InternedStr<'p>, ObjectField<'p>>) -> Self {
-        Self {
-            self_layer: ObjectLayer {
-                is_top: false,
-                locals: &[],
-                base_env: None,
-                env: OnceCell::new(),
-                fields,
-                asserts: &[],
-            },
-            super_layers: Vec::new(),
-            fields_order: OnceCell::new(),
-            asserts_checked: Cell::new(true),
-        }
-    }
-
-    #[inline]
     pub(super) fn get_layer(&self, layer_i: usize) -> &ObjectLayer<'p> {
         if layer_i == 0 {
             &self.self_layer
@@ -598,6 +581,72 @@ impl GcTrace for ObjectField<'_> {
     {
         self.base_env.trace(ctx);
         self.thunk.trace(ctx);
+    }
+}
+
+pub(super) struct SimpleObjectBuilder<'p> {
+    fields: FHashMap<InternedStr<'p>, ObjectField<'p>>,
+}
+
+impl<'p> SimpleObjectBuilder<'p> {
+    #[inline]
+    pub(super) fn new() -> Self {
+        Self {
+            fields: FHashMap::default(),
+        }
+    }
+
+    pub(super) fn insert_field(
+        &mut self,
+        name: InternedStr<'p>,
+        visibility: ast::Visibility,
+        thunk: Gc<ThunkData<'p>>,
+    ) {
+        let field = ObjectField {
+            base_env: None,
+            visibility,
+            expr: None,
+            thunk: OnceCell::from(thunk),
+        };
+        let prev = self.fields.insert(name, field);
+        assert!(prev.is_none(), "duplicate object field: {name:?}");
+    }
+
+    #[must_use]
+    pub(super) fn try_insert_field(
+        &mut self,
+        name: InternedStr<'p>,
+        visibility: ast::Visibility,
+        thunk: Gc<ThunkData<'p>>,
+    ) -> bool {
+        match self.fields.entry(name) {
+            std::collections::hash_map::Entry::Vacant(entry) => {
+                entry.insert(ObjectField {
+                    base_env: None,
+                    visibility,
+                    expr: None,
+                    thunk: OnceCell::from(thunk),
+                });
+                true
+            }
+            std::collections::hash_map::Entry::Occupied(_) => false,
+        }
+    }
+
+    pub(super) fn build(self) -> ObjectData<'p> {
+        ObjectData {
+            self_layer: ObjectLayer {
+                is_top: false,
+                locals: &[],
+                base_env: None,
+                env: OnceCell::new(),
+                fields: self.fields,
+                asserts: &[],
+            },
+            super_layers: Vec::new(),
+            fields_order: OnceCell::new(),
+            asserts_checked: Cell::new(true),
+        }
     }
 }
 

@@ -1,8 +1,7 @@
-use std::cell::OnceCell;
-
-use super::{
-    BuiltInFunc, FuncData, FuncKind, ObjectData, ObjectField, Program, ThunkData, ValueData, ir,
+use super::data::{
+    BuiltInFunc, FuncData, FuncKind, ObjectData, SimpleObjectBuilder, ThunkData, ValueData,
 };
+use super::{Program, ir};
 use crate::arena::Arena;
 use crate::gc::{Gc, GcContext, GcView};
 use crate::interner::{InternedStr, StrInterner};
@@ -366,35 +365,16 @@ impl<'p> Program<'p> {
     pub(super) fn make_custom_stdlib(&mut self, this_file: &str) -> Gc<ObjectData<'p>> {
         let stdlib_base_obj = self.stdlib_base_obj.as_ref().unwrap().clone();
 
-        let mut extra_fields: FHashMap<_, _> = self
-            .stdlib_extra
-            .iter()
-            .map(|(name, thunk)| {
-                (
-                    *name,
-                    ObjectField {
-                        base_env: None,
-                        visibility: ast::Visibility::Hidden,
-                        expr: None,
-                        thunk: OnceCell::from(Gc::from(thunk)),
-                    },
-                )
-            })
-            .collect();
-
-        extra_fields.insert(
+        let mut extra_obj_builder = SimpleObjectBuilder::new();
+        for (name, thunk) in self.stdlib_extra.iter() {
+            extra_obj_builder.insert_field(*name, ast::Visibility::Hidden, Gc::from(thunk));
+        }
+        extra_obj_builder.insert_field(
             self.intern_str("thisFile"),
-            ObjectField {
-                base_env: None,
-                visibility: ast::Visibility::Hidden,
-                expr: None,
-                thunk: OnceCell::from(
-                    self.gc_alloc(ThunkData::new_done(ValueData::String(this_file.into()))),
-                ),
-            },
+            ast::Visibility::Hidden,
+            self.gc_alloc(ThunkData::new_done(ValueData::String(this_file.into()))),
         );
-
-        let extra_obj = ObjectData::new_simple(extra_fields);
+        let extra_obj = extra_obj_builder.build();
 
         self.extend_object(&stdlib_base_obj, &extra_obj)
     }
