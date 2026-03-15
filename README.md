@@ -4,7 +4,7 @@
 ![MSRV](https://img.shields.io/badge/rustc-1.85+-lightgray.svg)
 
 A Rust implementation of the [Jsonnet language](https://jsonnet.org/).
-Currently, it targets Jsonnet version 0.21.
+Currently, it targets Jsonnet version 0.22.
 
 This project provides three crates:
 
