@@ -3,10 +3,5 @@ error: assertion failed
   |
 1 | std.objectRemoveKey({ assert false }, "x")
   |                       ^^^^^^^^^^^^
-note: while evaluating call to `objectRemoveKey`
- --> object_assert_failed.jsonnet:1:1
-  |
-1 | std.objectRemoveKey({ assert false }, "x")
-  | ------------------------------------------
 note: during top-level value evaluation
 

@@ -3,7 +3,8 @@ use std::fmt::Write as _;
 use std::rc::Rc;
 
 use super::super::data::{
-    ArrayData, FuncData, ObjectData, ObjectField, SimpleObjectBuilder, ThunkData, ValueData,
+    ArrayData, FuncData, ObjectData, ObjectField, ObjectFieldData, SimpleObjectBuilder, ThunkData,
+    ValueData,
 };
 use super::manifest::{escape_string_json, escape_string_python};
 use super::{
@@ -186,12 +187,12 @@ impl<'p> Evaluator<'_, 'p> {
             let object = self.object_stack.last_mut().unwrap();
             object.self_layer.fields.insert(
                 name,
-                ObjectField {
+                ObjectField::Normal(ObjectFieldData {
                     base_env: None,
                     visibility: ast::Visibility::Default,
                     expr: None,
                     thunk: OnceCell::from(self.program.gc_alloc(ThunkData::new_done(item_value))),
-                },
+                }),
             );
         }
     }
@@ -253,23 +254,14 @@ impl<'p> Evaluator<'_, 'p> {
         let object = self.expect_std_func_arg_object(object, "objectRemoveKey", 0)?;
         let key = self.expect_std_func_arg_string(key, "objectRemoveKey", 1)?;
 
-        let key = self.program.str_interner.get_interned(&key);
-
-        let mut obj_builder = SimpleObjectBuilder::new();
-        for &(field_name, field_visibility) in object.get_fields_order() {
-            if Some(field_name) != key {
-                let field_thunk = self
-                    .program
-                    .find_object_field_thunk(&object, 0, field_name)
-                    .unwrap();
-                obj_builder.insert_field(field_name, field_visibility, Gc::from(&field_thunk));
-            }
+        if let Some(key) = self.program.str_interner.get_interned(&key) {
+            let new_object = self.program.object_with_field_removed(&object, key);
+            self.value_stack.push(ValueData::Object(new_object));
+        } else {
+            // Key is not even interned, so it cannot be present in the object.
+            // Just return the original object.
+            self.value_stack.push(ValueData::Object(Gc::from(&object)));
         }
-
-        self.value_stack.push(ValueData::Object(
-            self.program.gc_alloc(obj_builder.build()),
-        ));
-        self.check_object_asserts(&object);
 
         Ok(())
     }
@@ -3949,12 +3941,12 @@ impl<'p> Evaluator<'_, 'p> {
                             .unwrap();
                         new_object.self_layer.fields.insert(
                             field_name,
-                            ObjectField {
+                            ObjectField::Normal(ObjectFieldData {
                                 base_env: None,
                                 visibility: ast::Visibility::Default,
                                 expr: None,
                                 thunk: OnceCell::from(Gc::from(&field_thunk)),
-                            },
+                            }),
                         );
                     }
                 }
@@ -4000,12 +3992,12 @@ impl<'p> Evaluator<'_, 'p> {
         if !matches!(value, ValueData::Null) {
             object.self_layer.fields.insert(
                 name,
-                ObjectField {
+                ObjectField::Normal(ObjectFieldData {
                     base_env: None,
                     visibility: ast::Visibility::Default,
                     expr: None,
                     thunk: OnceCell::from(self.program.gc_alloc(ThunkData::new_done(value))),
-                },
+                }),
             );
         }
     }

@@ -190,43 +190,13 @@ impl<'p> Program<'p> {
         lhs: &ObjectData<'p>,
         rhs: &ObjectData<'p>,
     ) -> Gc<ObjectData<'p>> {
-        let clone_layer = |layer: &ObjectLayer<'p>| -> ObjectLayer<'p> {
-            let new_fields = layer
-                .fields
-                .iter()
-                .map(|(name, field)| {
-                    (
-                        *name,
-                        ObjectField {
-                            base_env: field.base_env.clone(),
-                            visibility: field.visibility,
-                            expr: field.expr,
-                            thunk: match field.expr {
-                                Some(_) => OnceCell::new(),
-                                None => field.thunk.clone(),
-                            },
-                        },
-                    )
-                })
-                .collect();
-
-            ObjectLayer {
-                is_top: layer.is_top,
-                locals: layer.locals,
-                base_env: layer.base_env.clone(),
-                env: OnceCell::new(),
-                fields: new_fields,
-                asserts: layer.asserts,
-            }
-        };
-
-        let self_layer = clone_layer(&rhs.self_layer);
+        let self_layer = extend_object_clone_layer(&rhs.self_layer);
 
         let mut super_layers =
             Vec::with_capacity(lhs.super_layers.len() + rhs.super_layers.len() + 1);
-        super_layers.extend(rhs.super_layers.iter().map(clone_layer));
-        super_layers.push(clone_layer(&lhs.self_layer));
-        super_layers.extend(lhs.super_layers.iter().map(clone_layer));
+        super_layers.extend(rhs.super_layers.iter().map(extend_object_clone_layer));
+        super_layers.push(extend_object_clone_layer(&lhs.self_layer));
+        super_layers.extend(lhs.super_layers.iter().map(extend_object_clone_layer));
 
         self.gc_alloc(ObjectData {
             self_layer,
@@ -234,6 +204,68 @@ impl<'p> Program<'p> {
             fields_order: OnceCell::new(),
             asserts_checked: Cell::new(false),
         })
+    }
+
+    pub(super) fn object_with_field_removed(
+        &mut self,
+        object: &ObjectData<'p>,
+        removed_field_name: InternedStr<'p>,
+    ) -> Gc<ObjectData<'p>> {
+        let self_layer = ObjectLayer {
+            is_top: false,
+            locals: &[],
+            base_env: None,
+            env: OnceCell::new(),
+            fields: std::iter::once((
+                removed_field_name,
+                ObjectField::Removed(object.super_layers.len() + 1),
+            ))
+            .collect(),
+            asserts: &[],
+        };
+
+        let mut super_layers = Vec::with_capacity(object.super_layers.len() + 1);
+        super_layers.push(extend_object_clone_layer(&object.self_layer));
+        super_layers.extend(object.super_layers.iter().map(extend_object_clone_layer));
+
+        self.gc_alloc(ObjectData {
+            self_layer,
+            super_layers,
+            fields_order: OnceCell::new(),
+            asserts_checked: Cell::new(false),
+        })
+    }
+}
+
+fn extend_object_clone_field<'p>(field: &ObjectField<'p>) -> ObjectField<'p> {
+    match field {
+        ObjectField::Normal(field) => ObjectField::Normal(ObjectFieldData {
+            base_env: field.base_env.clone(),
+            visibility: field.visibility,
+            expr: field.expr,
+            thunk: match field.expr {
+                Some(_) => OnceCell::new(),
+                None => field.thunk.clone(),
+            },
+        }),
+        ObjectField::Removed(depth) => ObjectField::Removed(*depth),
+    }
+}
+
+fn extend_object_clone_layer<'p>(layer: &ObjectLayer<'p>) -> ObjectLayer<'p> {
+    let cloned_fields = layer
+        .fields
+        .iter()
+        .map(|(name, field)| (*name, extend_object_clone_field(field)))
+        .collect();
+
+    ObjectLayer {
+        is_top: layer.is_top,
+        locals: layer.locals,
+        base_env: layer.base_env.clone(),
+        env: OnceCell::new(),
+        fields: cloned_fields,
+        asserts: layer.asserts,
     }
 }
 
@@ -464,17 +496,32 @@ impl<'p> ObjectData<'p> {
         &self,
         mut layer_i: usize,
         name: InternedStr<'p>,
-    ) -> Option<(usize, &ObjectField<'p>)> {
+    ) -> Option<(usize, &ObjectFieldData<'p>)> {
         if layer_i == 0 {
             if let Some(field) = self.self_layer.fields.get(&name) {
-                return Some((0, field));
+                match field {
+                    ObjectField::Normal(field) => {
+                        return Some((layer_i, field));
+                    }
+                    ObjectField::Removed(depth) => {
+                        layer_i += depth;
+                    }
+                }
             }
             layer_i += 1;
         }
-        for (sub_i, layer) in self.super_layers[(layer_i - 1)..].iter().enumerate() {
+        while let Some(layer) = self.super_layers.get(layer_i - 1) {
             if let Some(field) = layer.fields.get(&name) {
-                return Some((layer_i + sub_i, field));
+                match field {
+                    ObjectField::Normal(field) => {
+                        return Some((layer_i, field));
+                    }
+                    ObjectField::Removed(depth) => {
+                        layer_i += depth;
+                    }
+                }
             }
+            layer_i += 1;
         }
         None
     }
@@ -484,29 +531,59 @@ impl<'p> ObjectData<'p> {
     }
 
     pub(super) fn get_fields_order(&self) -> &[(InternedStr<'p>, ast::Visibility)] {
+        enum FieldState {
+            Normal(ast::Visibility),
+            Removed(usize),
+        }
+
+        fn field_to_state(field: &ObjectField<'_>, layer_i: usize) -> FieldState {
+            match field {
+                ObjectField::Normal(data) => FieldState::Normal(data.visibility),
+                ObjectField::Removed(depth) => FieldState::Removed(layer_i + *depth),
+            }
+        }
+
         self.fields_order.get_or_init(|| {
             let mut all_fields = BTreeMap::new();
             all_fields.extend(
                 self.self_layer
                     .fields
                     .iter()
-                    .map(|(n, f)| (SortedInternedStr(*n), f.visibility)),
+                    .map(|(n, f)| (SortedInternedStr(*n), field_to_state(f, 0))),
             );
-            for layer in self.super_layers.iter() {
+            for (layer_i, layer) in self.super_layers.iter().enumerate() {
+                let layer_i = layer_i + 1;
                 for (n, f) in layer.fields.iter() {
                     match all_fields.entry(SortedInternedStr(*n)) {
                         std::collections::btree_map::Entry::Vacant(entry) => {
-                            entry.insert(f.visibility);
+                            entry.insert(field_to_state(f, layer_i));
                         }
                         std::collections::btree_map::Entry::Occupied(mut entry) => {
-                            if *entry.get() == ast::Visibility::Default {
-                                *entry.get_mut() = f.visibility;
+                            let entry = entry.get_mut();
+                            match entry {
+                                FieldState::Normal(ast::Visibility::Default) => {
+                                    if let ObjectField::Normal(f) = f {
+                                        *entry = FieldState::Normal(f.visibility);
+                                    }
+                                }
+                                FieldState::Normal(_) => {}
+                                FieldState::Removed(removed_layer_i) => {
+                                    if layer_i > *removed_layer_i {
+                                        *entry = field_to_state(f, layer_i);
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-            all_fields.into_iter().map(|(n, vis)| (n.0, vis)).collect()
+            all_fields
+                .into_iter()
+                .filter_map(|(n, f)| match f {
+                    FieldState::Normal(vis) => Some((n.0, vis)),
+                    FieldState::Removed(_) => None,
+                })
+                .collect()
         })
     }
 
@@ -523,23 +600,34 @@ impl<'p> ObjectData<'p> {
 
     pub(super) fn has_visible_field(&self, name: InternedStr<'p>) -> bool {
         let mut found = false;
+        let mut layer_i = 0;
         if let Some(field) = self.self_layer.fields.get(&name) {
-            found = true;
-            match field.visibility {
-                ast::Visibility::Default => {}
-                ast::Visibility::Hidden => return false,
-                ast::Visibility::ForceVisible => return true,
-            }
-        }
-        for layer in self.super_layers.iter() {
-            if let Some(field) = layer.fields.get(&name) {
-                found = true;
-                match field.visibility {
-                    ast::Visibility::Default => {}
+            match field {
+                ObjectField::Normal(field) => match field.visibility {
+                    ast::Visibility::Default => found = true,
                     ast::Visibility::Hidden => return false,
                     ast::Visibility::ForceVisible => return true,
+                },
+                ObjectField::Removed(depth) => {
+                    layer_i += depth;
                 }
             }
+        }
+        layer_i += 1;
+        while let Some(layer) = self.super_layers.get(layer_i - 1) {
+            if let Some(field) = layer.fields.get(&name) {
+                match field {
+                    ObjectField::Normal(field) => match field.visibility {
+                        ast::Visibility::Default => found = true,
+                        ast::Visibility::Hidden => return false,
+                        ast::Visibility::ForceVisible => return true,
+                    },
+                    ObjectField::Removed(depth) => {
+                        layer_i += depth;
+                    }
+                }
+            }
+            layer_i += 1;
         }
         found
     }
@@ -567,14 +655,31 @@ impl GcTrace for ObjectLayer<'_> {
     }
 }
 
-pub(super) struct ObjectField<'p> {
+pub(crate) enum ObjectField<'p> {
+    Normal(ObjectFieldData<'p>),
+    Removed(usize),
+}
+
+impl GcTrace for ObjectField<'_> {
+    fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
+    where
+        Self: 'a,
+    {
+        match self {
+            Self::Normal(data) => data.trace(ctx),
+            Self::Removed(_) => {}
+        }
+    }
+}
+
+pub(super) struct ObjectFieldData<'p> {
     pub(super) base_env: Option<Gc<ThunkEnv<'p>>>,
     pub(super) visibility: ast::Visibility,
     pub(super) expr: Option<(&'p ir::Expr<'p>, bool)>,
     pub(super) thunk: OnceCell<Gc<ThunkData<'p>>>,
 }
 
-impl GcTrace for ObjectField<'_> {
+impl GcTrace for ObjectFieldData<'_> {
     fn trace<'a>(&self, ctx: &mut impl GcTraceCtx<'a>)
     where
         Self: 'a,
@@ -602,13 +707,15 @@ impl<'p> SimpleObjectBuilder<'p> {
         visibility: ast::Visibility,
         thunk: Gc<ThunkData<'p>>,
     ) {
-        let field = ObjectField {
-            base_env: None,
-            visibility,
-            expr: None,
-            thunk: OnceCell::from(thunk),
-        };
-        let prev = self.fields.insert(name, field);
+        let prev = self.fields.insert(
+            name,
+            ObjectField::Normal(ObjectFieldData {
+                base_env: None,
+                visibility,
+                expr: None,
+                thunk: OnceCell::from(thunk),
+            }),
+        );
         assert!(prev.is_none(), "duplicate object field: {name:?}");
     }
 
@@ -621,12 +728,12 @@ impl<'p> SimpleObjectBuilder<'p> {
     ) -> bool {
         match self.fields.entry(name) {
             std::collections::hash_map::Entry::Vacant(entry) => {
-                entry.insert(ObjectField {
+                entry.insert(ObjectField::Normal(ObjectFieldData {
                     base_env: None,
                     visibility,
                     expr: None,
                     thunk: OnceCell::from(thunk),
-                });
+                }));
                 true
             }
             std::collections::hash_map::Entry::Occupied(_) => false,
