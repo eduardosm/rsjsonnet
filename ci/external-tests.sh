@@ -11,7 +11,7 @@ begin_group "Build"
 cargo build -p rsjsonnet --frozen
 end_group
 
-ext_jsonnet_ver="0.21.0"
+ext_jsonnet_ver="0.22.0-rc1"
 begin_group "Download jsonnet $ext_jsonnet_ver"
 curl -fL "https://github.com/google/jsonnet/archive/refs/tags/v${ext_jsonnet_ver}.tar.gz" | tar -xz
 end_group
@@ -25,11 +25,6 @@ failures=0
 
 cd "$ext_src_dir/test_suite"
 for test in *.jsonnet; do
-  if [[ "$test" = "safe_integer_conversion.jsonnet" ]]; then
-    # Skip this test, since C++ Jsonnet considers 2^53 as a safe integer.
-    continue
-  fi
-
   extra_args=()
 
   if [[ "$test" =~ ^tla[.] ]]; then
