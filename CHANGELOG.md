@@ -18,7 +18,7 @@
 ### Changed
 
 - `std.parseYaml` now returns `null` for empty documents.
-- `std.objectRemoveKey` now preserves hidden fields.
+- `std.objectRemoveKey` now preserves hidden fields and works with inheritance.
 
 ## 0.4.0 (2025-05-10)
 

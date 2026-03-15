@@ -91,8 +91,8 @@ mod ir;
 mod stdlib;
 
 use data::{
-    ArrayData, BuiltInFunc, FuncData, FuncKind, FuncParams, ObjectData, ObjectField, ObjectLayer,
-    PendingThunk, SimpleObjectBuilder, ThunkData, ThunkEnv, ThunkEnvData, ThunkState, ValueData,
+    ArrayData, BuiltInFunc, FuncData, FuncKind, FuncParams, ObjectData, ObjectLayer,
+    SimpleObjectBuilder, ThunkData, ThunkEnv, ThunkEnvData, ThunkState, ValueData,
 };
 pub use error::{AnalyzeError, EvalError, EvalErrorKind, EvalErrorValueType, LoadError};
 

@@ -2,10 +2,13 @@ use std::cell::{Cell, OnceCell};
 use std::collections::hash_map::Entry as HashMapEntry;
 use std::rc::Rc;
 
+use super::data::{
+    ArrayData, FuncData, FuncKind, ObjectData, ObjectField, ObjectFieldData, ObjectLayer,
+    PendingThunk, ThunkData, ThunkEnv, ThunkEnvData, ThunkState,
+};
 use super::{
-    ArrayData, Callbacks, EvalError, EvalErrorKind, EvalErrorValueType, EvalStackTraceItem,
-    FuncData, FuncKind, ObjectData, ObjectField, ObjectLayer, PendingThunk, Program, ThunkData,
-    ThunkEnv, ThunkEnvData, ThunkState, ValueData, ir,
+    Callbacks, EvalError, EvalErrorKind, EvalErrorValueType, EvalStackTraceItem, Program,
+    ValueData, ir,
 };
 use crate::gc::{Gc, GcView};
 use crate::interner::InternedStr;
@@ -1608,12 +1611,12 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                     thunk = OnceCell::new();
                 }
 
-                entry.insert(ObjectField {
+                entry.insert(ObjectField::Normal(ObjectFieldData {
                     base_env,
                     visibility,
                     expr: actual_expr,
                     thunk,
-                });
+                }));
                 Ok(())
             }
         }
