@@ -683,6 +683,18 @@ fn test_object_expr() {
         },
     }
     .run();
+
+    ParserTest {
+        input: b"{[x + y]+: 1 for a in b if c}",
+        check: |_, expr| {
+            let expr = expr.unwrap();
+            assert!(matches!(
+                expr.kind,
+                ast::ExprKind::Object(ast::ObjInside::Comp { .. })
+            ));
+        },
+    }
+    .run();
 }
 
 #[test]

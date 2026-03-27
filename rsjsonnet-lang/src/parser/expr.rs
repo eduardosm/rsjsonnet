@@ -673,22 +673,24 @@ impl<'p, 'ast> Parser<'_, 'p, 'ast> {
                     ast::Member::Assert(_) => unreachable!(),
                     ast::Member::Field(ast::Field::Value(
                         ast::FieldName::Expr(name, _),
-                        false,
+                        plus,
                         ast::Visibility::Default,
                         body,
                     )) => {
                         assert!(field.is_none());
-                        field = Some((this.ast_arena.alloc(name), this.ast_arena.alloc(body)));
+                        field =
+                            Some((this.ast_arena.alloc(name), plus, this.ast_arena.alloc(body)));
                     }
                     ast::Member::Field(_) => unreachable!(),
                 }
             }
 
-            let (name, body) = field.unwrap();
+            let (name, plus, body) = field.unwrap();
 
             ast::ObjInside::Comp {
                 locals1: this.ast_arena.alloc_slice(&locals1),
                 name,
+                plus,
                 body,
                 locals2: this.ast_arena.alloc_slice(&locals2),
                 comp_spec,
@@ -703,12 +705,7 @@ impl<'p, 'ast> Parser<'_, 'p, 'ast> {
                 members.push(ast::Member::Local(local));
             } else if let Some(field) = self.maybe_parse_field()? {
                 match field {
-                    ast::Field::Value(
-                        ast::FieldName::Expr(..),
-                        false,
-                        ast::Visibility::Default,
-                        _,
-                    ) => {
+                    ast::Field::Value(ast::FieldName::Expr(..), _, ast::Visibility::Default, _) => {
                         if has_comp_dyn_field {
                             can_be_comp = false;
                         } else {

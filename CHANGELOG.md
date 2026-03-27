@@ -10,6 +10,7 @@
 
 - `--no-trailing-newline` option to disable adding a newline at the end of the
   output.
+- `+:` is now allowed in object comprehension.
 - New language features from Jsonnet 0.22:
   - Allow underscores between digits in numbers.
 - New standard library elements from Jsonnet 0.22:

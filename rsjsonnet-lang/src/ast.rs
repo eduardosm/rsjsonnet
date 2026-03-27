@@ -79,6 +79,7 @@ pub enum ObjInside<'p, 'ast> {
     Comp {
         locals1: &'ast [ObjLocal<'p, 'ast>],
         name: &'ast Expr<'p, 'ast>,
+        plus: bool,
         body: &'ast Expr<'p, 'ast>,
         locals2: &'ast [ObjLocal<'p, 'ast>],
         comp_spec: &'ast [CompSpecPart<'p, 'ast>],
