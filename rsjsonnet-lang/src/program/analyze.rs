@@ -552,6 +552,7 @@ impl<'a, 'p> Analyzer<'a, 'p> {
             ast::ObjInside::Comp {
                 locals1: locals1_ast,
                 name: name_ast,
+                plus,
                 body: body_ast,
                 locals2: locals2_ast,
                 comp_spec: comp_spec_ast,
@@ -597,6 +598,7 @@ impl<'a, 'p> Analyzer<'a, 'p> {
                     locals: self.program.arena.alloc_slice(&locals),
                     field_name,
                     field_name_span: name_ast.span,
+                    field_plus: plus,
                     field_value,
                     comp_spec,
                 }))

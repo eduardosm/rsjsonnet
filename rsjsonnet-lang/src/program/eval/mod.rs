@@ -707,6 +707,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
                         locals: ir_locals,
                         field_name,
                         field_name_span,
+                        field_plus,
                         field_value,
                         ..
                     } = *expr
@@ -741,7 +742,7 @@ impl<'p, 'a> Evaluator<'a, 'p> {
 
                         self.state_stack.push(State::ObjectDynField {
                             name_span: field_name_span,
-                            plus: false,
+                            plus: field_plus,
                             visibility: ast::Visibility::Default,
                             value: field_value,
                             base_env: Some(Gc::from(&outer_env)),

@@ -19,6 +19,7 @@ pub(super) enum Expr<'p> {
         locals: &'p [(InternedStr<'p>, &'p Expr<'p>)],
         field_name: &'p Expr<'p>,
         field_name_span: SpanId,
+        field_plus: bool,
         field_value: &'p Expr<'p>,
         comp_spec: &'p [CompSpecPart<'p>],
     },

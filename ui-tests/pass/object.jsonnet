@@ -111,5 +111,10 @@ std.assertEqual(
   local pre = "n_"; { local pre = "v_", [pre + x]: pre + x for x in ["a", "b"] },
   { n_a: "v_a", n_b: "v_b" },
 ) &&
+std.assertEqual(
+  { n_a: "x " } + { ["n_" + x]+: "v_" + x for x in ["a", "b"] },
+  { n_a: "x v_a", n_b: "v_b" },
+) &&
+
 
 true
