@@ -47,7 +47,7 @@ jobs:
         run: ./ci/install-rust.sh stable --profile minimal
       - run: ./ci/extract-changelog.sh
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: version-changelog
           path: version-changelog
@@ -103,7 +103,7 @@ jobs:
         run: ./ci/install-rust.sh stable --profile minimal
       - run: ./ci/package-crates.sh
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: packaged-crates
           path: output
@@ -125,7 +125,7 @@ jobs:
             "$DOCKER_IMAGE" \
             bash ./ci/build-dist-linux.sh
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: dist-linux
           path: |
@@ -149,7 +149,7 @@ jobs:
             "$DOCKER_IMAGE" \
             bash ./ci/build-dist-windows.sh
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: dist-windows
           path: |
