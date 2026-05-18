@@ -531,7 +531,7 @@ impl Lexer<'_> {
                         });
                     }
                 },
-                chr if !chr.is_ascii_control() => {
+                chr if !matches!(chr, '\0'..='\x1F') => {
                     string.push(chr);
                 }
                 _ => {

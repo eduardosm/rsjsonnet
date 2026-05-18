@@ -48,6 +48,10 @@ std.assertEqual(std.parseJson("0.5e+10"), 5000000000) &&
 std.assertEqual(std.parseJson('"string"'), "string") &&
 std.assertEqual(std.parseJson(' "string" '), "string") &&
 
+// DEL (U+007F) is the only ASCII control character allowed
+// to appear literally in JSON strings
+std.assertEqual(std.parseJson('"' + std.char(127) + '"'), "\u007F") &&
+
 std.assertEqual(std.parseJson('"\\""'), "\"") &&
 std.assertEqual(std.parseJson('"\\\\"'), "\\") &&
 std.assertEqual(std.parseJson('"\\/"'), "/") &&
