@@ -1898,7 +1898,7 @@ fn parse_num_radix<const RADIX: u8>(s: &str) -> Result<f64, ParseNumRadixError> 
 
     let mut number = number as f64;
     for chr in s[num_digits_128..].chars() {
-        if !chr.is_ascii_hexdigit() {
+        if chr.to_digit(RADIX.into()).is_none() {
             return Err(ParseNumRadixError::InvalidDigit(chr));
         }
         number *= f64::from(RADIX);
