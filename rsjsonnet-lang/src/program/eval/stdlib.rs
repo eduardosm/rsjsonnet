@@ -4049,10 +4049,7 @@ where
 
     let mut input = input.into_iter();
     let mut encoded = String::new();
-    loop {
-        let Some(b0) = input.next() else {
-            break;
-        };
+    while let Some(b0) = input.next() {
         let b0 = b0?;
 
         encoded.push(char::from(encmap[usize::from(b0 >> 2)]));
