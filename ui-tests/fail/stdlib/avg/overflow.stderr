@@ -1,0 +1,8 @@
+error: numeric overflow
+note: while evaluating call to `avg`
+ --> overflow.jsonnet:1:1
+  |
+1 | std.avg([1e308, 1e308])
+  | -----------------------
+note: during top-level value evaluation
+

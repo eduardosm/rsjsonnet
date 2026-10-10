@@ -2950,6 +2950,8 @@ impl<'p> Evaluator<'_, 'p> {
         };
 
         let sum = sum + item_value;
+        self.check_number_value(sum, None)?;
+
         let index = index + 1;
         if index == array.len() {
             self.value_stack.push(ValueData::Number(sum));
@@ -3003,6 +3005,8 @@ impl<'p> Evaluator<'_, 'p> {
         };
 
         let sum = sum + item_value;
+        self.check_number_value(sum, None)?;
+
         let index = index + 1;
         if index == array.len() {
             self.value_stack
