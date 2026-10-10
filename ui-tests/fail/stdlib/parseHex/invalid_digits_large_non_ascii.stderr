@@ -1,0 +1,8 @@
+error: invalid hexadecimal digit: 'é'
+note: while evaluating call to `parseHex`
+ --> invalid_digits_large_non_ascii.jsonnet:1:1
+  |
+1 | std.parseHex("1111111111111111111111111111111é")
+  | ------------------------------------------------
+note: during top-level value evaluation
+

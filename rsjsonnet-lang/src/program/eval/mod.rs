@@ -1886,10 +1886,10 @@ fn parse_num_radix<const RADIX: u8>(s: &str) -> Result<f64, ParseNumRadixError> 
         16 => 128 / 4,
         _ => unreachable!(),
     };
-    let num_digits_128 = s.len().min(max_digits_128);
+    let mut chars = s.chars();
 
     let mut number = 0u128;
-    for chr in s[..num_digits_128].chars() {
+    for chr in chars.by_ref().take(max_digits_128) {
         let digit = chr
             .to_digit(RADIX.into())
             .ok_or(ParseNumRadixError::InvalidDigit(chr))?;
@@ -1897,7 +1897,7 @@ fn parse_num_radix<const RADIX: u8>(s: &str) -> Result<f64, ParseNumRadixError> 
     }
 
     let mut number = number as f64;
-    for chr in s[num_digits_128..].chars() {
+    for chr in chars {
         if chr.to_digit(RADIX.into()).is_none() {
             return Err(ParseNumRadixError::InvalidDigit(chr));
         }
