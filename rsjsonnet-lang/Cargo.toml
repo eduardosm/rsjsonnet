@@ -11,11 +11,11 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-bumpalo = "3.20.2"
+bumpalo = "3.20.3"
 foldhash = "0.2.0"
-hashbrown = "0.16.1"
+hashbrown = "0.17.1"
 md-5 = { version = "0.11.0", default-features = false }
-saphyr-parser = "0.0.6"
+saphyr-parser = "0.1.0"
 sha1 = { version = "0.11.0", default-features = false }
 sha2 = { version = "0.11.0", default-features = false }
-sha3 = { version = "0.11.0", default-features = false }
+sha3 = { version = "0.12.0", default-features = false }
