@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1 (unreleased)
+
+### Fixed
+
+- Detect invalid digits in large numbers passed to `std.parseOctal`.
+- Allow DEL (U+007F) character in strings in `std.parseJson`.
+- Avoid panic when parsing large hexadecimal or octal numbers that contain
+  non-ASCII characters in `std.parseHex`, `std.parseOctal` and `std.parseYaml`.
+
 ## 0.5.0 (2026-03-26)
 
 ### Breaking
