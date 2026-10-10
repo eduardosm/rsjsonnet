@@ -900,7 +900,7 @@ pub(super) fn escape_string_json(s: &str, result: &mut String) {
             '\r' => result.push_str("\\r"),
             '"' => result.push_str("\\\""),
             '\\' => result.push_str("\\\\"),
-            '\u{0}'..='\u{19}' | '\u{7F}'..='\u{9F}' => {
+            '\u{0}'..='\u{1F}' | '\u{7F}'..='\u{9F}' => {
                 write!(result, "\\u{:04x}", chr as u32).unwrap();
             }
             _ => result.push(chr),
