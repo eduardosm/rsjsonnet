@@ -1,0 +1,8 @@
+error: invalid octal digit: 'é'
+note: while evaluating call to `parseOctal`
+ --> invalid_digits_large_non_ascii.jsonnet:1:1
+  |
+1 | std.parseOctal("77777777777777777777777777777777777777777é")
+  | ------------------------------------------------------------
+note: during top-level value evaluation
+
