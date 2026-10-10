@@ -10,6 +10,8 @@
   non-ASCII characters in `std.parseHex`, `std.parseOctal` and `std.parseYaml`.
 - Avoid stack overflow error in `std.filter`, `std.filterMap`, `std.set` and
   `std.sort` when the array has more items than the maximum stack size.
+- Escape control characters from U+001A to U+001F in JSON strings (they were
+  left unescaped, producing invalid JSON).
 
 ## 0.5.0 (2026-03-26)
 
