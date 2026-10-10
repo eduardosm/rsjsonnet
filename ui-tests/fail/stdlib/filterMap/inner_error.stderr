@@ -1,0 +1,13 @@
+error: explicit error: err
+ --> inner_error.jsonnet:1:27
+  |
+1 | std.filterMap(function(x) error "err", function(x) x, [1, 2, 3])
+  |                           ^^^^^^^^^^^
+note: while evaluating call to function
+note: while evaluating call to `filterMap`
+ --> inner_error.jsonnet:1:1
+  |
+1 | std.filterMap(function(x) error "err", function(x) x, [1, 2, 3])
+  | ----------------------------------------------------------------
+note: during top-level value evaluation
+

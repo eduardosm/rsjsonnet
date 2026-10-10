@@ -1901,6 +1901,7 @@ impl<'p> Evaluator<'_, 'p> {
                 map_func: map_func.clone(),
             });
             self.check_thunk_args_and_execute_call(&filter_func, &[item.view()], &[], None)?;
+            self.delay_trace_item();
         }
 
         Ok(())
@@ -2038,6 +2039,7 @@ impl<'p> Evaluator<'_, 'p> {
             self.state_stack
                 .push(State::StdFilterCheck { item: item.view() });
             self.check_thunk_args_and_execute_call(&func, &[item.view()], &[], None)?;
+            self.delay_trace_item();
         }
 
         Ok(())
@@ -2527,6 +2529,7 @@ impl<'p> Evaluator<'_, 'p> {
                     index: i,
                 });
                 self.check_thunk_args_and_execute_call(&keyf, &[array[i].view()], &[], None)?;
+                self.delay_trace_item();
             }
         }
 
@@ -3329,6 +3332,7 @@ impl<'p> Evaluator<'_, 'p> {
                     index: i,
                 });
                 self.check_thunk_args_and_execute_call(&keyf, &[array[i].view()], &[], None)?;
+                self.delay_trace_item();
             }
         }
 

@@ -8,6 +8,8 @@
 - Allow DEL (U+007F) character in strings in `std.parseJson`.
 - Avoid panic when parsing large hexadecimal or octal numbers that contain
   non-ASCII characters in `std.parseHex`, `std.parseOctal` and `std.parseYaml`.
+- Avoid stack overflow error in `std.filter`, `std.filterMap`, `std.set` and
+  `std.sort` when the array has more items than the maximum stack size.
 
 ## 0.5.0 (2026-03-26)
 

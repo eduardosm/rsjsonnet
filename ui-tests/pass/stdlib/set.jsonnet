@@ -1,3 +1,5 @@
+//@args: --max-stack 100
+
 std.assertEqual(std.set([]), []) &&
 std.assertEqual(std.set([1]), [1]) &&
 std.assertEqual(std.set([1, 1]), [1]) &&
@@ -14,6 +16,16 @@ std.assertEqual(std.set([], keyF=function(x) error "err"), []) &&
 std.assertEqual(
   std.set(["one", "two", "three", "four", "six", "seven"], keyF=std.length),
   ["one", "four", "three"],
+) &&
+
+// More items than the maximum stack size.
+std.assertEqual(
+  std.set(std.reverse(std.range(1, 200)) + std.range(1, 200)),
+  std.range(1, 200),
+) &&
+std.assertEqual(
+  std.set(std.range(1, 200) + std.range(1, 200), keyF=function(x) -x),
+  std.reverse(std.range(1, 200)),
 ) &&
 
 true
