@@ -1,0 +1,13 @@
+error: explicit error: err
+ --> inner_error.jsonnet:1:32
+  |
+1 | std.set([1, 2, 3], function(x) error "err")
+  |                                ^^^^^^^^^^^
+note: while evaluating call to function
+note: while evaluating call to `set`
+ --> inner_error.jsonnet:1:1
+  |
+1 | std.set([1, 2, 3], function(x) error "err")
+  | -------------------------------------------
+note: during top-level value evaluation
+

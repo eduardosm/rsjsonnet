@@ -1,3 +1,5 @@
+//@args: --max-stack 100
+
 std.assertEqual(std.filter(function(x) null, []), []) &&
 std.assertEqual(std.filter(function(x) true, [1, 2, 3]), [1, 2, 3]) &&
 std.assertEqual(std.filter(function(x) false, [1, 2, 3]), []) &&
@@ -8,6 +10,12 @@ std.assertEqual(
 std.assertEqual(
   std.filter(function(x, y=1) x[0] == y, [[1, 1], [2, 2], [1, 2]]),
   [[1, 1], [1, 2]],
+) &&
+
+// More items than the maximum stack size.
+std.assertEqual(
+  std.filter(function(x) x % 2 == 0, std.range(1, 200)),
+  std.map(function(x) x * 2, std.range(1, 100)),
 ) &&
 
 true

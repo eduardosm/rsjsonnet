@@ -1,3 +1,5 @@
+//@args: --max-stack 100
+
 std.assertEqual(std.sort([]), []) &&
 
 std.assertEqual(std.sort([], keyF=std.length), []) &&
@@ -29,5 +31,12 @@ std.all([
 
   for n in std.range(1, 150)
 ]) &&
+
+// More items than the maximum stack size.
+std.assertEqual(std.sort(std.reverse(std.range(1, 200))), std.range(1, 200)) &&
+std.assertEqual(
+  std.sort(std.range(1, 200), keyF=function(x) -x),
+  std.reverse(std.range(1, 200)),
+) &&
 
 true
