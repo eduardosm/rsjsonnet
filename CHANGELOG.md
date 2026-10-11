@@ -17,6 +17,8 @@
   order mark at the beginning of a file.
 - Fix misaligned `|` connector in errors that have two labels in the same line
   (repeated local, field or parameter name).
+- Use the correct function name in the error for an invalid argument type in
+  `std.remove` and `std.removeAt`.
 
 ## 0.5.0 (2026-03-26)
 
