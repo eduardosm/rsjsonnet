@@ -3229,7 +3229,7 @@ impl<'p> Evaluator<'_, 'p> {
 
     pub(super) fn do_std_remove(&mut self, value: GcView<ThunkData<'p>>) -> EvalResult<()> {
         let array = self.value_stack.pop().unwrap();
-        let array = self.expect_std_func_arg_array(array, "contains", 0)?;
+        let array = self.expect_std_func_arg_array(array, "remove", 0)?;
 
         if let Some(item0) = array.first() {
             let item0 = item0.view();
@@ -3279,8 +3279,8 @@ impl<'p> Evaluator<'_, 'p> {
         let index = self.value_stack.pop().unwrap();
         let array = self.value_stack.pop().unwrap();
 
-        let array = self.expect_std_func_arg_array(array, "containsAt", 0)?;
-        let index_f = self.expect_std_func_arg_number(index, "containsAt", 1)?;
+        let array = self.expect_std_func_arg_array(array, "removeAt", 0)?;
+        let index_f = self.expect_std_func_arg_number(index, "removeAt", 1)?;
 
         let index = index_f as usize;
         if index_f.trunc() == index_f && index_f >= 0.0 && index < array.len() {
