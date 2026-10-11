@@ -168,6 +168,7 @@ fn main_inner() -> Result<(), RunError> {
         let name = session.program().intern_str(&arg.var);
         if !tla_names.insert(name) {
             eprintln!("error: TLA {:?} defined more than once", arg.var);
+            return Err(RunError::Generic);
         }
 
         let thunk = ext_str_to_thunk(session.program_mut(), arg)?;
@@ -178,6 +179,7 @@ fn main_inner() -> Result<(), RunError> {
         let name = session.program().intern_str(&arg.var);
         if !tla_names.insert(name) {
             eprintln!("error: TLA {:?} defined more than once", arg.var);
+            return Err(RunError::Generic);
         }
 
         let thunk = ext_str_file_to_thunk(session.program_mut(), arg)?;
@@ -188,6 +190,7 @@ fn main_inner() -> Result<(), RunError> {
         let name = session.program().intern_str(&arg.var);
         if !tla_names.insert(name) {
             eprintln!("error: TLA {:?} defined more than once", arg.var);
+            return Err(RunError::Generic);
         }
 
         let thunk = ext_code_to_thunk(&mut session, "tla", arg)?;
@@ -198,6 +201,7 @@ fn main_inner() -> Result<(), RunError> {
         let name = session.program().intern_str(&arg.var);
         if !tla_names.insert(name) {
             eprintln!("error: TLA {:?} defined more than once", arg.var);
+            return Err(RunError::Generic);
         }
 
         let thunk = ext_code_file_to_thunk(&mut session, arg)?;

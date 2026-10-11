@@ -19,6 +19,8 @@
   (repeated local, field or parameter name).
 - Use the correct function name in the error for an invalid argument type in
   `std.remove` and `std.removeAt`.
+- Do not report a second, spurious error when a top-level argument is defined
+  more than once in the command line.
 
 ## 0.5.0 (2026-03-26)
 
