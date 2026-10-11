@@ -1,0 +1,8 @@
+error: repeated local name `a`
+ --> repeated_local_name.jsonnet:1:14
+  |
+1 | local a = 1, a = 2; a
+  |       -      ^ repeated local name
+  |       |
+  |       previously defined here
+

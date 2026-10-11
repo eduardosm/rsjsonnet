@@ -1,0 +1,8 @@
+error: repeated field name "a"
+ --> repeated_field_name_4.jsonnet:1:9
+  |
+1 | { a: 1, a: 2 }
+  |   -     ^ repeated field name
+  |   |
+  |   previously defined here
+

@@ -1,0 +1,6 @@
+error: invalid character U+FEFF
+ --> bom.jsonnet:1:1
+  |
+1 | ﻿{}
+  | ^ invalid character
+
