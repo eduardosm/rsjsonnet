@@ -1,0 +1,6 @@
+error: invalid character U+200B
+ --> zero_width_space.jsonnet:1:8
+  |
+1 | { a: 1,​ b: 2 }
+  |        ^ invalid character
+

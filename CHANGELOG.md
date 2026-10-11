@@ -13,6 +13,10 @@
 - Escape control characters from U+001A to U+001F in JSON strings (they were
   left unescaped, producing invalid JSON).
 - Detect numeric overflow in `std.sum` and `std.avg`.
+- Avoid panic when an error points to a zero-width character, such as a byte
+  order mark at the beginning of a file.
+- Fix misaligned `|` connector in errors that have two labels in the same line
+  (repeated local, field or parameter name).
 
 ## 0.5.0 (2026-03-26)
 

@@ -1,0 +1,8 @@
+error: repeated parameter name `x`
+ --> repeated_param_name.jsonnet:1:12
+  |
+1 | local f(x, x) = 0; f(1, 2)
+  |         -  ^ repeated parameter name
+  |         |
+  |         previously defined here
+
