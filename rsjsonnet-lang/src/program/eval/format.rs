@@ -816,6 +816,7 @@ impl<'p> Evaluator<'_, 'p> {
                         ),
                     }));
                 };
+                self.check_float_prec(fpprec)?;
 
                 let s = render_float_exp(
                     value,
@@ -839,6 +840,7 @@ impl<'p> Evaluator<'_, 'p> {
                         ),
                     }));
                 };
+                self.check_float_prec(fpprec)?;
 
                 let s = render_float_def(
                     value,
@@ -861,6 +863,7 @@ impl<'p> Evaluator<'_, 'p> {
                         ),
                     }));
                 };
+                self.check_float_prec(fpprec)?;
 
                 let exponent = if value == 0.0 {
                     0.0
@@ -949,6 +952,17 @@ impl<'p> Evaluator<'_, 'p> {
             ConvType::Percent => unreachable!(),
         }
 
+        Ok(())
+    }
+
+    fn check_float_prec(&mut self, prec: usize) -> EvalResult<()> {
+        // `core::fmt` does not support a precision greater than `u16::MAX`.
+        if prec > usize::from(u16::MAX) {
+            return Err(self.report_error(EvalErrorKind::Other {
+                span: None,
+                message: "format precision is too large".into(),
+            }));
+        }
         Ok(())
     }
 

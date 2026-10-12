@@ -1,0 +1,8 @@
+error: format precision is too large
+note: while evaluating call to `format`
+ --> prec_too_large_g.jsonnet:1:1
+  |
+1 | std.format("%.65536g", [1])
+  | ---------------------------
+note: during top-level value evaluation
+
