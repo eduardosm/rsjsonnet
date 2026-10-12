@@ -28,6 +28,8 @@
   (nulls, booleans or objects).
 - Reject NUL characters in `std.parseYaml` (the input was silently truncated at
   the first one).
+- Count codepoints instead of UTF-8 bytes when applying the field width in
+  `std.format` (strings with non-ASCII characters could be left unpadded).
 
 ## 0.5.0 (2026-03-26)
 

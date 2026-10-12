@@ -535,8 +535,9 @@ impl<'p> Evaluator<'_, 'p> {
         let result = self.string_stack.last_mut().unwrap();
 
         let fw = fw as usize;
-        if s.len() < fw {
-            let pad_len = fw - s.chars().count();
+        let s_len = s.chars().count();
+        if s_len < fw {
+            let pad_len = fw - s_len;
             if code.cflags.left {
                 result.push_str(&s);
                 result.extend(std::iter::repeat_n(' ', pad_len));
@@ -680,8 +681,9 @@ impl<'p> Evaluator<'_, 'p> {
         let result = self.string_stack.last_mut().unwrap();
 
         let fw = fw as usize;
-        if s.len() < fw {
-            let pad_len = fw - s.chars().count();
+        let s_len = s.chars().count();
+        if s_len < fw {
+            let pad_len = fw - s_len;
             if code.cflags.left {
                 result.push_str(&s);
                 result.extend(std::iter::repeat_n(' ', pad_len));
