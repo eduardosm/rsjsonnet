@@ -6,6 +6,7 @@ use crate::{FHashMap, ast};
 
 pub(crate) enum ParseError<'p> {
     Parser(saphyr_parser::ScanError),
+    NulChar,
     Tag,
     AnchorContainsItself,
     AnchorFromOtherDoc,
@@ -26,6 +27,7 @@ impl std::fmt::Display for ParseError<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
             Self::Parser(ref e) => write!(f, "{e}"),
+            Self::NulChar => write!(f, "NUL characters are not allowed"),
             Self::Tag => write!(f, "tags are not allowed"),
             Self::AnchorContainsItself => write!(f, "anchor contains itself"),
             Self::AnchorFromOtherDoc => {
@@ -55,6 +57,11 @@ pub(super) fn parse_yaml<'p>(
     program: &mut Program<'p>,
     s: &str,
 ) -> Result<ValueData<'p>, ParseError<'p>> {
+    // `saphyr_parser` treats a NUL character as the end of the input.
+    if s.contains('\0') {
+        return Err(ParseError::NulChar);
+    }
+
     let mut parser = saphyr_parser::Parser::new_from_str(s);
 
     let (first_event, _) = parser.next_event().unwrap()?;

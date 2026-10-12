@@ -1,0 +1,8 @@
+error: failed to parse YAML: NUL characters are not allowed
+note: while evaluating call to `parseYaml`
+ --> nul_char.jsonnet:1:1
+  |
+1 | std.parseYaml("a: 1\u0000\nb: 2")
+  | ---------------------------------
+note: during top-level value evaluation
+
