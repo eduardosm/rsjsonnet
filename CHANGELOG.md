@@ -23,6 +23,9 @@
   more than once in the command line.
 - Avoid panic in `std.format` when the precision of a floating-point conversion
   (`%e`, `%f` or `%g`) is greater than 65535. It is now reported as an error.
+- Do not fail in `std.setDiff`, `std.setInter`, `std.setMember` and
+  `std.setUnion` when comparing keys that are equal but cannot be ordered
+  (nulls, booleans or objects).
 
 ## 0.5.0 (2026-03-26)
 
