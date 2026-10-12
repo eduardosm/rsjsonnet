@@ -16,7 +16,7 @@ pub enum LexError {
     MissingExpDigits { span: SpanId },
     /// Missing digit after `_` in number
     MissingDigitAfterUnderscore { span: SpanId },
-    /// Missing exponent digits after `e` in number
+    /// Exponent overflow in number
     ExpOverflow { span: SpanId },
     /// Invalid escape sequence in string
     InvalidEscapeInString { span: SpanId, chr: char },
