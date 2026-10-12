@@ -123,6 +123,13 @@ std.assertEqual(std.format("%10g", [-1.5e10]), "  -1.5e+10") &&
 std.assertEqual(std.format("%010g", [1.5e10]), "0001.5e+10") &&
 std.assertEqual(std.format("%010g", [-1.5e10]), "-001.5e+10") &&
 
+// Maximum precision of floating-point conversions.
+std.assertEqual(std.length(std.format("%.65535f", [1])), 65537) &&
+std.assertEqual(std.length(std.format("%.65535e", [1])), 65541) &&
+std.assertEqual(std.length(std.format("%#.65535g", [1])), 65536) &&
+// The precision of integer conversions is not limited.
+std.assertEqual(std.length(std.format("%.65536i", [1])), 65536) &&
+
 // Single value.
 std.assertEqual(std.format("%d", 10), "10") &&
 
