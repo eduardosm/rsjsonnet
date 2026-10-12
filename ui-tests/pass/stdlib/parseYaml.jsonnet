@@ -171,6 +171,7 @@ std.assertEqual(std.parseYaml("-0x1"), "-0x1") &&
 std.assertEqual(std.parseYaml('"string"'), "string") &&
 std.assertEqual(std.parseYaml("'string'"), "string") &&
 std.assertEqual(std.parseYaml('"\\uABCD"'), "\uABCD") &&
+std.assertEqual(std.parseYaml('"a\\0b"'), "a\u0000b") &&
 
 std.assertEqual(std.parseYaml(">\n x"), "x\n") &&
 std.assertEqual(std.parseYaml(">\n x\n"), "x\n") &&

@@ -26,6 +26,8 @@
 - Do not fail in `std.setDiff`, `std.setInter`, `std.setMember` and
   `std.setUnion` when comparing keys that are equal but cannot be ordered
   (nulls, booleans or objects).
+- Reject NUL characters in `std.parseYaml` (the input was silently truncated at
+  the first one).
 
 ## 0.5.0 (2026-03-26)
 
