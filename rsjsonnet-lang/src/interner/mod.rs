@@ -1,4 +1,7 @@
-//! A reference-count based string interner.
+//! An arena-based string interner.
+//!
+//! Interned strings are allocated in an [`Arena`] and remain valid until it is
+//! dropped.
 //!
 //! # Example
 //!
@@ -16,8 +19,8 @@
 //! // Different strings are different
 //! assert_ne!(hello1, world1);
 //!
-//! // Interned strings are reference counted
-//! let hello2 = hello1.clone(); // cheap
+//! // Interned strings are `Copy`
+//! let hello2 = hello1;
 //! assert_eq!(hello1, hello2);
 //!
 //! // Interning a string again will return a reference to
