@@ -12,7 +12,7 @@ mapfile -t commits <<< "$commits"
 lf=$'\n'
 cr=$'\r'
 exclam='!'
-types="build|change|chore|ci|doc|feat|fix|perf|refactor|revert|style|test"
+types="build|change|chore|ci|docs|feat|fix|perf|refactor|revert|style|test"
 regex="^($types)(\([^$lf$cr]+\))?$exclam?: .+\$"
 
 echo "Checking ${#commits[@]} commit(s)"
