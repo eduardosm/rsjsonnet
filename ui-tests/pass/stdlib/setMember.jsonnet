@@ -7,6 +7,12 @@ std.assertEqual(std.setMember("nine", [], keyF=std.length), false) &&
 std.assertEqual(std.setMember("nine", ["one", "three"], keyF=std.length), false) &&
 std.assertEqual(std.setMember("nine", ["one", "four", "three"], keyF=std.length), true) &&
 
+# Keys that cannot be ordered are accepted when they are equal
+std.assertEqual(std.setMember(null, [null]), true) &&
+std.assertEqual(std.setMember(true, [true]), true) &&
+std.assertEqual(std.setMember({ a: 1 }, [{ a: 1 }]), true) &&
+std.assertEqual(std.setMember([null], [[null]]), true) &&
+
 local n = 100, arr = std.range(1, n)[::2];
 std.all([
     std.assertEqual(std.setMember(i, arr), i >= 1 && i <= n && (i % 2) == 1)

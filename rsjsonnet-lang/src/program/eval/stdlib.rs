@@ -3417,7 +3417,8 @@ impl<'p> Evaluator<'_, 'p> {
                 i: 0,
                 j: 0,
             });
-            self.state_stack.push(State::CompareValue);
+            self.state_stack
+                .push(State::FnInfallible(Self::do_std_set_compare_keys));
             self.check_thunk_args_and_execute_call(&keyf, &[b[0].view()], &[], None)?;
             self.check_thunk_args_and_execute_call(&keyf, &[a[0].view()], &[], None)?;
         }
@@ -3459,7 +3460,8 @@ impl<'p> Evaluator<'_, 'p> {
                 i,
                 j,
             });
-            self.state_stack.push(State::CompareValue);
+            self.state_stack
+                .push(State::FnInfallible(Self::do_std_set_compare_keys));
             // FIXME: We could avoid redundant calls to keyf
             self.check_thunk_args_and_execute_call(&keyf, &[b[j].view()], &[], None)?;
             self.check_thunk_args_and_execute_call(&keyf, &[a[i].view()], &[], None)?;
@@ -3490,7 +3492,8 @@ impl<'p> Evaluator<'_, 'p> {
                 i: 0,
                 j: 0,
             });
-            self.state_stack.push(State::CompareValue);
+            self.state_stack
+                .push(State::FnInfallible(Self::do_std_set_compare_keys));
             self.check_thunk_args_and_execute_call(&keyf, &[b[0].view()], &[], None)?;
             self.check_thunk_args_and_execute_call(&keyf, &[a[0].view()], &[], None)?;
         }
@@ -3538,7 +3541,8 @@ impl<'p> Evaluator<'_, 'p> {
                 i,
                 j,
             });
-            self.state_stack.push(State::CompareValue);
+            self.state_stack
+                .push(State::FnInfallible(Self::do_std_set_compare_keys));
             // FIXME: We could avoid redundant calls to keyf
             self.check_thunk_args_and_execute_call(&keyf, &[b[j].view()], &[], None)?;
             self.check_thunk_args_and_execute_call(&keyf, &[a[i].view()], &[], None)?;
@@ -3567,7 +3571,8 @@ impl<'p> Evaluator<'_, 'p> {
                 i: 0,
                 j: 0,
             });
-            self.state_stack.push(State::CompareValue);
+            self.state_stack
+                .push(State::FnInfallible(Self::do_std_set_compare_keys));
             self.check_thunk_args_and_execute_call(&keyf, &[b[0].view()], &[], None)?;
             self.check_thunk_args_and_execute_call(&keyf, &[a[0].view()], &[], None)?;
         }
@@ -3612,7 +3617,8 @@ impl<'p> Evaluator<'_, 'p> {
                 i,
                 j,
             });
-            self.state_stack.push(State::CompareValue);
+            self.state_stack
+                .push(State::FnInfallible(Self::do_std_set_compare_keys));
             // FIXME: We could avoid redundant calls to keyf
             self.check_thunk_args_and_execute_call(&keyf, &[b[j].view()], &[], None)?;
             self.check_thunk_args_and_execute_call(&keyf, &[a[i].view()], &[], None)?;
@@ -3664,7 +3670,8 @@ impl<'p> Evaluator<'_, 'p> {
             end,
             mid,
         });
-        self.state_stack.push(State::CompareValue);
+        self.state_stack
+            .push(State::FnInfallible(Self::do_std_set_compare_keys));
         self.check_thunk_args_and_execute_call(&keyf, &[arr[mid].view()], &[], None)?;
 
         Ok(())
@@ -3713,6 +3720,29 @@ impl<'p> Evaluator<'_, 'p> {
         }
 
         Ok(())
+    }
+
+    fn do_std_set_compare_keys(&mut self) {
+        // Check equality first, so keys that cannot be ordered (such as
+        // nulls, booleans or objects) are accepted when they are equal.
+        let rhs = self.value_stack[self.value_stack.len() - 1].clone();
+        let lhs = self.value_stack[self.value_stack.len() - 2].clone();
+
+        self.state_stack
+            .push(State::FnInfallible(Self::do_std_set_compare_keys_check));
+        self.state_stack.push(State::EqualsValue);
+        self.value_stack.push(lhs);
+        self.value_stack.push(rhs);
+    }
+
+    fn do_std_set_compare_keys_check(&mut self) {
+        let is_equal = self.bool_stack.pop().unwrap();
+        if is_equal {
+            self.value_stack.truncate(self.value_stack.len() - 2);
+            self.cmp_ord_stack.push(std::cmp::Ordering::Equal);
+        } else {
+            self.state_stack.push(State::CompareValue);
+        }
     }
 
     pub(super) fn do_std_base64(&mut self) -> EvalResult<()> {

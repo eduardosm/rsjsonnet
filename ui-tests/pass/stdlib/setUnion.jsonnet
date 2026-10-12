@@ -22,4 +22,10 @@ std.assertEqual(
   [[1, 1], [2, 1], [3, 1]],
 ) &&
 
+# Keys that cannot be ordered are accepted when they are equal
+std.assertEqual(std.setUnion([null], [null]), [null]) &&
+std.assertEqual(std.setUnion([true], [true]), [true]) &&
+std.assertEqual(std.setUnion([{ a: 1 }], [{ a: 1 }]), [{ a: 1 }]) &&
+std.assertEqual(std.setUnion([[null]], [[null]]), [[null]]) &&
+
 true
