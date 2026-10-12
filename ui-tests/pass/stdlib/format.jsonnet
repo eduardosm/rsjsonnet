@@ -3,6 +3,15 @@ std.assertEqual(std.format("%%", []), "%") &&
 
 std.assertEqual(std.format("%s", "string"), "string") &&
 std.assertEqual(std.format("%s", [[1, 2, 3]]), "[1, 2, 3]") &&
+std.assertEqual(std.format("%8s", "string"), "  string") &&
+std.assertEqual(std.format("%-8s", "string"), "string  ") &&
+// The field width is measured in codepoints.
+std.assertEqual(std.format("%6s", "héllo"), " héllo") &&
+std.assertEqual(std.format("%-6s", "héllo"), "héllo ") &&
+std.assertEqual(std.format("%5s", "héllo"), "héllo") &&
+std.assertEqual(std.format("%9s", "日本語"), "      日本語") &&
+std.assertEqual(std.format("%-4s", "😎"), "😎   ") &&
+std.assertEqual(std.format("%2c", "😎"), " 😎") &&
 
 std.assertEqual(std.format("%i", [0]), "0") &&
 std.assertEqual(std.format("%i", [-0]), "0") &&
@@ -140,6 +149,8 @@ std.assertEqual(std.format("%Li", [10]), "10") &&
 
 std.assertEqual(std.format("", {}), "") &&
 std.assertEqual(std.format("%(a)d", {a: 10}), "10") &&
+std.assertEqual(std.format("%(a)6s", {a: "héllo"}), " héllo") &&
+std.assertEqual(std.format("%(a)-6s", {a: "héllo"}), "héllo ") &&
 
 std.assertEqual("%d" % [10], "10") &&
 std.assertEqual("%d" % 10, "10") &&
