@@ -30,6 +30,8 @@
   the first one).
 - Count codepoints instead of UTF-8 bytes when applying the field width in
   `std.format` (strings with non-ASCII characters could be left unpadded).
+- Do not inherit the visibility of a field removed with `std.objectRemoveKey`
+  when the field is added again with default visibility (`:`).
 
 ## 0.5.0 (2026-03-26)
 

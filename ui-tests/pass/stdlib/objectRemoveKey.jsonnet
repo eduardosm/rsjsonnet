@@ -36,4 +36,19 @@ std.assertEqual(std.objectKeysValuesAll(r), [{ key: "b", value: 2 }, { key: "c",
 std.assertEqual(std.objectKeysValues({ c:: 4 } + r), [{ key: "b", value: 2 }, { key: "c", value: 3 }]) &&
 std.assertEqual(std.objectKeysValuesAll({ c:: 4 } + r), [{ key: "b", value: 2 }, { key: "c", value: 3 }]) &&
 
+// Ensure visibility is not inherited from a removed field
+
+local r = std.objectRemoveKey({ a:: 1, b: self.a }, "a");
+std.assertEqual(r + { a: 7 }, { a: 7, b: 7 }) &&
+std.assertEqual(std.objectFields(r + { a: 7 }), ["a", "b"]) &&
+std.assertEqual(std.objectHas(r + { a: 7 }, "a"), true) &&
+std.assertEqual(std.length(r + { a: 7 }), 2) &&
+
+local r = std.objectRemoveKey({ a::: 1 }, "a");
+std.assertEqual({ a:: 2 } + r + { a: 3 }, {}) &&
+std.assertEqual(std.objectFields({ a:: 2 } + r + { a: 3 }), []) &&
+std.assertEqual(std.objectFieldsAll({ a:: 2 } + r + { a: 3 }), ["a"]) &&
+std.assertEqual(std.objectHas({ a:: 2 } + r + { a: 3 }, "a"), false) &&
+std.assertEqual(({ a:: 2 } + r + { a: 3 }).a, 3) &&
+
 true

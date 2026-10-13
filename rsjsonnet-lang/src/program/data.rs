@@ -531,58 +531,63 @@ impl<'p> ObjectData<'p> {
     }
 
     pub(super) fn get_fields_order(&self) -> &[(InternedStr<'p>, ast::Visibility)] {
-        enum FieldState {
-            Normal(ast::Visibility),
-            Removed(usize),
+        struct FieldState {
+            // `None` while the field has not been found.
+            visibility: Option<ast::Visibility>,
+            // Layers before this one are skipped because the field
+            // was removed.
+            next_layer_i: usize,
         }
 
-        fn field_to_state(field: &ObjectField<'_>, layer_i: usize) -> FieldState {
-            match field {
-                ObjectField::Normal(data) => FieldState::Normal(data.visibility),
-                ObjectField::Removed(depth) => FieldState::Removed(layer_i + *depth),
+        impl FieldState {
+            fn new(field: &ObjectField<'_>, layer_i: usize) -> Self {
+                match field {
+                    ObjectField::Normal(data) => Self {
+                        visibility: Some(data.visibility),
+                        next_layer_i: 0,
+                    },
+                    ObjectField::Removed(depth) => Self {
+                        visibility: None,
+                        next_layer_i: layer_i + *depth + 1,
+                    },
+                }
+            }
+
+            fn update(&mut self, field: &ObjectField<'_>, layer_i: usize) {
+                if layer_i < self.next_layer_i {
+                    return;
+                }
+                match field {
+                    ObjectField::Normal(data) => {
+                        if matches!(self.visibility, None | Some(ast::Visibility::Default)) {
+                            self.visibility = Some(data.visibility);
+                        }
+                    }
+                    ObjectField::Removed(depth) => {
+                        self.next_layer_i = layer_i + *depth + 1;
+                    }
+                }
             }
         }
 
         self.fields_order.get_or_init(|| {
-            let mut all_fields = BTreeMap::new();
-            all_fields.extend(
-                self.self_layer
-                    .fields
-                    .iter()
-                    .map(|(n, f)| (SortedInternedStr(*n), field_to_state(f, 0))),
-            );
-            for (layer_i, layer) in self.super_layers.iter().enumerate() {
-                let layer_i = layer_i + 1;
+            let mut all_fields = BTreeMap::<_, FieldState>::new();
+            let layers = std::iter::once(&self.self_layer).chain(self.super_layers.iter());
+            for (layer_i, layer) in layers.enumerate() {
                 for (n, f) in layer.fields.iter() {
                     match all_fields.entry(SortedInternedStr(*n)) {
                         std::collections::btree_map::Entry::Vacant(entry) => {
-                            entry.insert(field_to_state(f, layer_i));
+                            entry.insert(FieldState::new(f, layer_i));
                         }
                         std::collections::btree_map::Entry::Occupied(mut entry) => {
-                            let entry = entry.get_mut();
-                            match entry {
-                                FieldState::Normal(ast::Visibility::Default) => {
-                                    if let ObjectField::Normal(f) = f {
-                                        *entry = FieldState::Normal(f.visibility);
-                                    }
-                                }
-                                FieldState::Normal(_) => {}
-                                FieldState::Removed(removed_layer_i) => {
-                                    if layer_i > *removed_layer_i {
-                                        *entry = field_to_state(f, layer_i);
-                                    }
-                                }
-                            }
+                            entry.get_mut().update(f, layer_i);
                         }
                     }
                 }
             }
             all_fields
                 .into_iter()
-                .filter_map(|(n, f)| match f {
-                    FieldState::Normal(vis) => Some((n.0, vis)),
-                    FieldState::Removed(_) => None,
-                })
+                .filter_map(|(n, f)| f.visibility.map(|vis| (n.0, vis)))
                 .collect()
         })
     }
