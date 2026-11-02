@@ -32,6 +32,8 @@
   `std.format` (strings with non-ASCII characters could be left unpadded).
 - Do not inherit the visibility of a field removed with `std.objectRemoveKey`
   when the field is added again with default visibility (`:`).
+- Reject overlong two-byte UTF-8 sequences (starting with 0xC0 or 0xC1) in
+  source code (they were decoded as ASCII characters).
 
 ## 0.5.0 (2026-03-26)
 

@@ -1,0 +1,6 @@
+error: invalid UTF-8 sequence
+ --> overlong.jsonnet:1:1
+  |
+1 | <C0><A2>abc<C0><A2>
+  | ^^^^ invalid UTF-8 sequence
+
