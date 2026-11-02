@@ -11,7 +11,7 @@ jobs:
     outputs:
       version: ${{ steps.get-version.outputs.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install Rust
         run: ./ci/install-rust.sh stable --profile minimal
       - id: get-version
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Download artifacts
-        uses: dawidd6/action-download-artifact@09f2f74827fd3a8607589e5ad7f9398816f540fe
+        uses: dawidd6/action-download-artifact@a92c7ae74cf1df8810783758581e485ac3aaa309
         with:
           workflow: ci.yml
           workflow_conclusion: success
@@ -54,17 +54,17 @@ jobs:
       contents: write
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Download version-changelog artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: version-changelog
       - name: Download dist-linux artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: dist-linux
       - name: Download dist-windows artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: dist-windows
       - name: Create GitHub release
@@ -85,7 +85,7 @@ jobs:
     needs: create-gh-release
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install Rust
         run: ./ci/install-rust.sh stable --profile minimal
       - name: Publish
