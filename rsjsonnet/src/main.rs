@@ -268,7 +268,12 @@ fn main_inner() -> Result<(), RunError> {
             }
         }
     } else {
-        match std::io::stdout().write_all(output.as_bytes()) {
+        // Flush explicitly, since stdout is line-buffered.
+        let mut stdout = std::io::stdout().lock();
+        match stdout
+            .write_all(output.as_bytes())
+            .and_then(|()| stdout.flush())
+        {
             Ok(()) => {}
             Err(e) => {
                 eprintln!("failed to write to stdout: {e}");

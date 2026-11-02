@@ -34,6 +34,8 @@
   when the field is added again with default visibility (`:`).
 - Reject overlong two-byte UTF-8 sequences (starting with 0xC0 or 0xC1) in
   source code (they were decoded as ASCII characters).
+- Report errors when writing the output to stdout if it does not end with a
+  newline (for example, with `--no-trailing-newline`).
 
 ## 0.5.0 (2026-03-26)
 
