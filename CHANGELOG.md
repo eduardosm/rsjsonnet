@@ -36,6 +36,8 @@
   source code (they were decoded as ASCII characters).
 - Report errors when writing the output to stdout if it does not end with a
   newline (for example, with `--no-trailing-newline`).
+- Fix off-by-one column in `std.parseYaml` errors for object keys that are
+  arrays or objects.
 
 ## 0.5.0 (2026-03-26)
 

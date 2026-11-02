@@ -1,4 +1,4 @@
-error: failed to parse YAML: object key is an array at line 1 column 7
+error: failed to parse YAML: object key is an array at line 1 column 8
 note: while evaluating call to `parseYaml`
  --> key1_is_array.jsonnet:1:1
   |
