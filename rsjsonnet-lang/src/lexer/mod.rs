@@ -681,7 +681,7 @@ impl<'a, 'p, 'ast> Lexer<'a, 'p, 'ast> {
         let mut i = self.end_pos;
         match byte0 {
             0..=0x7F => (i, Some(char::from(byte0))),
-            0b11000000..=0b11011111 => {
+            0b11000010..=0b11011111 => {
                 let byte1 = safe_get(self.input, i);
                 if byte1 & 192 != TAG_CONT_U8 {
                     return (i, None);
@@ -850,6 +850,11 @@ mod tests {
             b"\xF1 ",
             b"\xF1\x80 ",
             b"\xF1\x80\x80 ",
+            // Overlong two-byte sequences
+            b"\xC0\x80",
+            b"\xC0\xAF",
+            b"\xC1\x81",
+            b"\xC1\xBF",
         ];
 
         let (span_ctx, _) =
