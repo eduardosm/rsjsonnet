@@ -33,17 +33,18 @@ impl std::fmt::Display for ParseError<'_> {
             Self::AnchorFromOtherDoc => {
                 write!(f, "alias refers to an anchor from a previous document")
             }
+            // `Marker::col` is 0-based, despite its documentation.
             Self::KeyIsObject(ref marker) => write!(
                 f,
                 "object key is an object at line {} column {}",
                 marker.line(),
-                marker.col(),
+                marker.col() + 1,
             ),
             Self::KeyIsArray(ref marker) => write!(
                 f,
                 "object key is an array at line {} column {}",
                 marker.line(),
-                marker.col(),
+                marker.col() + 1,
             ),
             Self::NumberOverflow => write!(f, "number overflow"),
             Self::RepeatedFieldName(ref name) => {
